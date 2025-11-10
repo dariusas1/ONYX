@@ -1,0 +1,92 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1</storyId>
+    <title>Project Setup & Repository Initialization</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>.bmad-ephemeral/stories/1-1-project-setup-repository-initialization.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>DevOps engineer</asA>
+    <iWant>a clean repository structure with Docker Compose base setup</iWant>
+    <soThat>all team members can develop consistently and deploy predictably</soThat>
+    <tasks>- [ ] Task 1: Initialize repository structure (AC: 1)
+  - [ ] Create root directory structure
+  - [ ] Initialize git repository
+  - [ ] Set up .gitignore for Docker/Node/Python
+- [ ] Task 2: Create Docker Compose configuration (AC: 2, 3)
+  - [ ] Define all 6 core services (suna, onyx-core, qdrant, postgres, redis, nginx)
+  - [ ] Configure service dependencies and health checks
+  - [ ] Set up proper networking between services
+- [ ] Task 3: Implement health check endpoints (AC: 4)
+  - [ ] Add /health endpoint to each service
+  - [ ] Configure health check in Docker Compose
+  - [ ] Test health check responses
+- [ ] Task 4: Configure logging (AC: 5)
+  - [ ] Set up structured JSON logging for all services
+  - [ ] Configure log aggregation in Docker Compose
+  - [ ] Test log visibility via `docker compose logs`</tasks>
+  </story>
+
+  <acceptanceCriteria>1. Given: Fresh GitHub repo (or branch)
+2. When: `git clone` + `docker compose up`
+3. Then: All services start without manual configuration
+4. And: Health check endpoints return 200 for all services
+5. And: Logs are aggregated and readable via `docker compose logs`</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" title="ONYX Architecture Document" section="Project Structure" snippet="Follow architecture document structure exactly. Use consistent naming: kebab-case for directories, PascalCase for components." />
+      <doc path="docs/architecture.md" title="ONYX Architecture Document" section="Docker Compose Layout" snippet="version: '3.8' services: suna (Next.js): 3000, onyx-core (Python): 8080, postgres: 5432, redis: 6379, qdrant: 6333, nginx: 80, 443, litellm-proxy: 4000" />
+      <doc path="docs/architecture.md" title="ONYX Architecture Document" section="Environment Variables" snippet="GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DEEPSEEK_API_KEY, TOGETHER_API_KEY, DATABASE_URL, POSTGRES_PASSWORD, REDIS_URL, QDRANT_URL, ENCRYPTION_KEY" />
+      <doc path="docs/epics.md" title="ONYX Epics & Stories" section="Story 1.1" snippet="Set up Docker Compose with service definitions (suna, onyx-core, qdrant, supabase, redis). Include .env.example with all required variables. Add health check scripts for each service." />
+    </docs>
+    <code>
+      <artifact path=".opencode/package.json" kind="package" symbol="dependencies" lines="2-4" reason="Shows this is a BMAD framework configuration repository with OpenCode plugin" />
+    </code>
+    <dependencies>
+      <ecosystem name="docker">
+        <package name="docker-compose" version="v3.8+" />
+        <package name="nginx" version="latest" />
+        <package name="postgres" version="15-alpine" />
+        <package name="redis" version="7-alpine" />
+        <package name="qdrant/qdrant" version="latest" />
+      </ecosystem>
+      <ecosystem name="nodejs">
+        <package name="next" version="14.0+" />
+        <package name="typescript" version="5.3+" />
+        <package name="tailwindcss" version="v3.4+" />
+      </ecosystem>
+      <ecosystem name="python">
+        <package name="fastapi" version="latest" />
+        <package name="qdrant-client" version="latest" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="docker-compose" source="docs/architecture.md">Must use Docker Compose v3.8+ format</constraint>
+    <constraint type="health-checks" source="docs/architecture.md">All services must have health checks</constraint>
+    <constraint type="environment" source="docs/architecture.md">Environment variables must be externalized via .env files</constraint>
+    <constraint type="networking" source="docs/architecture.md">Services must communicate via internal Docker network</constraint>
+    <constraint type="naming" source="docs/architecture.md">Use consistent naming: kebab-case for directories, PascalCase for components</constraint>
+    <constraint type="no-hardcoded" source="docs/architecture.md">No hardcoded IPs or ports in service configurations</constraint>
+  </constraints>
+  <interfaces>
+    <interface name="Health Check Endpoint" kind="HTTP" signature="GET /health" path="suna/src/app/api/health/route.ts" />
+    <interface name="Docker Service Communication" kind="Internal Network" signature="http://service-name:port" path="docker-compose.yaml" />
+  </interfaces>
+  <tests>
+    <standards>Use Jest + React Testing Library for unit/integration tests. Docker health checks must return 200 status. All services must implement structured JSON logging.</standards>
+    <locations>Tests colocated with source files in __tests__/ directories. Docker health check endpoints at /health for each service.</locations>
+    <ideas>
+      <test idea="Test docker compose up starts all services" ac="2,3" />
+      <test idea="Verify health check endpoints return 200" ac="4" />
+      <test idea="Test log aggregation via docker compose logs" ac="5" />
+      <test idea="Validate .env.example contains all required variables" ac="1" />
+    </ideas>
+  </tests>
+</story-context>

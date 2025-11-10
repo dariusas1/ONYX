@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manus - Color Theme Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: #0F172A;
+            color: #F8FAFC;
+            padding: 48px 24px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #F8FAFC;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #CBD5E1;
+            margin-bottom: 48px;
+        }
+
+        .theme-section {
+            margin-bottom: 80px;
+        }
+
+        .theme-title {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #F8FAFC;
+        }
+
+        .theme-description {
+            font-size: 14px;
+            color: #94A3B8;
+            margin-bottom: 32px;
+        }
+
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .color-swatch {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .color-box {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            border: 1px solid #374151;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: transform 150ms, box-shadow 150ms;
+        }
+
+        .color-box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 217, 255, 0.2);
+        }
+
+        .color-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #CBD5E1;
+            margin-bottom: 4px;
+        }
+
+        .color-value {
+            font-size: 11px;
+            color: #94A3B8;
+            font-family: 'Monaco', monospace;
+        }
+
+        .components-demo {
+            background: #1A202C;
+            border: 1px solid #374151;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 48px;
+        }
+
+        .demo-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #F8FAFC;
+            margin-bottom: 24px;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .demo-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .demo-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #94A3B8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button {
+            padding: 10px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #0EA5E9;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0284C7;
+            box-shadow: 0 4px 12px rgba(0, 217, 255, 0.15);
+        }
+
+        .btn-secondary {
+            background: #242E42;
+            color: #CBD5E1;
+            border: 1px solid #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #2D3A51;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: #0EA5E9;
+            border: 1px solid #374151;
+        }
+
+        .btn-ghost:hover {
+            background: #242E42;
+        }
+
+        .btn-success {
+            background: #10B981;
+            color: white;
+        }
+
+        .btn-error {
+            background: #EF4444;
+            color: white;
+        }
+
+        .input-field {
+            padding: 10px 12px;
+            background: #242E42;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            color: #F8FAFC;
+            font-size: 14px;
+            font-family: inherit;
+            min-height: 44px;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #0EA5E9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid #10B981;
+            color: #6EE7B7;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #EF4444;
+            color: #FCA5A5;
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid #F59E0B;
+            color: #FCD34D;
+        }
+
+        .card {
+            background: #242E42;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .chat-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .chat-user {
+            background: #0EA5E9;
+            color: white;
+            margin-left: 20%;
+            margin-bottom: 8px;
+        }
+
+        .chat-manus {
+            background: #242E42;
+            border: 1px solid #374151;
+            color: #F8FAFC;
+            margin-right: 20%;
+            margin-bottom: 8px;
+        }
+
+        .citation {
+            color: #0EA5E9;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-primary {
+            background: #0EA5E9;
+            color: white;
+        }
+
+        .badge-success {
+            background: #10B981;
+            color: white;
+        }
+
+        .badge-warning {
+            background: #F59E0B;
+            color: white;
+        }
+
+        .badge-muted {
+            background: #374151;
+            color: #CBD5E1;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        @media (max-width: 768px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+            body {
+                padding: 24px 16px;
+            }
+            h1 {
+                font-size: 32px;
+            }
+        }
+
+        .spacing-demo {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .spacing-box {
+            background: #0EA5E9;
+            border-radius: 4px;
+            font-size: 12px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+        }
+
+        .spacing-xs { width: 40px; height: 40px; }
+        .spacing-sm { width: 80px; height: 40px; }
+        .spacing-md { width: 120px; height: 40px; }
+        .spacing-lg { width: 160px; height: 40px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Manus Color & Design System</h1>
+        <p class="subtitle">Dark-first, YC SaaS aesthetic with premium blue accents</p>
+
+        <!-- Neutral Foundation -->
+        <div class="theme-section">
+            <div class="theme-title">Neutral Foundation</div>
+            <div class="theme-description">Backgrounds, text, and borders that form the visual structure</div>
+            
+            <div class="palette-grid">
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #0A0E27;"></div>
+                    <div class="color-label">bg-0</div>
+                    <div class="color-value">#0A0E27</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #0F172A;"></div>
+                    <div class="color-label">bg-1 (Primary)</div>
+                    <div class="color-value">#0F172A</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #1A202C;"></div>
+                    <div class="color-label">bg-2 (Elevated)</div>
+                    <div class="color-value">#1A202C</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #242E42;"></div>
+                    <div class="color-label">bg-3 (Hover)</div>
+                    <div class="color-value">#242E42</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #F8FAFC;"></div>
+                    <div class="color-label">text-primary</div>
+                    <div class="color-value">#F8FAFC</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #CBD5E1;"></div>
+                    <div class="color-label">text-secondary</div>
+                    <div class="color-value">#CBD5E1</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #94A3B8;"></div>
+                    <div class="color-label">text-tertiary</div>
+                    <div class="color-value">#94A3B8</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #64748B;"></div>
+                    <div class="color-label">text-muted</div>
+                    <div class="color-value">#64748B</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accent Colors -->
+        <div class="theme-section">
+            <div class="theme-title">Accent Colors (Premium Blue)</div>
+            <div class="theme-description">Primary interactions, CTAs, and strategic highlights</div>
+            
+            <div class="palette-grid">
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #00D9FF;"></div>
+                    <div class="color-label">accent-bright</div>
+                    <div class="color-value">#00D9FF</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #0EA5E9;"></div>
+                    <div class="color-label">accent-medium</div>
+                    <div class="color-value">#0EA5E9</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #0284C7;"></div>
+                    <div class="color-label">accent-dark</div>
+                    <div class="color-value">#0284C7</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Semantic Colors -->
+        <div class="theme-section">
+            <div class="theme-title">Semantic Colors</div>
+            <div class="theme-description">Status indicators for success, warning, error, and information</div>
+            
+            <div class="palette-grid">
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #10B981;"></div>
+                    <div class="color-label">success</div>
+                    <div class="color-value">#10B981</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #F59E0B;"></div>
+                    <div class="color-label">warning</div>
+                    <div class="color-value">#F59E0B</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #EF4444;"></div>
+                    <div class="color-label">error</div>
+                    <div class="color-value">#EF4444</div>
+                </div>
+                <div class="color-swatch">
+                    <div class="color-box" style="background: #0EA5E9;"></div>
+                    <div class="color-label">info</div>
+                    <div class="color-value">#0EA5E9</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Component Examples -->
+        <div class="theme-section">
+            <div class="theme-title">Component Examples</div>
+            <div class="theme-description">How colors apply to real UI elements</div>
+
+            <div class="components-demo">
+                <div class="demo-title">Buttons</div>
+                <div class="demo-grid">
+                    <div class="demo-item">
+                        <div class="demo-label">Primary</div>
+                        <button class="btn-primary">Send Message</button>
+                    </div>
+                    <div class="demo-item">
+                        <div class="demo-label">Secondary</div>
+                        <button class="btn-secondary">Cancel</button>
+                    </div>
+                    <div class="demo-item">
+                        <div class="demo-label">Ghost</div>
+                        <button class="btn-ghost">Learn More</button>
+                    </div>
+                    <div class="demo-item">
+                        <div class="demo-label">Success</div>
+                        <button class="btn-success">Approve</button>
+                    </div>
+                    <div class="demo-item">
+                        <div class="demo-label">Error</div>
+                        <button class="btn-error">Delete</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="components-demo">
+                <div class="demo-title">Form Inputs</div>
+                <div class="demo-grid">
+                    <div class="demo-item">
+                        <div class="demo-label">Default</div>
+                        <input type="text" class="input-field" placeholder="Ask a strategic question...">
+                    </div>
+                    <div class="demo-item">
+                        <div class="demo-label">Focused</div>
+                        <input type="text" class="input-field" placeholder="Focused state" autofocus>
+                    </div>
+                </div>
+            </div>
+
+            <div class="components-demo">
+                <div class="demo-title">Alerts & Badges</div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div class="alert alert-success">✓ Agent task completed successfully</div>
+                    <div class="alert alert-warning">⚠ This action requires approval</div>
+                    <div class="alert alert-error">✕ Error retrieving document</div>
+                </div>
+                <div style="margin-top: 24px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <span class="badge badge-primary">Strategic Query</span>
+                    <span class="badge badge-success">Approved</span>
+                    <span class="badge badge-warning">Pending</span>
+                    <span class="badge badge-muted">Archived</span>
+                </div>
+            </div>
+
+            <div class="components-demo">
+                <div class="demo-title">Chat Preview</div>
+                <div style="max-width: 500px;">
+                    <div class="chat-user">What's the competitive landscape for AI agents?</div>
+                    <div class="chat-manus">
+                        Based on our internal analysis and recent market research, there are 5 major players emerging [<span class="citation">1</span>]. 
+                        The space is consolidating around two approaches: generalist models vs. specialized domain agents [<span class="citation">2</span>]. 
+                        Our positioning in defense is unique [<span class="citation">3</span>].
+                    </div>
+                </div>
+            </div>
+
+            <div class="components-demo">
+                <div class="demo-title">Cards & Elevation</div>
+                <div class="demo-grid">
+                    <div class="card">
+                        <div style="font-weight: 600; margin-bottom: 8px;">RAG Accuracy</div>
+                        <div style="font-size: 24px; font-weight: 700; color: #0EA5E9; margin-bottom: 4px;">95.2%</div>
+                        <div style="font-size: 12px; color: #94A3B8;">on 50 test queries</div>
+                    </div>
+                    <div class="card">
+                        <div style="font-weight: 600; margin-bottom: 8px;">Response Latency</div>
+                        <div style="font-size: 24px; font-weight: 700; color: #10B981; margin-bottom: 4px;">1.2s</div>
+                        <div style="font-size: 12px; color: #94A3B8;">p95 average</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Typography Scale -->
+        <div class="theme-section">
+            <div class="theme-title">Typography Scale</div>
+            <div class="theme-description">Hierarchy using Inter font at various sizes and weights</div>
+
+            <div class="components-demo">
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <div>
+                        <div style="font-size: 32px; font-weight: 700; color: #F8FAFC;">h1: Page Title (32px, 700)</div>
+                        <div style="font-size: 12px; color: #94A3B8; margin-top: 4px;">Used for main page titles and major sections</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: 600; color: #F8FAFC;">h2: Section Header (24px, 600)</div>
+                        <div style="font-size: 12px; color: #94A3B8; margin-top: 4px;">Used for section headers and major content divisions</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 20px; font-weight: 600; color: #F8FAFC;">h3: Subsection (20px, 600)</div>
+                        <div style="font-size: 12px; color: #94A3B8; margin-top: 4px;">Used for subsection headers and component titles</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 16px; font-weight: 400; color: #F8FAFC; line-height: 1.5;">Body Large: Main content (16px, 400, 1.5)</div>
+                        <div style="font-size: 12px; color: #94A3B8; margin-top: 4px;">Used for prominent body text and chat messages</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 400; color: #F8FAFC; line-height: 1.5;">Body: Default text (14px, 400, 1.5)</div>
+                        <div style="font-size: 12px; color: #94A3B8; margin-top: 4px;">Used for standard UI text and labels</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; font-weight: 400; color: #CBD5E1; line-height: 1.5;">Body Small: Secondary text (13px, 400, 1.5)</div>
+                        <div style="font-size: 12px; color: #94A3B8; margin-top: 4px;">Used for secondary content and metadata</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spacing Scale -->
+        <div class="theme-section">
+            <div class="theme-title">Spacing Scale</div>
+            <div class="theme-description">8px base unit for responsive, predictable layouts</div>
+
+            <div class="components-demo">
+                <div style="display: flex; flex-direction: column; gap: 32px;">
+                    <div>
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">4px (xs) - Very tight</div>
+                        <div style="width: 40px; height: 8px; background: #0EA5E9; border-radius: 2px;"></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">8px (sm) - Tight spacing</div>
+                        <div style="width: 80px; height: 8px; background: #0EA5E9; border-radius: 2px;"></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">16px (md) - Standard padding</div>
+                        <div style="width: 160px; height: 8px; background: #0EA5E9; border-radius: 2px;"></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">24px (lg) - Large gaps</div>
+                        <div style="width: 240px; height: 8px; background: #0EA5E9; border-radius: 2px;"></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">32px (xl) - Extra large</div>
+                        <div style="width: 320px; height: 8px; background: #0EA5E9; border-radius: 2px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

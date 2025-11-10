@@ -1,0 +1,275 @@
+
+
+services:
+  # Frontend - Next.js 14 with Suna UI
+  suna:
+    image: node:18-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_BASE: "/"
+      DATABASE_URL: "postgresql://manus:${POSTGRES_PASSWORD}@postgres:5432/manus"
+      REDIS_URL: "redis://redis:6379"
+      QDRANT_URL: "http://qdrant:6333"
+      LITELLM_URL: "http://litellm-proxy:4000"
+      # Logging configuration
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      NEXT_PUBLIC_LOG_LEVEL: info
+      NEXT_PUBLIC_SERVICE_NAME: suna-frontend
+      NEXT_PUBLIC_ENABLE_REMOTE_LOGGING: "false"
+    volumes:
+      - ./suna:/app
+      - /app/node_modules
+      - ./logs:/var/log/onyx
+    depends_on:
+      - postgres
+      - redis
+      - qdrant
+      - litellm-proxy
+    networks:
+      - manus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Python RAG service
+  onyx-core:
+    image: python:3.10-slim
+    working_dir: /app
+    command: sh -c "pip install -r requirements.txt && python -m uvicorn main:app --host 0.0.0.0 --port 8080 --reload"
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.local
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: "postgresql://manus:${POSTGRES_PASSWORD}@postgres:5432/manus"
+      QDRANT_URL: "http://qdrant:6333"
+      REDIS_URL: "redis://redis:6379"
+      # Logging configuration
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      SERVICE_NAME: onyx-core
+      PYTHON_ENV: development
+    volumes:
+      - ./onyx-core:/app
+      - ./logs:/var/log/onyx
+    depends_on:
+      - qdrant
+      - postgres
+      - redis
+    networks:
+      - manus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env.local
+    environment:
+      POSTGRES_DB: manus
+      POSTGRES_USER: manus
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-postgres.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    networks:
+      - manus-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manus -d manus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache + job queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    env_file:
+      - .env.local
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - manus-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Qdrant vector database
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    env_file:
+      - .env.local
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - manus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # LiteLLM proxy for LLM routing
+  litellm-proxy:
+    image: ghcr.io/berriai/litellm:latest
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env.local
+    environment:
+      LITELLM_PORT: 4000
+      LITELLM_MODEL_LIST: |
+        model_list:
+          - model_name: "deepseek-main"
+            litellm_params:
+              model: "together/deepseek-chat"
+              api_key: "${TOGETHER_API_KEY}"
+          - model_name: "ollama-fallback"
+            litellm_params:
+              model: "ollama/mistral:latest"
+              api_base: "http://ollama:11434"
+
+    depends_on:
+      - ollama
+    networks:
+      - manus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Ollama (fallback LLM)
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    env_file:
+      - .env.local
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - manus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file:
+      - .env.local
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logging.conf:/etc/nginx/conf.d/logging.conf:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - suna
+      - onyx-core
+    networks:
+      - manus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    env_file:
+      - .env.local
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - manus-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana dashboards
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    env_file:
+      - .env.local
+    environment:
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - manus-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  manus-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  ollama_models:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

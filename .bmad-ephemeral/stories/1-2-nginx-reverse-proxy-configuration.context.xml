@@ -1,0 +1,212 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>2</storyId>
+    <title>nginx-reverse-proxy-configuration</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>.bmad-ephemeral/stories/1-2-nginx-reverse-proxy-configuration.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>deployment engineer</asA>
+    <iWant>Nginx reverse proxy routing traffic to internal services</iWant>
+    <soThat>all external requests use standard HTTP/HTTPS and services remain isolated</soThat>
+    <tasks>Task 1: Configure Nginx upstream blocks (AC: 2, 3, 4, 5)
+  - Define upstream for Suna backend (:3000)
+  - Define upstream for noVNC (:6080)
+  - Configure location blocks for /api/, /chat/, /vnc/
+  - Test nginx configuration syntax and reload (AC: 2, 3, 4, 5)
+Task 2: Implement SSL/TLS support (AC: implicit security)
+  - Generate self-signed SSL certificates for development
+  - Configure HTTPS listener on port 443
+  - Set up SSL parameters and ciphers
+  - Test SSL certificate generation and HTTPS redirect (AC: implicit security)
+Task 3: Configure CORS headers (AC: 6)
+  - Add CORS headers for frontend ↔ backend communication
+  - Configure allowed origins, methods, and headers
+  - Validate CORS headers with browser dev tools (AC: 6)
+Task 4: Add performance optimizations (Technical Notes)
+  - Configure static asset caching where applicable
+  - Set up gzip compression
+  - Configure rate limiting
+  - Performance test with load testing tool (Technical Notes)</tasks>
+  </story>
+
+  <acceptanceCriteria>1. Given: Nginx container in Docker Compose
+2. When: Request comes to `http://localhost/api/*`
+3. Then: Proxied to Suna backend (:3000) and responds correctly
+4. And: Request to `/chat/*` proxies to Suna (:3000)
+5. And: Request to `/vnc/*` proxies to noVNC (:6080) [future]
+6. And: CORS headers configured for frontend ↔ backend</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Document</title>
+        <section>Docker Compose Layout</section>
+        <snippet>nginx: Reverse proxy routing /api/* → Suna, /vnc/* → noVNC, SSL/TLS support, security headers</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Document</title>
+        <section>Security Architecture</section>
+        <snippet>SSL/TLS support required for development environment, self-signed certificates, HTTPS listener on port 443</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Document</title>
+        <section>API Contracts</section>
+        <snippet>CORS headers must support Suna frontend ↔ backend communication</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Document</title>
+        <section>Implementation Patterns</section>
+        <snippet>Use nginx:latest image, configure upstream blocks, SSL parameters, performance optimizations</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Document</title>
+        <section>Performance Considerations</section>
+        <snippet>Gzip compression, static asset caching, rate limiting, connection pooling, keep-alive settings</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Document</title>
+        <section>Docker Compose Layout</section>
+        <snippet>nginx: Reverse proxy routing /api/* → Suna, /vnc/* → noVNC, SSL/TLS support, security headers</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>ONYX Epics & Stories Breakdown</title>
+        <section>Story 1.2: Nginx Reverse Proxy Configuration</section>
+        <snippet>Use nginx:latest image, configure upstream blocks for each service, add SSL/TLS support, cache static assets</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>nginx/nginx.conf</path>
+        <kind>configuration</kind>
+        <symbol>upstream suna_backend</symbol>
+        <lines>49-52</lines>
+        <reason>Existing upstream configuration for Suna backend service</reason>
+      </artifact>
+      <artifact>
+        <path>nginx/nginx.conf</path>
+        <kind>configuration</kind>
+        <symbol>location /api/</symbol>
+        <lines>82-100</lines>
+        <reason>Existing API routing with rate limiting and proxy settings</reason>
+      </artifact>
+      <artifact>
+        <path>nginx/nginx.conf</path>
+        <kind>configuration</kind>
+        <symbol>gzip compression</symbol>
+        <lines>27-42</lines>
+        <reason>Existing gzip configuration for performance optimization</reason>
+      </artifact>
+      <artifact>
+        <path>nginx/nginx.conf</path>
+        <kind>configuration</kind>
+        <symbol>rate limiting</symbol>
+        <lines>44-46</lines>
+        <reason>Existing rate limiting zones for API and login endpoints</reason>
+      </artifact>
+      <artifact>
+        <path>nginx/nginx.conf</path>
+        <kind>configuration</kind>
+        <symbol>SSL configuration</symbol>
+        <lines>188-209</lines>
+        <reason>Existing SSL server block with certificate paths and security settings</reason>
+      </artifact>
+      <artifact>
+        <path>docker-compose.yaml</path>
+        <kind>orchestration</kind>
+        <symbol>nginx service</symbol>
+        <lines>177-198</lines>
+        <reason>Docker Compose service definition for nginx with volume mounts and dependencies</reason>
+      </artifact>
+      <artifact>
+        <path>suna/package.json</path>
+        <kind>dependencies</kind>
+        <symbol>next</symbol>
+        <lines>16</lines>
+        <reason>Next.js framework that nginx will proxy requests to</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="docker">
+        <package name="nginx:alpine" version="latest">Reverse proxy server</package>
+        <package name="node:18-alpine" version="latest">Suna frontend container</package>
+      </ecosystem>
+      <ecosystem name="node">
+        <package name="next" version="^14.0.0">Frontend framework receiving proxied requests</package>
+        <package name="react" version="^18.0.0">UI library for Suna frontend</package>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Must use nginx:latest image as specified in Epic 1.2</constraint>
+    <constraint>All routes must proxy to correct internal service ports (Suna:3000, noVNC:6080)</constraint>
+    <constraint>SSL/TLS support required for development environment with self-signed certificates</constraint>
+    <constraint>CORS headers must support Suna frontend ↔ backend communication</constraint>
+    <constraint>Follow structured logging pattern established in Story 1.1</constraint>
+    <constraint>Use implementation patterns for reverse proxy configuration from architecture</constraint>
+    <constraint>Configure gzip compression for text-based responses</constraint>
+    <constraint>Set up rate limiting to prevent abuse</constraint>
+    <constraint>Configure static asset caching with appropriate TTL</constraint>
+    <constraint>Use connection pooling and keep-alive settings for performance</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>HTTP API Routes</name>
+      <kind>REST endpoints</kind>
+      <signature>GET/POST/PUT/DELETE /api/* → http://suna:3000/api/*</signature>
+      <path>nginx/nginx.conf</path>
+    </interface>
+    <interface>
+      <name>Chat Streaming</name>
+      <kind>WebSocket/SSE endpoint</kind>
+      <signature>GET/POST /api/chat → http://suna:3000/api/chat (streaming)</signature>
+      <path>nginx/nginx.conf</path>
+    </interface>
+    <interface>
+      <name>VNC Workspace</name>
+      <kind>WebSocket endpoint</kind>
+      <signature>GET/POST /vnc/* → http://suna:3000/vnc/* (future: noVNC:6080)</signature>
+      <path>nginx/nginx.conf</path>
+    </interface>
+    <interface>
+      <name>SSL Termination</name>
+      <kind>HTTPS listener</kind>
+      <signature>listen 443 ssl http2 with self-signed certificates</signature>
+      <path>nginx/nginx.conf</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Use Jest + React Testing Library for unit tests, nginx -t for configuration validation, curl for endpoint testing, browser dev tools for CORS validation</standards>
+    <locations>
+      <location>nginx/ - Nginx configuration tests</location>
+      <location>tests/ - Integration tests for proxy routing</location>
+      <location>docker-compose.yaml - Service health checks</location>
+    </locations>
+    <ideas>
+      <test idea="Test nginx configuration syntax" ac="1,2,3,4,5">Run `nginx -t` to validate configuration syntax before reload</test>
+      <test idea="Test API routing" ac="2,3">Send requests to /api/* endpoints and verify they proxy to Suna correctly</test>
+      <test idea="Test chat routing" ac="4">Send requests to /chat/* endpoints and verify they proxy to Suna correctly</test>
+      <test idea="Test VNC routing" ac="5">Send requests to /vnc/* endpoints and verify routing (future noVNC integration)</test>
+      <test idea="Test SSL certificates" ac="implicit security">Verify SSL certificate generation and HTTPS redirect functionality</test>
+      <test idea="Test CORS headers" ac="6">Use browser dev tools to verify CORS headers are present and correct</test>
+      <test idea="Test rate limiting" ac="technical">Send rapid requests to verify rate limiting works</test>
+      <test idea="Test gzip compression" ac="technical">Verify gzip compression is working for text-based responses</test>
+      <test idea="Test static asset caching" ac="technical">Verify static assets are cached with appropriate TTL</test>
+      <test idea="Performance test" ac="technical">Use load testing tool to verify performance targets are met</test>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manus - Design Direction Mockups</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: #0F172A;
+            color: #F8FAFC;
+            padding: 48px 24px;
+        }
+
+        .header {
+            max-width: 1400px;
+            margin: 0 auto 48px;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #CBD5E1;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            border: 1px solid #374151;
+            background: #242E42;
+            color: #F8FAFC;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 150ms;
+        }
+
+        .btn:hover {
+            background: #2D3A51;
+            border-color: #0EA5E9;
+        }
+
+        .btn.active {
+            background: #0EA5E9;
+            color: white;
+            border-color: #0EA5E9;
+        }
+
+        .mockups-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .mockup {
+            margin-bottom: 64px;
+            display: none;
+        }
+
+        .mockup.active {
+            display: block;
+        }
+
+        .mockup-info {
+            margin-bottom: 24px;
+        }
+
+        .mockup-title {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .mockup-description {
+            font-size: 14px;
+            color: #CBD5E1;
+            margin-bottom: 16px;
+        }
+
+        .mockup-characteristics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .characteristic {
+            padding: 12px;
+            background: #1A202C;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .characteristic-label {
+            font-weight: 600;
+            color: #0EA5E9;
+            margin-bottom: 4px;
+        }
+
+        .mockup-frame {
+            background: #1A202C;
+            border: 1px solid #374151;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 16 / 10;
+            display: flex;
+            min-height: 600px;
+        }
+
+        /* Direction 1: Minimal Sidebar */
+        .direction-1 .mockup-frame {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+        }
+
+        .sidebar {
+            background: #0F172A;
+            border-right: 1px solid #374151;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            overflow-y: auto;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: #00D9FF;
+            padding: 12px;
+        }
+
+        .nav-item {
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 150ms;
+            color: #CBD5E1;
+        }
+
+        .nav-item:hover {
+            background: #242E42;
+        }
+
+        .nav-item.active {
+            background: #0EA5E9;
+            color: white;
+            font-weight: 600;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            border-bottom: 1px solid #374151;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-area {
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+            max-width: 80%;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: #0EA5E9;
+            color: white;
+        }
+
+        .message.manus {
+            align-self: flex-start;
+            background: #242E42;
+            border: 1px solid #374151;
+        }
+
+        .input-area {
+            padding: 20px 24px;
+            border-top: 1px solid #374151;
+            display: flex;
+            gap: 12px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 10px 12px;
+            background: #242E42;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            color: #F8FAFC;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .send-btn {
+            padding: 10px 16px;
+            background: #0EA5E9;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 150ms;
+        }
+
+        .send-btn:hover {
+            background: #0284C7;
+        }
+
+        /* Direction 2: Top Navigation */
+        .direction-2 .mockup-frame {
+            display: grid;
+            grid-template-rows: 60px 1fr;
+        }
+
+        .top-nav {
+            background: #0F172A;
+            border-bottom: 1px solid #374151;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .top-nav-item {
+            font-size: 14px;
+            color: #CBD5E1;
+            cursor: pointer;
+            padding: 8px 12px;
+            transition: color 150ms;
+        }
+
+        .top-nav-item:hover {
+            color: #0EA5E9;
+        }
+
+        .top-nav-item.active {
+            color: #0EA5E9;
+            font-weight: 600;
+            border-bottom: 2px solid #0EA5E9;
+            padding-bottom: 18px;
+        }
+
+        /* Direction 3: Floating Input */
+        .direction-3 .chat-area {
+            padding-bottom: 120px;
+        }
+
+        .direction-3 .input-area {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, #0F172A, rgba(15, 23, 42, 0));
+            padding: 20px 24px;
+            border-top: none;
+        }
+
+        /* Direction 4: Wide Layout */
+        .direction-4 .mockup-frame {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+        }
+
+        .right-panel {
+            border-left: 1px solid #374151;
+            padding: 24px 16px;
+            background: #1A202C;
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #CBD5E1;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .panel-item {
+            padding: 12px;
+            background: #242E42;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        /* Direction 5: Minimal */
+        .direction-5 .mockup-frame {
+            padding: 32px;
+            flex-direction: column;
+        }
+
+        .direction-5 .chat-area {
+            padding: 0;
+        }
+
+        .direction-5 .input-area {
+            padding: 0;
+            border-top: none;
+            margin-top: 24px;
+        }
+
+        /* Direction 6: Dense */
+        .direction-6 .mockup-frame {
+            display: grid;
+            grid-template-columns: 200px 1fr 200px;
+        }
+
+        .direction-6 .chat-area {
+            padding: 16px;
+        }
+
+        .direction-6 .message {
+            max-width: 100%;
+        }
+
+        /* Direction 7: Card-based */
+        .direction-7 .chat-area {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            padding: 24px;
+        }
+
+        .card-message {
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #374151;
+        }
+
+        .card-message.user {
+            background: rgba(14, 165, 233, 0.15);
+            border-color: #0EA5E9;
+        }
+
+        /* Direction 8: Command Palette */
+        .direction-8 .mockup-frame {
+            background: transparent;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .command-palette {
+            width: 100%;
+            max-width: 600px;
+            background: #1A202C;
+            border: 1px solid #374151;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .command-input {
+            padding: 16px 20px;
+            background: #242E42;
+            border-bottom: 1px solid #374151;
+            font-size: 16px;
+            color: #F8FAFC;
+            border: none;
+            width: 100%;
+            font-family: inherit;
+        }
+
+        .command-results {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .command-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #374151;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 150ms;
+        }
+
+        .command-item:hover {
+            background: #2D3A51;
+        }
+
+        .command-label {
+            color: #0EA5E9;
+            font-weight: 500;
+        }
+
+        .command-description {
+            font-size: 12px;
+            color: #94A3B8;
+            margin-top: 2px;
+        }
+
+        @media (max-width: 1024px) {
+            .direction-1 .mockup-frame {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none;
+            }
+            .direction-4 .mockup-frame {
+                grid-template-columns: 1fr;
+            }
+            .right-panel {
+                display: none;
+            }
+        }
+
+        .note {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid #0EA5E9;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #CBD5E1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎨 Manus Design Directions</h1>
+        <p class="subtitle">8 different approaches to the strategic query interface</p>
+        
+        <div class="controls">
+            <button class="btn active" onclick="showDirection(1)">1. Minimal Sidebar</button>
+            <button class="btn" onclick="showDirection(2)">2. Top Nav</button>
+            <button class="btn" onclick="showDirection(3)">3. Floating Input</button>
+            <button class="btn" onclick="showDirection(4)">4. Sidebar + Panel</button>
+            <button class="btn" onclick="showDirection(5)">5. Minimal Clean</button>
+            <button class="btn" onclick="showDirection(6)">6. Dense</button>
+            <button class="btn" onclick="showDirection(7)">7. Card-Based</button>
+            <button class="btn" onclick="showDirection(8)">8. Command Mode</button>
+        </div>
+    </div>
+
+    <div class="mockups-container">
+        <!-- Direction 1: Minimal Sidebar -->
+        <div class="mockup direction-1 active" id="direction-1">
+            <div class="mockup-info">
+                <div class="mockup-title">Direction 1: Minimal Sidebar</div>
+                <div class="mockup-description">
+                    Clean, focused chat interface with persistent sidebar navigation. Ideal for partners who want to quickly switch between conversations and maintain context.
+                </div>
+                <div class="mockup-characteristics">
+                    <div class="characteristic">
+                        <div class="characteristic-label">Layout</div>
+                        <div>Sidebar + Main Content</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Navigation</div>
+                        <div>Persistent left sidebar</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Density</div>
+                        <div>Spacious, focused</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Best For</div>
+                        <div>Deep focus, multiple chats</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mockup-frame">
+                <div class="sidebar">
+                    <div class="logo">Manus</div>
+                    <div class="nav-item active">💬 Chats</div>
+                    <div class="nav-item">🔍 Search</div>
+                    <div class="nav-item">📊 Workspace</div>
+                    <div class="nav-item">⚙️ Settings</div>
+                    <div style="margin-top: auto; border-top: 1px solid #374151; padding-top: 16px;">
+                        <div class="nav-item">👤 Profile</div>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="top-bar">
+                        <div style="font-weight: 600;">Strategy & Market</div>
+                        <div style="font-size: 12px; color: #94A3B8;">Today</div>
+                    </div>
+                    <div class="chat-area">
+                        <div class="message user">What's the competitive landscape?</div>
+                        <div class="message manus">The AI agent space consolidates around two approaches...</div>
+                        <div class="message user">How does this affect our roadmap?</div>
+                        <div class="message manus">Given our defense contract focus and existing partnerships...</div>
+                    </div>
+                    <div class="input-area">
+                        <input type="text" class="input-field" placeholder="Follow-up question...">
+                        <button class="send-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+            <div class="note">✓ Recommended for Teams: Classic chat interface partners know and love</div>
+        </div>
+
+        <!-- Direction 2: Top Navigation -->
+        <div class="mockup direction-2" id="direction-2">
+            <div class="mockup-info">
+                <div class="mockup-title">Direction 2: Top Navigation</div>
+                <div class="mockup-description">
+                    Horizontal navigation with more screen real estate for chat. Great for widescreen displays and minimalist aesthetic.
+                </div>
+                <div class="mockup-characteristics">
+                    <div class="characteristic">
+                        <div class="characteristic-label">Layout</div>
+                        <div>Top Bar + Full-Width Content</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Navigation</div>
+                        <div>Horizontal top tabs</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Density</div>
+                        <div>Maximum content area</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Best For</div>
+                        <div>Wide monitors, minimal UI</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mockup-frame">
+                <div class="top-nav">
+                    <div style="font-weight: 700; color: #00D9FF;">Manus</div>
+                    <div class="top-nav-item active">Chat</div>
+                    <div class="top-nav-item">Workspace</div>
+                    <div class="top-nav-item">Search</div>
+                    <div style="margin-left: auto;">
+                        <div class="top-nav-item">Settings</div>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="chat-area">
+                        <div class="message user">Competitive analysis for next week's board meeting?</div>
+                        <div class="message manus">I'll analyze the latest market trends combined with our internal strategic position...</div>
+                        <div class="message user">Include defense sector specifically</div>
+                        <div class="message manus">Understood. Focusing on defense contracts and our unique positioning...</div>
+                    </div>
+                    <div class="input-area">
+                        <input type="text" class="input-field" placeholder="Ask anything...">
+                        <button class="send-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+            <div class="note">Clean, horizontal navigation feels modern. Less context-switching overhead.</div>
+        </div>
+
+        <!-- Direction 3: Floating Input -->
+        <div class="mockup direction-3" id="direction-3">
+            <div class="mockup-info">
+                <div class="mockup-title">Direction 3: Floating Input</div>
+                <div class="mockup-description">
+                    Chat messages float above, with input bar fixed at bottom with gradient fade. Creates focus on messages and quick typing.
+                </div>
+                <div class="mockup-characteristics">
+                    <div class="characteristic">
+                        <div class="characteristic-label">Layout</div>
+                        <div>Full Screen with Floating Bar</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Navigation</div>
+                        <div>Minimal, modal-driven</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Density</div>
+                        <div>Spacious, focus on messages</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Best For</div>
+                        <div>Quick interactions, mobile</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mockup-frame">
+                <div class="main-content" style="grid-template-columns: 1fr; grid-template-rows: 1fr;">
+                    <div class="chat-area">
+                        <div class="message user">Market trends in enterprise AI this quarter?</div>
+                        <div class="message manus">Based on our data and web research, we're seeing consolidation around vertical solutions...</div>
+                        <div class="message user">Specific implications for our strategy?</div>
+                        <div class="message manus">This validates our focus on defense sector specificity rather than general-purpose...</div>
+                    </div>
+                    <div class="input-area" style="position: absolute; bottom: 0; left: 0; right: 0; width: 100%; display: flex;">
+                        <input type="text" class="input-field" style="width: 100%; margin: 0;" placeholder="Ask a question...">
+                        <button class="send-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+            <div class="note">Modern, mobile-forward. Input always accessible, messages get full spotlight.</div>
+        </div>
+
+        <!-- Direction 4: Sidebar + Right Panel -->
+        <div class="mockup direction-4" id="direction-4">
+            <div class="mockup-info">
+                <div class="mockup-title">Direction 4: Sidebar + Right Context Panel</div>
+                <div class="mockup-description">
+                    Chat in center with left navigation sidebar and right panel for citations, sources, and live workspace integration.
+                </div>
+                <div class="mockup-characteristics">
+                    <div class="characteristic">
+                        <div class="characteristic-label">Layout</div>
+                        <div>Sidebar + Main + Panel</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Navigation</div>
+                        <div>Left sidebar nav</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Sources</div>
+                        <div>Right panel for citations</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Best For</div>
+                        <div>Citation exploration, research</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mockup-frame">
+                <div class="sidebar" style="width: 200px; padding: 16px 12px;">
+                    <div class="logo" style="margin-bottom: 16px;">M</div>
+                    <div class="nav-item active">New Chat</div>
+                    <div class="nav-item">Workspace</div>
+                </div>
+                <div class="main-content">
+                    <div class="chat-area">
+                        <div class="message user">Defense market trends?</div>
+                        <div class="message manus">The defense sector is seeing increased AI adoption [1]. Key players are investing [2]...</div>
+                    </div>
+                    <div class="input-area">
+                        <input type="text" class="input-field" placeholder="Question...">
+                        <button class="send-btn">→</button>
+                    </div>
+                </div>
+                <div class="right-panel">
+                    <div class="panel-title">Sources</div>
+                    <div class="panel-item">📄 Q3 Board Deck</div>
+                    <div class="panel-item">💬 Slack: Defense thread</div>
+                    <div class="panel-item">🔗 McKinsey Report</div>
+                    <div style="margin-top: 32px;">
+                        <div class="panel-title">Memory</div>
+                        <div class="panel-item">Priority: Defense</div>
+                        <div class="panel-item">Focus: Market trends</div>
+                    </div>
+                </div>
+            </div>
+            <div class="note">✓ RECOMMENDED: Perfect for citation exploration + context awareness. Ideal for research-heavy queries.</div>
+        </div>
+
+        <!-- Direction 5: Minimal -->
+        <div class="mockup direction-5" id="direction-5">
+            <div class="mockup-info">
+                <div class="mockup-title">Direction 5: Ultra-Minimal</div>
+                <div class="mockup-description">
+                    Distraction-free experience with zero chrome. Just conversation and input. Maximum focus, minimal UI.
+                </div>
+                <div class="mockup-characteristics">
+                    <div class="characteristic">
+                        <div class="characteristic-label">Layout</div>
+                        <div>Full Width, Minimal</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Navigation</div>
+                        <div>Keyboard-driven or modal</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Density</div>
+                        <div>Minimal, zen</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Best For</div>
+                        <div>Distraction-free focus</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mockup-frame" style="padding: 48px; max-width: 700px; margin: 0 auto;">
+                <div style="text-align: center; margin-bottom: 48px;">
+                    <div style="font-size: 32px; font-weight: 700; color: #00D9FF;">Manus</div>
+                    <div style="font-size: 14px; color: #94A3B8; margin-top: 8px;">Your strategic intelligence partner</div>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 24px; margin-bottom: 32px;">
+                    <div class="message user">What should our pricing strategy be for the enterprise tier?</div>
+                    <div class="message manus">Based on our market analysis and competitor positioning, I'd recommend a value-based approach anchored at $2,500/month...</div>
+                </div>
+                <input type="text" class="input-field" placeholder="Your next question..." style="width: 100%;">
+            </div>
+            <div class="note">Zen aesthetic. Best for partners who want pure conversation, no distractions.</div>
+        </div>
+
+        <!-- Direction 6: Dense -->
+        <div class="mockup direction-6" id="direction-6">
+            <div class="mockup-info">
+                <div class="mockup-title">Direction 6: Information-Dense</div>
+                <div class="mockup-description">
+                    Sidebar navigation + main chat + right context panel. Maximum information visibility. Ideal for power users monitoring multiple data streams.
+                </div>
+                <div class="mockup-characteristics">
+                    <div class="characteristic">
+                        <div class="characteristic-label">Layout</div>
+                        <div>3-Column Dense</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Information</div>
+                        <div>All visible at once</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Density</div>
+                        <div>High, information-rich</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Best For</div>
+                        <div>Power users, analysts</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mockup-frame">
+                <div class="sidebar" style="width: 160px; padding: 12px 8px; font-size: 12px;">
+                    <div class="logo" style="font-size: 16px; margin-bottom: 12px;">M</div>
+                    <div class="nav-item active">Chat</div>
+                    <div class="nav-item">History</div>
+                    <div style="margin-top: 24px; border-top: 1px solid #374151; padding-top: 12px;">
+                        <div class="nav-item">Workspace</div>
+                        <div class="nav-item">Agents</div>
+                        <div class="nav-item">Memory</div>
+                    </div>
+                </div>
+                <div class="main-content">
+                    <div class="chat-area" style="gap: 12px;">
+                        <div class="message user" style="max-width: 100%; font-size: 12px;">Competitive analysis?</div>
+                        <div class="message manus" style="max-width: 100%; font-size: 12px;">5 major players. We lead in [1]. Consolidation trend [2]. Our advantage [3].</div>
+                        <div class="message user" style="max-width: 100%; font-size: 12px;">Market size projections?</div>
+                        <div class="message manus" style="max-width: 100%; font-size: 12px;">$8.3B by 2026. Defense segment growing 23% YoY [source].</div>
+                    </div>
+                    <div class="input-area" style="padding: 12px 12px;">
+                        <input type="text" class="input-field" placeholder="..." style="font-size: 12px;">
+                    </div>
+                </div>
+                <div class="right-panel" style="width: 160px; padding: 12px; font-size: 12px;">
+                    <div class="panel-title">Context</div>
+                    <div class="panel-item" style="font-size: 12px; padding: 8px;">📊 Metrics</div>
+                    <div class="panel-item" style="font-size: 12px; padding: 8px;">📄 Sources</div>
+                    <div class="panel-item" style="font-size: 12px; padding: 8px;">🔍 Similar</div>
+                </div>
+            </div>
+            <div class="note">For advanced users who want all information visible simultaneously. Can feel overwhelming for casual use.</div>
+        </div>
+
+        <!-- Direction 7: Card-Based -->
+        <div class="mockup direction-7" id="direction-7">
+            <div class="mockup-info">
+                <div class="mockup-title">Direction 7: Card-Based Grid</div>
+                <div class="mockup-description">
+                    Responses as cards in a grid layout. Each message/response is a contained unit. Great for scanning and comparison.
+                </div>
+                <div class="mockup-characteristics">
+                    <div class="characteristic">
+                        <div class="characteristic-label">Layout</div>
+                        <div>Multi-Column Grid</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Organization</div>
+                        <div>Cards as units</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Scanning</div>
+                        <div>Easy to scan</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Best For</div>
+                        <div>Exploration, comparison</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mockup-frame" style="padding: 24px; overflow-y: auto;">
+                <div style="display: contents;">
+                    <div class="card-message user">
+                        <div style="font-weight: 600; margin-bottom: 8px;">Your Question</div>
+                        Market trends for next quarter?
+                    </div>
+                    <div class="card-message" style="background: #242E42; border-color: #374151;">
+                        <div style="font-weight: 600; margin-bottom: 8px; color: #0EA5E9;">Manus Response</div>
+                        <div>Consolidation around vertical AI solutions. Your defense strategy validates this trend.</div>
+                        <div style="font-size: 11px; color: #94A3B8; margin-top: 8px;">Sources: 3 documents · 2 web articles</div>
+                    </div>
+                    <div class="card-message user">
+                        How does this impact hiring?
+                    </div>
+                    <div class="card-message" style="background: #242E42; border-color: #374151;">
+                        <div style="font-weight: 600; margin-bottom: 8px; color: #0EA5E9;">Manus Response</div>
+                        <div>Focus on defense domain experts. Specialized talent commands 20% premium currently.</div>
+                        <div style="font-size: 11px; color: #94A3B8; margin-top: 8px;">Sources: 5 interviews · Market data</div>
+                    </div>
+                </div>
+            </div>
+            <div class="note">Unusual for chat, but could work for asynchronous review or comparison of multiple strategic queries.</div>
+        </div>
+
+        <!-- Direction 8: Command Mode -->
+        <div class="mockup direction-8" id="direction-8">
+            <div class="mockup-info">
+                <div class="mockup-title">Direction 8: Command Palette First</div>
+                <div class="mockup-description">
+                    Fast command-driven interface. Partners can ask complex questions with a single keystroke. Hacker-like aesthetic for power users.
+                </div>
+                <div class="mockup-characteristics">
+                    <div class="characteristic">
+                        <div class="characteristic-label">Interaction</div>
+                        <div>Command Palette</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Speed</div>
+                        <div>Ultra-fast keyboard-driven</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Learning Curve</div>
+                        <div>Steeper, powerful</div>
+                    </div>
+                    <div class="characteristic">
+                        <div class="characteristic-label">Best For</div>
+                        <div>Power users, developers</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mockup-frame" style="background: rgba(15, 23, 42, 0.8); border: none;">
+                <div class="command-palette">
+                    <input type="text" class="command-input" placeholder="Cmd+K: Ask anything..." autofocus>
+                    <div class="command-results">
+                        <div class="command-item">
+                            <div class="command-label">→ Market Analysis</div>
+                            <div class="command-description">Research competitive landscape with web search</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-label">→ Create Document</div>
+                            <div class="command-description">Generate strategy doc and save to Drive</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-label">→ Data Analysis</div>
+                            <div class="command-description">Execute Python analysis on company data</div>
+                        </div>
+                        <div class="command-item">
+                            <div class="command-label">→ Web Search</div>
+                            <div class="command-description">Quick web search on any topic</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="note">For partners who love keyboard shortcuts and minimal UI. Think VS Code command palette + strategic AI.</div>
+        </div>
+    </div>
+
+    <script>
+        function showDirection(n) {
+            // Hide all mockups
+            document.querySelectorAll('.mockup').forEach(m => m.classList.remove('active'));
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            
+            // Show selected
+            document.getElementById('direction-' + n).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
