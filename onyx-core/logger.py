@@ -159,7 +159,7 @@ class StructuredFormatter(logging.Formatter):
         }
 
         # Add exception info if present
-        if record.exc_info:
+        if record.exc_info and record.exc_info[0] is not None:
             log_entry["error"] = {
                 "type": record.exc_info[0].__name__,
                 "message": str(record.exc_info[1]),
@@ -205,7 +205,7 @@ def get_logger(service_name: Optional[str] = None) -> StructuredLogger:
     global _logger
     if _logger is None or (service_name and _logger.service_name != service_name):
         _logger = StructuredLogger(
-            service_name or os.getenv("SERVICE_NAME", "onyx-core"),
+            service_name or os.getenv("SERVICE_NAME") or "onyx-core",
             os.getenv("LOG_LEVEL", "INFO"),
         )
     return _logger

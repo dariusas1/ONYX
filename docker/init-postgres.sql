@@ -7,7 +7,17 @@
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgvector";
+
+-- Try to enable pgvector, but don't fail if it's not available
+-- This allows the database to start in development environments
+DO $$
+BEGIN
+    BEGIN
+        CREATE EXTENSION IF NOT EXISTS "pgvector";
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'pgvector extension not available, vector features will be disabled';
+    END;
+END $$;
 
 -- =============================================================================
 -- Users Table
@@ -68,16 +78,26 @@ CREATE TABLE IF NOT EXISTS memories (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     fact TEXT NOT NULL,
     source TEXT DEFAULT 'manual' CHECK (source IN ('manual', 'extracted_from_chat', 'auto_generated')),
-    embedding VECTOR(1536), -- For semantic similarity search
     expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add embedding column only if pgvector is available
+DO $$
+BEGIN
+    BEGIN
+        ALTER TABLE memories ADD COLUMN IF NOT EXISTS embedding VECTOR(1536);
+        -- Create vector index only if pgvector is available
+        CREATE INDEX IF NOT EXISTS idx_memories_embedding ON memories USING ivfflat (embedding vector_cosine_ops);
+    EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Vector features disabled for memories table';
+    END;
+END $$;
+
 -- Create indexes for memories
 CREATE INDEX IF NOT EXISTS idx_memories_user_id ON memories(user_id);
 CREATE INDEX IF NOT EXISTS idx_memories_expires_at ON memories(expires_at);
-CREATE INDEX IF NOT EXISTS idx_memories_embedding ON memories USING ivfflat (embedding vector_cosine_ops);
 
 -- =============================================================================
 -- Standing Instructions Table

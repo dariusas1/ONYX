@@ -137,6 +137,9 @@ temp/
 *.crt
 *.csr
 
+# Secrets directory
+secrets/
+
 # Local development
 .local
 local.*

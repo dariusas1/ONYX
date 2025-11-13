@@ -85,14 +85,50 @@ docker compose -f docker-compose.yaml -f docker-compose.secrets.yaml up
 - `SERVICE_NAME`
 - `NEXT_PUBLIC_*` (frontend-only variables)
 
+## Security Implementation
+
+### Secrets Masking
+
+**CRITICAL SECURITY FIX IMPLEMENTED**: All secrets are now properly masked in docker compose config.
+
+- **Production environments** use pure variable substitution: `${SECRET_VAR}`
+- **Development environments** may use defaults: `${SECRET_VAR:-dev-value}`
+- **Docker Compose config** shows masked secrets as empty strings when variables are not set
+
+### Variable Format Rules
+
+```bash
+# ✅ CORRECT - Masks secrets in docker compose config
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+ENCRYPTION_KEY=${ENCRYPTION_KEY}
+
+# ❌ WRONG - Exposes secrets in docker compose config
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-default-secret}
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dev-password}
+```
+
 ## Best Practices
 
 1. **Never commit actual secrets** to version control
-2. **Use Docker secrets** for production deployments
-3. **Validate environment** before deployment using validation scripts
-4. **Document variable purposes** in `.env.example`
-5. **Use consistent naming** across environments
-6. **Test environment switching** before production deployment
+2. **Use variable substitution** for all sensitive values in production
+3. **Validate secrets masking** with `docker compose config` before deployment
+4. **Run validation scripts** to ensure no exposed secrets
+5. **Use environment switching** for different deployment environments
+6. **Test configuration** in staging before production deployment
+
+### Security Validation Commands
+
+```bash
+# CRITICAL: Always run before deployment
+./scripts/validate-runtime-secrets.sh
+
+# Verify secrets are masked (should show empty strings)
+docker compose config | grep -E "(PASSWORD|KEY|SECRET)"
+
+# Test environment switching
+./scripts/switch-env.sh production
+```
 
 ## Validation
 

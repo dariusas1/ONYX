@@ -6,13 +6,12 @@ and sentence transformers for embedding generation.
 """
 
 import os
-import asyncio
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 import logging
 
-from qdrant_client import QdrantClient
-from qdrant_client.models import (
+from qdrant_client import QdrantClient # pyright: ignore[reportMissingImports]
+from qdrant_client.models import ( # pyright: ignore[reportMissingImports]
     Distance,
     VectorParams,
     PointStruct,
@@ -21,7 +20,6 @@ from qdrant_client.models import (
     MatchValue,
 )
 from sentence_transformers import SentenceTransformer
-import numpy as np
 
 logger = logging.getLogger(__name__)
 

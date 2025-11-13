@@ -1,0 +1,128 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>5</storyId>
+    <title>Local Development Environment Setup Guide</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-12</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>.bmad-ephemeral/stories/1-5-local-development-environment-setup-guide.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a new team member</asA>
+    <iWant>clear, step-by-step instructions to get ONYX running locally</iWant>
+    <soThat>onboarding is &lt;30 minutes and I can start developing immediately</soThat>
+    <tasks>Task 1: Create comprehensive DEVELOPMENT.md guide (AC: 1, 2)
+  - Document system requirements (Docker, Node 18+, Python 3.10+)
+  - Add step-by-step setup instructions for each OS
+  - Include troubleshooting section for common issues
+  - Document port conflicts resolution
+  - Add verification steps after setup
+Task 2: Create automated setup script (AC: 3)
+  - Create `./scripts/setup.sh` with prerequisite checks
+  - Add Docker installation verification
+  - Add Node.js version check and installation guidance
+  - Add Python version check and installation guidance
+  - Include environment file setup automation
+Task 3: Add database seeding and initialization (AC: 5, 6, 7)
+  - Create database initialization script
+  - Add sample data for testing
+  - Verify all services start correctly
+  - Test health check endpoints
+  - Validate UI accessibility and functionality</tasks>
+  </story>
+
+  <acceptanceCriteria>1. Given: Fresh macOS/Linux/Windows machine
+2. When: Follow `DEVELOPMENT.md`
+3. Then: All prerequisites are installed (Docker, Node, Python)
+4. And: `./scripts/setup.sh` runs without errors
+5. And: `docker compose up` starts all services
+6. And: Suna UI accessible at `http://localhost:3000`
+7. And: All health checks pass</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epics.md" title="ONYX - Epics & Stories Breakdown" section="Epic 1: Foundation & Infrastructure" snippet="Epic 1 establishes the foundational infrastructure for Manus Internal, enabling all subsequent development. This epic creates the Docker-based multi-service environment, deployment pipeline, and operational monitoring necessary for the strategic intelligence platform." />
+      <doc path=".bmad-ephemeral/stories/tech-spec-epic-1.md" title="Epic Technical Specification: Foundation & Infrastructure" section="Development Environment Requirements" snippet="Docker: Docker Desktop or Docker Engine (latest), Node.js: 18+ for local Suna development, Python: 3.10+ for Onyx Core local development, Git: For version control, Optional: PostgreSQL client for manual database queries" />
+      <doc path="docs/architecture.md" title="ONYX (Manus Internal) - Architecture Document" section="Development Environment" snippet="Prerequisites: Docker Desktop or Docker Engine, Node.js 18+ (for local development if not using Docker), Python 3.10+ (for Onyx Core if developing locally), Git, PostgreSQL client (optional, for manual SQL queries)" />
+      <doc path="docs/PRD.md" title="ONYX - Product Requirements Document" section="MVP (Phases 1-2, Weeks 1-3)" snippet="Phase 1: Foundation (Week 1) - Suna UI with Manus dark theme (Inter font, blue accents, minimalist design), Single-page chat interface (unlimited conversations, no quotas), LiteLLM proxy routing to DeepSeek (Together AI), Ollama fallback" />
+      <doc path="docs/ux-design-specification.md" title="Manus Internal - UX Design Specification" section="Design System Foundation" snippet="Design System: shadcn/ui, Styling: Tailwind CSS, Typography: Inter font family, Component Library: Radix UI (via shadcn), Icons: lucide-react or Heroicons" />
+    </docs>
+    <code>
+      <artifact path="docker-compose.yaml" type="infrastructure" description="Multi-service Docker Compose configuration with 9 services (suna, onyx-core, postgres, redis, qdrant, litellm-proxy, ollama, nginx, prometheus, grafana)" />
+      <artifact path="suna/package.json" type="frontend" description="Next.js 14 frontend with TypeScript, Tailwind CSS, testing setup (Jest), Node.js 18+ requirement" />
+      <artifact path="onyx-core/requirements.txt" type="backend" description="Python 3.10+ FastAPI backend with PostgreSQL, Redis, Qdrant, comprehensive dependencies for RAG system" />
+      <artifact path="docker/init-postgres.sql" type="database" description="Complete PostgreSQL schema with UUID, pgvector extensions, 8 core tables, triggers, views, and initial data" />
+      <artifact path="scripts/manage-environment.sh" type="automation" description="Environment switching script with validation, masking tests, and security checks for development/staging/production" />
+      <artifact path="scripts/validate-secrets.sh" type="security" description="Secrets validation script checking git history, current files, Docker images, and environment variable masking" />
+      <artifact path=".env.example" type="configuration" description="Comprehensive environment template with 80+ variables covering OAuth, LLM APIs, databases, monitoring, security" />
+      <artifact path=".env.development-template" type="configuration" description="Development-specific environment with variable references and default values for local development" />
+      <artifact path="README.md" type="documentation" description="Project overview with quick start, service URLs, architecture, technology stack, and development instructions" />
+    </code>
+    <dependencies>
+      <framework name="Docker" version="latest" purpose="Container orchestration" required="true" />
+      <framework name="Node.js" version="18+" purpose="Frontend development" required="true" />
+      <framework name="Python" version="3.10+" purpose="Backend development" required="true" />
+      <framework name="Next.js" version="14+" purpose="Frontend framework" required="true" />
+      <framework name="FastAPI" version="0.104+" purpose="Backend API framework" required="true" />
+      <framework name="PostgreSQL" version="15" purpose="Primary database" required="true" />
+      <framework name="Redis" version="7" purpose="Cache and job queue" required="true" />
+      <framework name="Qdrant" version="latest" purpose="Vector database" required="true" />
+      <framework name="Nginx" version="alpine" purpose="Reverse proxy" required="true" />
+      <framework name="Prometheus" version="latest" purpose="Metrics collection" required="true" />
+      <framework name="Grafana" version="latest" purpose="Monitoring dashboards" required="true" />
+      <framework name="LiteLLM" version="latest" purpose="LLM routing proxy" required="true" />
+      <framework name="Ollama" version="latest" purpose="Local LLM fallback" required="true" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="port" description="Port conflicts must be resolved - services use ports: 80, 443, 3000, 3001, 4000, 5432, 6379, 6333, 6334, 8080, 9090, 11434" severity="high" />
+    <constraint type="environment" description="Environment variables must be configured before startup - .env.local required with proper values" severity="high" />
+    <constraint type="security" description="Secrets must never be committed to version control - use .env templates and variable references" severity="high" />
+    <constraint type="system" description="Docker Desktop or Docker Engine must be installed and running" severity="high" />
+    <constraint type="performance" description="Minimum 8GB RAM recommended for full stack with LLM services" severity="medium" />
+    <constraint type="storage" description="Docker volumes created for persistent data (postgres, redis, qdrant, ollama, prometheus, grafana)" severity="medium" />
+    <constraint type="network" description="Custom Docker network 'manus-network' with subnet 172.20.0.0/16" severity="low" />
+  </constraints>
+  <interfaces>
+    <interface type="api" name="Frontend Health Check" endpoint="GET /api/health" port="3000" purpose="Service health monitoring" />
+    <interface type="api" name="Backend Health Check" endpoint="GET /health" port="8080" purpose="Service health monitoring" />
+    <interface type="api" name="Backend Documentation" endpoint="GET /docs" port="8080" purpose="API documentation" />
+    <interface type="web" name="Frontend Application" endpoint="http://localhost:3000" port="3000" purpose="Main user interface" />
+    <interface type="web" name="Grafana Dashboard" endpoint="http://localhost:3001" port="3001" purpose="Monitoring interface" />
+    <interface type="web" name="Prometheus Metrics" endpoint="http://localhost:9090" port="9090" purpose="Metrics interface" />
+    <interface type="database" name="PostgreSQL" port="5432" purpose="Primary data storage" />
+    <interface type="cache" name="Redis" port="6379" purpose="Cache and job queue" />
+    <interface type="vector-db" name="Qdrant HTTP" port="6333" purpose="Vector database API" />
+    <interface type="vector-db" name="Qdrant gRPC" port="6334" purpose="Vector database gRPC" />
+    <interface type="llm-proxy" name="LiteLLM" port="4000" purpose="LLM routing service" />
+    <interface type="llm-local" name="Ollama" port="11434" purpose="Local LLM service" />
+  </interfaces>
+  <tests>
+    <standards>
+      <standard name="Frontend Testing" framework="Jest + React Testing Library" coverage="80% minimum" types="unit, integration, component" />
+      <standard name="Backend Testing" framework="Pytest" coverage="80% minimum" types="unit, integration, API" />
+      <standard name="Environment Testing" framework="Custom Scripts" coverage="100% security validation" types="secrets, configuration, health" />
+      <standard name="Infrastructure Testing" framework="Docker Compose" coverage="All services health checks" types="service, integration, performance" />
+    </standards>
+    <locations>
+      <location path="suna/__tests__/" type="frontend" description="Frontend component and integration tests" />
+      <location path="onyx-core/tests/" type="backend" description="Backend API and service tests" />
+      <location path="tests/" type="integration" description="Cross-service integration and environment tests" />
+      <location path="scripts/test-secrets-masking.sh" type="security" description="Secrets masking validation script" />
+      <location path="scripts/validate-runtime-secrets.sh" type="security" description="Runtime secrets validation script" />
+    </locations>
+    <ideas>
+      <idea name="Automated Health Check Tests" description="Create automated tests that verify all service health endpoints are accessible after startup" priority="high" />
+      <idea name="Port Conflict Detection" description="Add script to detect and resolve port conflicts before starting services" priority="high" />
+      <idea name="Environment Setup Validation" description="Create comprehensive test that validates complete environment setup from scratch" priority="high" />
+      <idea name="Performance Baseline Tests" description="Add performance tests to ensure services start within acceptable time limits" priority="medium" />
+      <idea name="Database Seeding Verification" description="Test that database initialization and sample data creation work correctly" priority="medium" />
+      <idea name="Cross-Platform Compatibility" description="Test setup scripts on macOS, Linux, and Windows environments" priority="medium" />
+      <idea name="Docker Resource Limits" description="Add tests to validate Docker resource allocation and limits" priority="low" />
+      <idea name="Backup and Recovery Tests" description="Test data backup and recovery procedures for development environment" priority="low" />
+    </ideas>
+  </tests>
+</story-context>

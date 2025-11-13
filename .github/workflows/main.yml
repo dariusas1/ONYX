@@ -1,0 +1,455 @@
+name: ONYX CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'python' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@4ba5a796f56d4537578372c71a2887e474d8cc76 # 3.26.11
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@4ba5a796f56d4537578372c71a2887e474d8cc76 # 3.26.11
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@4ba5a796f56d4537578372c71a2887e474d8cc76 # 3.26.11
+      with:
+        category: "/language:${{matrix.language}}"
+
+  lint-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Setup Node.js
+      uses: actions/setup-node@1e60f620b9541d16fccc6aecd7f249de5bd214e5 # v4.0.3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: suna/package.json
+
+    - name: Install frontend dependencies
+      run: |
+        cd suna
+        npm ci
+
+    - name: Run frontend linting
+      run: |
+        cd suna
+        npm run lint
+
+    - name: Run frontend tests
+      run: |
+        cd suna
+        npm test -- --coverage --watchAll=false
+
+    - name: Setup Python
+      uses: actions/setup-python@39cd14951b08e74b3bb8a2ff057794c1a2f5b357 # v5.1.1
+      with:
+        python-version: '3.10'
+
+    - name: Install backend dependencies
+      run: |
+        cd onyx-core
+        pip install -r requirements.txt
+
+    - name: Run backend linting
+      run: |
+        cd onyx-core
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Run backend tests
+      run: |
+        cd onyx-core
+        python -m pytest tests/ -v --cov=.
+    
+    - name: Validate secrets and environment
+      run: |
+        echo "🔐 Validating environment configuration..."
+        # Check for placeholder values in environment files
+        if [[ -f ".env.production" ]]; then
+          if grep -q "your-.*\|generate-.*\|placeholder\|change-me" .env.production; then
+            echo "❌ Placeholder values found in .env.production"
+            echo "   Please replace all placeholder values before deployment"
+            exit 1
+          fi
+        fi
+        
+        # Validate docker compose configuration
+        if ! docker compose config --no-path-resolution >/dev/null 2>&1; then
+          echo "❌ Docker compose configuration is invalid"
+          exit 1
+        fi
+        
+        echo "✅ Environment validation passed"
+    
+    - name: Security scan
+      run: |
+        echo "🔒 Running security scan..."
+        
+        # Check for secrets in git history
+        if git log --all --oneline | grep -i "password\|secret\|key\|token"; then
+          echo "⚠️  Potential secrets found in git history"
+          echo "   Please review and remove if necessary"
+        fi
+        
+        # Check for hardcoded secrets in source code
+        if grep -r "password.*=\|secret.*=\|api_key.*=" onyx-core/ suna/src/ --include="*.py" --include="*.js" --include="*.ts" --include="*.tsx" | grep -v "env\|process\.env\|os\.getenv"; then
+          echo "❌ Hardcoded secrets found in source code"
+          echo "   Please use environment variables instead"
+          exit 1
+        fi
+        
+        # Validate .gitignore
+        if ! grep -q "\.env\|\.key\|\.pem" .gitignore; then
+          echo "⚠️  .gitignore may not exclude sensitive files"
+        fi
+        
+        echo "✅ Security scan completed"
+
+  build-and-push:
+    needs: [lint-and-test, codeql]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7564 # v3.3.0
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@8e5442c4ef9f787de26bd00e57e9a4e425f34fe2 # v5.5.1
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@6524bf0900392e1e3c0f033634cfb1d4f3ec4212 # v3.4.1
+
+    - name: Build and push Suna frontend image
+      uses: docker/build-push-action@5cd11c3a4ced0542e27a072c43793d42b6c8b5a7 # v6.7.0
+      with:
+        context: ./suna
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/suna:${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push Onyx-core backend image
+      uses: docker/build-push-action@5cd11c3a4ced0542e27a072c43793d42b6c8b5a7 # v6.7.0
+      with:
+        context: ./onyx-core
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/onyx-core:${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push Nginx proxy image
+      uses: docker/build-push-action@5cd11c3a4ced0542e27a072c43793d42b6c8b5a7 # v6.7.0
+      with:
+        context: ./nginx
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/nginx:${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Run container vulnerability scan
+      uses: aquasecurity/trivy-action@6e7b7d08fd3d7c4d8f8fa7a9b71e9ca0293c4aa7 # 0.24.0
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/suna:${{ steps.meta.outputs.tags }}
+        format: 'sarif'
+        output: 'trivy-results-suna.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@4ba5a796f56d4537578372c71a2887e474d8cc76 # 3.26.11
+      with:
+        sarif_file: 'trivy-results-suna.sarif'
+
+    - name: Run container vulnerability scan - Onyx-core
+      uses: aquasecurity/trivy-action@6e7b7d08fd3d7c4d8f8fa7a9b71e9ca0293c4aa7 # 0.24.0
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/onyx-core:${{ steps.meta.outputs.tags }}
+        format: 'sarif'
+        output: 'trivy-results-onyx-core.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab - Onyx-core
+      uses: github/codeql-action/upload-sarif@4ba5a796f56d4537578372c71a2887e474d8cc76 # 3.26.11
+      with:
+        sarif_file: 'trivy-results-onyx-core.sarif'
+
+    - name: Run container vulnerability scan - Nginx
+      uses: aquasecurity/trivy-action@6e7b7d08fd3d7c4d8f8fa7a9b71e9ca0293c4aa7 # 0.24.0
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/nginx:${{ steps.meta.outputs.tags }}
+        format: 'sarif'
+        output: 'trivy-results-nginx.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab - Nginx
+      uses: github/codeql-action/upload-sarif@4ba5a796f56d4537578372c71a2887e474d8cc76 # 3.26.11
+      with:
+        sarif_file: 'trivy-results-nginx.sarif'
+
+    - name: Generate SBOM for Suna frontend image
+      uses: anchore/sbom-action@e8d2a6937ece3d0d4a908bd4bb660d4cd9a62858 # 0.17.2
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/suna:${{ steps.meta.outputs.tags }}
+        format: 'spdx-json'
+        output-file: 'sbom-suna.spdx.json'
+
+    - name: Upload SBOM for Suna frontend
+      uses: actions/upload-artifact@834a144bee995bb60f6b778abf5ac0a61f51903f # v4.3.6
+      with:
+        name: sbom-suna
+        path: 'sbom-suna.spdx.json'
+
+    - name: Generate SBOM for Onyx-core backend image
+      uses: anchore/sbom-action@e8d2a6937ece3d0d4a908bd4bb660d4cd9a62858 # 0.17.2
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/onyx-core:${{ steps.meta.outputs.tags }}
+        format: 'spdx-json'
+        output-file: 'sbom-onyx-core.spdx.json'
+
+    - name: Upload SBOM for Onyx-core backend
+      uses: actions/upload-artifact@834a144bee995bb60f6b778abf5ac0a61f51903f # v4.3.6
+      with:
+        name: sbom-onyx-core
+        path: 'sbom-onyx-core.spdx.json'
+
+    - name: Generate SBOM for Nginx proxy image
+      uses: anchore/sbom-action@e8d2a6937ece3d0d4a908bd4bb660d4cd9a62858 # 0.17.2
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/nginx:${{ steps.meta.outputs.tags }}
+        format: 'spdx-json'
+        output-file: 'sbom-nginx.spdx.json'
+
+    - name: Upload SBOM for Nginx proxy
+      uses: actions/upload-artifact@834a144bee995bb60f6b778abf5ac0a61f51903f # v4.3.6
+      with:
+        name: sbom-nginx
+        path: 'sbom-nginx.spdx.json'
+
+  deploy-staging:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    environment: staging
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Deploy to staging
+      env:
+        VPS_HOST: ${{ secrets.VPS_HOST_STAGING }}
+        VPS_USER: ${{ secrets.VPS_USER }}
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        REGISTRY: ${{ env.REGISTRY }}
+        IMAGE_NAME: ${{ env.IMAGE_NAME }}
+        COMMIT_SHA: ${{ github.sha }}
+      run: |
+        echo "Deploying to staging environment..."
+        ./scripts/deploy.sh staging
+
+  deploy-production:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: 
+      name: production
+      url: https://${{ secrets.VPS_HOST_PRODUCTION }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    - name: Deploy to production
+      env:
+        VPS_HOST: ${{ secrets.VPS_HOST_PRODUCTION }}
+        VPS_USER: ${{ secrets.VPS_USER }}
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        REGISTRY: ${{ env.REGISTRY }}
+        IMAGE_NAME: ${{ env.IMAGE_NAME }}
+        COMMIT_SHA: ${{ github.sha }}
+      run: |
+        echo "Deploying to production environment..."
+        ./scripts/deploy.sh production
+
+  notify:
+    needs: [lint-and-test, build-and-push, deploy-staging, deploy-production]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Notify Slack on success
+      if: success()
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        if [[ -n "$SLACK_WEBHOOK_URL" ]]; then
+          # Determine deployment status
+          DEPLOYMENT_STATUS="✅ Pipeline completed successfully!"
+          
+          # Get branch name
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          
+          # Create Slack message
+          cat << EOF > slack_message.json
+          {
+            "text": "$DEPLOYMENT_STATUS",
+            "attachments": [
+              {
+                "color": "good",
+                "fields": [
+                  {
+                    "title": "Repository",
+                    "value": "$GITHUB_REPOSITORY",
+                    "short": true
+                  },
+                  {
+                    "title": "Branch",
+                    "value": "$BRANCH_NAME",
+                    "short": true
+                  },
+                  {
+                    "title": "Commit",
+                    "value": "<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA|$GITHUB_SHA_SHORT>",
+                    "short": true
+                  },
+                  {
+                    "title": "Triggered by",
+                    "value": "$GITHUB_ACTOR",
+                    "short": true
+                  },
+                  {
+                    "title": "Workflow URL",
+                    "value": "<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|View Workflow>",
+                    "short": false
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          
+          # Send to Slack
+          curl -X POST -H 'Content-type: application/json' \
+            --data @slack_message.json \
+            "$SLACK_WEBHOOK_URL"
+        else
+          echo "Slack webhook URL not configured"
+        fi
+
+    - name: Notify Slack on failure
+      if: failure()
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        if [[ -n "$SLACK_WEBHOOK_URL" ]]; then
+          # Determine which jobs failed
+          FAILED_JOBS=""
+          if [[ "${{ needs.lint-and-test.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS lint-and-test"
+          fi
+          if [[ "${{ needs.build-and-push.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS build-and-push"
+          fi
+          if [[ "${{ needs.deploy-staging.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS deploy-staging"
+          fi
+          if [[ "${{ needs.deploy-production.result }}" == "failure" ]]; then
+            FAILED_JOBS="$FAILED_JOBS deploy-production"
+          fi
+          
+          # Create Slack message
+          cat << EOF > slack_message.json
+          {
+            "text": "❌ Pipeline failed!",
+            "attachments": [
+              {
+                "color": "danger",
+                "fields": [
+                  {
+                    "title": "Repository",
+                    "value": "$GITHUB_REPOSITORY",
+                    "short": true
+                  },
+                  {
+                    "title": "Branch",
+                    "value": "${GITHUB_REF#refs/heads/}",
+                    "short": true
+                  },
+                  {
+                    "title": "Failed Jobs",
+                    "value": "$FAILED_JOBS",
+                    "short": true
+                  },
+                  {
+                    "title": "Triggered by",
+                    "value": "$GITHUB_ACTOR",
+                    "short": true
+                  },
+                  {
+                    "title": "Workflow URL",
+                    "value": "<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|View Workflow>",
+                    "short": false
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          
+          # Send to Slack
+          curl -X POST -H 'Content-type: application/json' \
+            --data @slack_message.json \
+            "$SLACK_WEBHOOK_URL"
+        else
+          echo "Slack webhook URL not configured"
+        fi

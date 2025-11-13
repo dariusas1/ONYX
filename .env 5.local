@@ -1,0 +1,107 @@
+# =============================================================================
+# ONYX Environment Variables - Development
+# =============================================================================
+# Development environment configuration
+# Use this for local development and testing
+# =============================================================================
+
+# Google OAuth2 Configuration
+# NOTE: Set these as environment variables for development
+# GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+# GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/callback/google
+
+# LLM API Keys
+# NOTE: Set these as environment variables for development
+# TOGETHER_API_KEY=your-together-ai-api-key
+# DEEPSEEK_API_KEY=your-deepseek-api-key
+
+# Database Configuration
+# NOTE: Set POSTGRES_PASSWORD as environment variable for development
+# POSTGRES_PASSWORD=your-secure-password
+DATABASE_URL=postgresql://manus:${POSTGRES_PASSWORD}@postgres:5432/manus
+
+# Redis Configuration
+REDIS_URL=redis://redis:6379
+# NOTE: Set REDIS_PASSWORD as environment variable if needed
+# REDIS_PASSWORD=your-redis-password
+
+# Qdrant Vector Database
+QDRANT_URL=http://qdrant:6333
+# NOTE: Set QDRANT_API_KEY as environment variable if needed
+# QDRANT_API_KEY=your-qdrant-api-key
+
+# Encryption
+# NOTE: Set ENCRYPTION_KEY as environment variable (32-byte hex for AES-256)
+# ENCRYPTION_KEY=your-32-byte-hex-string
+
+# LiteLLM Proxy
+LITELLM_URL=http://litellm-proxy:4000
+
+# Monitoring
+# NOTE: Set GRAFANA_PASSWORD as environment variable for development
+# GRAFANA_PASSWORD=your-grafana-password
+
+# Session Management
+# NOTE: Set SESSION_SECRET as environment variable for development
+# SESSION_SECRET=your-session-secret
+
+# Feature Flags
+ENABLE_WORKSPACE=true
+ENABLE_CODE_EXECUTION=true
+ENABLE_GOOGLE_DRIVE=true
+ENABLE_SLACK=true
+
+# Development Settings
+NODE_ENV=development
+PYTHONPATH=/app
+
+# SSL Configuration (for production)
+SSL_CERT_PATH=./nginx/ssl/cert.pem
+SSL_KEY_PATH=./nginx/ssl/key.pem
+
+# Backup Configuration
+BACKUP_SCHEDULE=0 2 * * *
+BACKUP_RETENTION_DAYS=30
+
+# Logging Configuration
+LOG_LEVEL=debug
+LOG_FORMAT=json
+
+# Rate Limiting
+RATE_LIMIT_REQUESTS_PER_MINUTE=1000
+RATE_LIMIT_WINDOW_MS=60000
+
+# Session Management
+# NOTE: Set SESSION_SECRET as environment variable for development
+# SESSION_SECRET=your-session-secret
+SESSION_TIMEOUT_MS=1800000
+
+# API Configuration
+API_TIMEOUT_MS=30000
+API_RETRY_ATTEMPTS=3
+API_RETRY_DELAY_MS=1000
+
+# File Upload Limits
+MAX_FILE_SIZE_MB=50
+ALLOWED_FILE_TYPES=pdf,doc,docx,txt,md
+
+# Background Jobs
+BULLMQ_CONCURRENCY=5
+SYNC_INTERVAL_MINUTES=10
+
+# Docker Configuration
+COMPOSE_PROJECT_NAME=onyx
+COMPOSE_FILE=docker-compose.yaml
+
+# Development Overrides
+COMPOSE_OVERRIDE_FILE=docker-compose.override.yml
+
+# =============================================================================
+# Development Environment Notes:
+# =============================================================================
+# - Debug logging enabled for detailed troubleshooting
+# - Higher rate limits for development convenience
+# - Default passwords for easy setup (CHANGE FOR PRODUCTION)
+# - All features enabled for testing
+# =============================================================================

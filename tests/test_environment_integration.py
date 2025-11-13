@@ -121,7 +121,7 @@ CORS_ORIGINS="http://localhost:3000,http://test-frontend:3000"
         """Test secrets masking script functionality"""
         result = subprocess.run(
             ["./scripts/test-secrets-masking.sh"],
-            env={**os.environ, "ENV_FILE": test_env_file},
+            env={**os.environ, "ENV_FILE": test_env_file, "NON_INTERACTIVE": "1"},
             capture_output=True,
             text=True,
             cwd="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX",
@@ -166,6 +166,10 @@ class TestRAGServiceIntegration:
     async def test_rag_service_initialization(self):
         """Test RAG service can be initialized"""
         try:
+            import sys
+            import os
+
+            sys.path.append(os.path.join(os.path.dirname(__file__), "..", "onyx-core"))
             from rag_service import RAGService
 
             # This will fail if Qdrant is not running, but should not crash

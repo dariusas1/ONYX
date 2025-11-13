@@ -286,6 +286,8 @@
     <action>Compile all findings and calculate summary metrics</action>
 
     <action>Generate executive summary based on issue counts and severity levels</action>
+    <template-output>workflow_name</template-output>
+    <template-output>date</template-output>
     <template-output>workflow_type</template-output>
     <template-output>overall_status</template-output>
     <template-output>critical_count</template-output>

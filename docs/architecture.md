@@ -346,7 +346,7 @@ manus-internal/
   4. Backend exchanges for access token
   5. Store token encrypted in Supabase
   6. Set session cookie (httpOnly, secure)
-- **Libraries:** `next-auth` or `@auth0/nextjs-auth0` (choose one)
+- **Libraries:** `next-auth` (NextAuth.js v5)
 - **Scopes:** `openid profile email` + optional `drive.readonly` + `https://www.googleapis.com/auth/spreadsheets`
 
 #### **File Upload/Storage: Google Drive (Streaming)**

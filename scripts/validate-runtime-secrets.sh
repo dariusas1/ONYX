@@ -26,7 +26,7 @@ is_placeholder() {
     local value="$1"
     local var_name="$2"
     
-    # Check for common placeholder patterns
+    # Check for common placeholder patterns (exclude test values)
     if [[ "$value" == *"your-"* ]] || \
        [[ "$value" == *"generate-"* ]] || \
        [[ "$value" == *"GENERATE"* ]] || \
@@ -34,12 +34,12 @@ is_placeholder() {
        [[ "$value" == *"example"* ]] || \
        [[ "$value" == *"change-me"* ]] || \
        [[ "$value" == *"xxx"* ]] || \
-       [[ "$value" == *"test"* ]] && [[ "$var_name" != *"TEST"* ]]; then
+       [[ "$value" == *"dev-"*"-placeholder" ]]; then
         return 0  # Is placeholder
     fi
     
     # Check for empty values that shouldn't be empty
-    if [[ -z "$value" ]] && [[ "$var_name" == *"_KEY"* ]] || [[ "$var_name" == *"_SECRET"* ]] || [[ "$var_name" == *"_PASSWORD"* ]]; then
+    if [[ -z "$value" ]] && ( [[ "$var_name" == *"_KEY"* ]] || [[ "$var_name" == *"_SECRET"* ]] || [[ "$var_name" == *"_PASSWORD"* ]] ); then
         return 0  # Is placeholder (empty sensitive value)
     fi
     
@@ -101,16 +101,23 @@ validate_env_file() {
 validate_docker_compose() {
     echo -e "\n${YELLOW}🐳 Validating Docker Compose configuration...${NC}"
     
-    # Check if .env.local exists
-    if [[ ! -f ".env.local" ]]; then
-        echo -e "${RED}❌ .env.local not found. Cannot validate Docker Compose config.${NC}"
+    # Determine which environment file to use
+    local env_file_to_check="${ENV_FILE:-.env.local}"
+    
+    # Check if environment file exists
+    if [[ ! -f "$env_file_to_check" ]]; then
+        echo -e "${RED}❌ Environment file not found: $env_file_to_check. Cannot validate Docker Compose config.${NC}"
         EXIT_CODE=1
         return 1
     fi
     
-    # Get docker compose config and check for exposed secrets
+    # Get docker compose config and check for exposed secrets (respect ENV_FILE)
     local config_output
-    config_output=$(docker compose config --no-path-resolution 2>/dev/null || echo "")
+    if [[ -n "$ENV_FILE" ]]; then
+        config_output=$(docker compose --env-file "$ENV_FILE" config --no-path-resolution 2>/dev/null || echo "")
+    else
+        config_output=$(docker compose config --no-path-resolution 2>/dev/null || echo "")
+    fi
     
     if [[ -z "$config_output" ]]; then
         echo -e "${RED}❌ Failed to generate Docker Compose config${NC}"
@@ -186,17 +193,27 @@ validate_encryption_key() {
 main() {
     echo -e "${BLUE}Starting runtime secret validation...${NC}"
     
-    # Validate environment files
-    if [[ -f ".env.local" ]]; then
-        validate_env_file ".env.local" "current"
+    # Determine which environment file to validate
+    local env_file_to_validate="${ENV_FILE:-.env.local}"
+    
+    # Validate environment file
+    if [[ -f "$env_file_to_validate" ]]; then
+        validate_env_file "$env_file_to_validate" "current"
+    else
+        echo -e "${RED}❌ Environment file not found: $env_file_to_validate${NC}"
+        EXIT_CODE=1
     fi
     
-    if [[ -f ".env.production" ]]; then
-        validate_env_file ".env.production" "production"
+    # Only validate additional files if we're using the default .env.local
+    if [[ -z "$ENV_FILE" ]]; then
+        # Also validate production if it exists and we're not already validating it
+        if [[ "$env_file_to_validate" != ".env.production" ]] && [[ -f ".env.production" ]]; then
+            validate_env_file ".env.production" "production"
+        fi
+        
+        # Validate Docker Compose configuration
+        validate_docker_compose
     fi
-    
-    # Validate Docker Compose configuration
-    validate_docker_compose
     
     # Validate encryption key format
     validate_encryption_key

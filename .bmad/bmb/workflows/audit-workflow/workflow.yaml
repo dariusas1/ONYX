@@ -1,7 +1,6 @@
 # Audit Workflow Configuration
 name: "audit-workflow"
 description: "Comprehensive workflow quality audit - validates structure, config standards, variable usage, bloat detection, and web_bundle completeness. Performs deep analysis of workflow.yaml, instructions.md, template.md, and web_bundle configuration against BMAD v6 standards."
-author: "BMad"
 
 # Critical variables from config
 config_source: "{project-root}/.bmad/bmb/config.yaml"
@@ -19,6 +18,13 @@ validation: "{installed_path}/checklist.md"
 # Output configuration
 default_output_file: "{output_folder}/audit-report-{{workflow_name}}-{{date}}.md"
 
-standalone: true
-
 # Web bundle configuration
+web_bundle:
+  name: "audit-workflow"
+  description: "Comprehensive workflow quality audit - validates structure, config standards, variable usage, bloat detection, and web_bundle completeness. Performs deep analysis of workflow.yaml, instructions.md, template.md, and web_bundle configuration against BMAD v6 standards."
+  author: "BMad"
+  web_bundle_files:
+    - ".bmad/bmb/workflows/audit-workflow/workflow.yaml"
+    - ".bmad/bmb/workflows/audit-workflow/instructions.md"
+    - ".bmad/bmb/workflows/audit-workflow/template.md"
+    - ".bmad/bmb/workflows/audit-workflow/checklist.md"

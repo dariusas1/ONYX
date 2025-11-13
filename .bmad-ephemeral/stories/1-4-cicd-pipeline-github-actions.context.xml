@@ -1,0 +1,150 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>4</storyId>
+    <title>CI/CD Pipeline (GitHub Actions)</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>.bmad-ephemeral/stories/1-4-cicd-pipeline-github-actions.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>DevOps engineer</asA>
+    <iWant>automated testing, building, and deployment on git push</iWant>
+    <soThat>code quality is maintained and deployments are fast and reliable</soThat>
+    <tasks>Task 1: Create GitHub Actions workflow structure (AC: 2)
+- Create `.github/workflows/main.yml` with trigger configuration
+- Configure branch triggers for main and dev branches
+- Set up workflow permissions for Docker registry access
+- Test workflow triggers on push to dev branch
+Task 2: Implement linting and testing steps (AC: 3)
+- Add ESLint step for frontend code quality
+- Add Python linting (flake8) for onyx-core
+- Add unit test execution step
+- Configure test reporting and failure handling
+- Ensure workflow fails on test failures
+Task 3: Add Docker image building (AC: 3, 4)
+- Build Suna frontend Docker image
+- Build Onyx-core Python service image
+- Build Nginx reverse proxy image
+- Tag images with git commit SHA and branch name
+- Test image building process
+Task 4: Configure container registry pushing (AC: 4)
+- Set up Docker Hub or GitHub Container Registry
+- Configure registry credentials in GitHub secrets
+- Add Docker login step in workflow
+- Push built images to registry
+- Verify images are accessible from registry
+Task 5: Implement deployment automation (AC: 5)
+- Create deployment script for VPS
+- Add SSH key configuration for VPS access
+- Configure deployment step in workflow
+- Test deployment to staging environment
+- Add manual approval gate for production deployments
+Task 6: Add Slack notifications (AC: 6)
+- Configure Slack webhook URL in GitHub secrets
+- Add notification step for workflow start
+- Add success notification with deployment details
+- Add failure notification with error details
+- Test notification formatting and delivery</tasks>
+  </story>
+
+  <acceptanceCriteria>1. Given: Code pushed to GitHub
+2. When: Workflow triggers on `push` to main/dev branches
+3. Then: Runs linter, tests, builds Docker images
+4. And: Pushes images to container registry (optional: Docker Hub)
+5. And: Deployment script runs (optional: auto-deploy to VPS)
+6. And: Slack notification sent with status</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" title="ONYX Architecture Document" section="CI/CD" snippet="CI/CD: GitHub Actions - Free, integrated with GitHub, simple YAML. Code Linting: ESLint + Prettier for code quality with TypeScript support." />
+      <doc path="docs/architecture.md" title="ONYX Architecture Document" section="Deployment Architecture" snippet="GitHub Actions workflows located in `.github/workflows/` directory. Use existing Docker Compose service definitions for image building." />
+      <doc path="docs/architecture.md" title="ONYX Architecture Document" section="Implementation Patterns" snippet="Follow established naming conventions for Docker images. Use GitHub secrets for registry credentials." />
+      <doc path="docs/epics.md" title="Epics Document" section="Story 1.4: CI/CD Pipeline" snippet="Create `.github/workflows/main.yml`. Steps: lint → test → build → push → notify. Use GitHub secrets for registry credentials. Support manual approval for prod deployments." />
+      <doc path="docs/product-brief-ONYX-2025-11-10.md" title="Product Brief" section="Core Vision" snippet="Self-hosted strategic intelligence system with private data control and automated deployment capabilities." />
+      <doc path="docs/ux-design-specification.md" title="UX Design Specification" section="Design System" snippet="Technology stack uses shadcn/ui with Tailwind CSS for consistent dark theme implementation." />
+    </docs>
+    <code>
+      <artifact path="suna/package.json" kind="package" symbol="scripts" lines="5-14" reason="Frontend build and test scripts for CI/CD pipeline" />
+      <artifact path="suna/package.json" kind="package" symbol="devDependencies" lines="29-41" reason="ESLint, Prettier, Jest configurations for linting and testing steps" />
+      <artifact path="onyx-core/requirements.txt" kind="dependencies" symbol="testing" lines="58-65" reason="Python testing frameworks (pytest, coverage) and linting tools (flake8, black, mypy)" />
+      <artifact path="docker-compose.yaml" kind="orchestration" symbol="services" lines="3-50" reason="Docker service definitions for building images in CI/CD pipeline" />
+      <artifact path="docker-compose.yaml" kind="orchestration" symbol="healthcheck" lines="37-42" reason="Health check patterns to replicate in CI/CD pipeline validation" />
+      <artifact path="docker/init-postgres.sql" kind="schema" symbol="database-setup" lines="8-25" reason="Database initialization for test environment setup" />
+      <artifact path="scripts/validate-secrets.sh" kind="script" symbol="validation" lines="1-25" reason="Secrets validation pattern to adapt for CI/CD pipeline security checks" />
+    </code>
+    <dependencies>
+      <ecosystem name="nodejs">
+        <package name="next" version="^14.0.0" />
+        <package name="react" version="^18.0.0" />
+        <package name="typescript" version="^5.3.0" />
+        <package name="tailwindcss" version="^3.4.0" />
+        <package name="eslint" version="^8.0.0" />
+        <package name="prettier" version="^3.0.0" />
+        <package name="jest" version="^29.0.0" />
+        <package name="@testing-library/react" version="^14.0.0" />
+      </ecosystem>
+      <ecosystem name="python">
+        <package name="fastapi" version="0.104.1" />
+        <package name="uvicorn" version="0.24.0" />
+        <package name="pytest" version="7.4.3" />
+        <package name="black" version="23.11.0" />
+        <package name="flake8" version="6.1.0" />
+        <package name="mypy" version="1.7.1" />
+        <package name="qdrant-client" version="1.7.0" />
+        <package name="redis" version="5.0.1" />
+      </ecosystem>
+      <ecosystem name="docker">
+        <service name="node" version="18-alpine" />
+        <service name="python" version="3.10-slim" />
+        <service name="postgres" version="15-alpine" />
+        <service name="redis" version="7-alpine" />
+        <service name="qdrant" version="latest" />
+      </ecosystem>
+      <ecosystem name="ci-cd">
+        <tool name="GitHub Actions" version="native" />
+        <tool name="Docker" version="24+" />
+        <tool name="Docker Compose" version="v2.20+" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint name="GitHub Actions Required" description="Must use GitHub Actions as CI/CD platform as specified in Epic 1.4" source="docs/epics.md" />
+    <constraint name="Branch Triggers" description="Workflow must trigger on push to main and dev branches only" source="docs/epics.md" />
+    <constraint name="Required Steps" description="Pipeline must follow: lint → test → build → push → notify sequence" source="docs/epics.md" />
+    <constraint name="Secrets Management" description="Use GitHub secrets for registry credentials, never hardcode values" source="docs/epics.md" />
+    <constraint name="Manual Approval" description="Production deployments require manual approval gate" source="docs/epics.md" />
+    <constraint name="Docker Compose Base" description="Build on existing Docker Compose service definitions" source="docs/architecture.md" />
+    <constraint name="Environment Separation" description="Support dev/staging/prod environments with different .env files" source="stories/1-3-environment-configuration-secrets-management.md" />
+    <constraint name="Security Validation" description="Include secrets validation and security checks in pipeline" source="scripts/validate-secrets.sh" />
+    <constraint name="Health Check Integration" description="Use existing health check endpoints for deployment validation" source="onyx-core/health.py" />
+    <constraint name="Node.js Version" description="Frontend requires Node.js >=18.0.0" source="suna/package.json" />
+    <constraint name="Python Version" description="Backend requires Python 3.10+" source="onyx-core/requirements.txt" />
+  </constraints>
+  <interfaces>
+    <interface name="Health Check API" kind="REST endpoint" signature="GET /health" path="suna/src/app/api/health/health.js" description="Frontend health check for CI/CD validation" />
+    <interface name="Backend Health API" kind="REST endpoint" signature="GET /health" path="onyx-core/health.py" description="Comprehensive backend health check with service dependencies" />
+    <interface name="Readiness Probe" kind="REST endpoint" signature="GET /health/ready" path="onyx-core/health.py" description="Kubernetes/Docker readiness probe" />
+    <interface name="Liveness Probe" kind="REST endpoint" signature="GET /health/live" path="onyx-core/health.py" description="Kubernetes/Docker liveness probe" />
+    <interface name="Docker Registry" kind="Container registry" signature="Docker Hub or GitHub Container Registry" description="Target for pushing built images" />
+    <interface name="Slack Notifications" kind="Webhook" signature="POST to Slack webhook URL" description="Pipeline status notifications" />
+  </interfaces>
+  <tests>
+    <standards>Frontend: Jest + React Testing Library for unit/integration tests. ESLint + Prettier for code quality. TypeScript strict mode. Backend: pytest for unit tests, pytest-asyncio for async tests, pytest-cov for coverage. Black for formatting, flake8 for linting, mypy for type checking. Integration tests validate environment setup and secrets management. Security tests ensure no secrets in git history and proper .gitignore configuration.</standards>
+    <locations>Frontend tests: suna/**/*.test.tsx, suna/**/*.test.ts. Backend tests: onyx-core/tests/. Integration tests: tests/test_environment_integration.py. Test configuration: jest.config.js (frontend), pytest.ini (backend). Coverage reports: coverage/ directory.</locations>
+    <ideas>
+      <test idea="AC1: GitHub Actions trigger validation" acceptanceCriteriaId="1" description="Test workflow triggers on push to main/dev branches using GitHub API simulation" />
+      <test idea="AC2: Linting step validation" acceptanceCriteriaId="2,3" description="Test ESLint and flake8 fail appropriately on code quality issues" />
+      <test idea="AC3: Test execution validation" acceptanceCriteriaId="3" description="Test Jest and pytest execution with proper failure handling" />
+      <test idea="AC4: Docker build validation" acceptanceCriteriaId="3,4" description="Test multi-stage Docker builds for all services (suna, onyx-core, nginx)" />
+      <test idea="AC5: Registry push validation" acceptanceCriteriaId="4" description="Test Docker image tagging and pushing to container registry" />
+      <test idea="AC6: Deployment script validation" acceptanceCriteriaId="5" description="Test SSH deployment to VPS with health check validation" />
+      <test idea="AC7: Slack notification validation" acceptanceCriteriaId="6" description="Test Slack webhook integration for success/failure notifications" />
+      <test idea="Security validation" acceptanceCriteriaId="all" description="Test secrets masking and validation scripts in pipeline" />
+      <test idea="Environment separation" acceptanceCriteriaId="all" description="Test different .env files for dev/staging/prod environments" />
+    </ideas>
+  </tests>
+</story-context>

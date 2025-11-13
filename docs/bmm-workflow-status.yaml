@@ -35,14 +35,13 @@ workflow_status:
   # Phase 1: Planning
   prd: docs/PRD.md  # agent: pm
   create-epics-and-stories: docs/epics.md  # agent: pm
-  validate-prd: optional  # agent: pm
+  validate-prd: docs/validation-report-20251110-112649.md  # agent: pm (COMPLETED ✓)
   create-design: docs/ux-design-specification.md  # agent: ux-designer (COMPLETED ✓)
 
-   # Phase 2: Solutioning
-   create-architecture: docs/architecture.md  # agent: architect (COMPLETED ✓)
-   validate-architecture: optional  # agent: architect
-   solutioning-gate-check: docs/implementation-readiness-report-2025-11-10.md  # agent: architect (COMPLETED ✓)
+  # Phase 2: Solutioning
+  create-architecture: docs/architecture.md  # agent: architect (COMPLETED ✓)
+  validate-architecture: docs/architecture-validation.md  # agent: architect (COMPLETED ✓)
+  solutioning-gate-check: docs/implementation-readiness-report-2025-11-10.md  # agent: architect (COMPLETED ✓)
 
-   # Phase 3: Implementation
-   sprint-planning: .bmad-ephemeral/sprint-status.yaml  # agent: sm
-
+  # Phase 3: Implementation
+  sprint-planning: .bmad-ephemeral/sprint-status.yaml  # agent: sm

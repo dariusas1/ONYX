@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 import uvicorn
 import os
 from datetime import datetime
+from typing import Optional, Dict, Any
 from health import router as health_router
 from contextlib import asynccontextmanager
 from rag_service import get_rag_service
@@ -26,7 +27,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize RAG service
     try:
-        rag_service = await get_rag_service()
+        await get_rag_service()
         logger.info("✅ RAG service initialized successfully")
     except Exception as e:
         logger.error(f"❌ Failed to initialize RAG service: {e}")
@@ -80,7 +81,7 @@ async def root():
 
 # Search endpoint with actual RAG functionality
 @app.get("/search")
-async def search_documents(query: str, top_k: int = 5, source: str = None):
+async def search_documents(query: str, top_k: int = 5, source: Optional[str] = None):
     """Search documents using RAG"""
     try:
         if not query or not query.strip():
@@ -131,7 +132,11 @@ async def search_documents(query: str, top_k: int = 5, source: str = None):
 # Document management endpoints
 @app.post("/documents")
 async def add_document(
-    doc_id: str, text: str, title: str, source: str, metadata: dict = None
+    doc_id: str,
+    text: str,
+    title: str,
+    source: str,
+    metadata: Optional[Dict[str, Any]] = None,
 ):
     """Add a document to the RAG system"""
     try:
