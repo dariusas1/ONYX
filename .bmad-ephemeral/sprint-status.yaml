@@ -47,7 +47,7 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Chat Interface & Core Intelligence
-  epic-2: backlog
+  epic-2: contexted
   2-1-suna-ui-deployment-manus-theme: backlog
   2-2-litellm-proxy-setup-model-routing: backlog
   2-3-message-history-persistence: backlog
