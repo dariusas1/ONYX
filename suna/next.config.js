@@ -12,6 +12,10 @@ const nextConfig = {
     // !! WARN !!
     ignoreBuildErrors: true,
   },
+  // Font Optimization Configuration:
+  // For offline/CI builds without network access, set NEXT_PUBLIC_SKIP_FONTS=true
+  // This will use system fonts instead of downloading from Google Fonts
+  // Example: NEXT_PUBLIC_SKIP_FONTS=true npm run build
 }
 
 module.exports = nextConfig

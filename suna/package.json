@@ -26,7 +26,10 @@
     "clsx": "^2.0.0",
     "lucide-react": "^0.294.0",
     "winston": "^3.11.0",
-    "prom-client": "^15.0.0"
+    "prom-client": "^15.0.0",
+    "@tailwindcss/typography": "^0.5.10",
+    "react-window": "^1.8.10",
+    "@types/react-window": "^1.8.8"
   },
   "devDependencies": {
     "eslint": "^8.0.0",
