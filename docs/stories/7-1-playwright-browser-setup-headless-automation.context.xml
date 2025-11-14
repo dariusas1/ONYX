@@ -1,0 +1,930 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>7-1-playwright-browser-setup-headless-automation</story-id>
+    <story-title>Playwright Browser Setup - Headless Automation</story-title>
+    <epic-id>epic-7</epic-id>
+    <epic-title>Web Automation &amp; Search</epic-title>
+    <priority>P0</priority>
+    <status>drafted</status>
+    <estimated-points>8</estimated-points>
+    <context-generated>2025-11-14</context-generated>
+  </metadata>
+
+  <story-overview>
+    <summary>
+      Implement foundational browser automation layer using Playwright in Docker for Epic 7 (Web Automation &amp; Search).
+      This story sets up headless Chrome/Firefox capabilities for all web-based operations including URL scraping,
+      form filling, and screenshot capture. Performance is critical: browser startup must be &lt;2s and page loads &lt;5s
+      to maintain acceptable user experience in Agent Mode.
+    </summary>
+
+    <business-value>
+      Without reliable browser automation, Manus cannot:
+      - Render JavaScript-heavy websites (most modern web content)
+      - Extract clean article content from news sites and blogs
+      - Capture visual records of web pages for audit trails
+      - Fill forms for survey collection or lead generation
+      - Navigate multi-step web flows for complex research tasks
+
+      This foundational capability unlocks autonomous external intelligence gathering, transforming Manus from
+      an internal knowledge system into a comprehensive strategic intelligence platform.
+    </business-value>
+
+    <blocking-dependencies>
+      This story blocks:
+      - Story 7-3: URL Scraping &amp; Content Extraction
+      - Story 7-4: Form Filling &amp; Web Interaction
+      - Story 7-5: Screenshot &amp; Page Capture
+    </blocking-dependencies>
+  </story-overview>
+
+  <epic-technical-specification>
+    <epic-overview>
+      Epic 7 enables Manus Internal to perform autonomous web research, market analysis, and competitive intelligence
+      through headless browser automation and intelligent web search. The web automation layer provides the foundation
+      for agent-driven research workflows where Manus can autonomously search for information, navigate websites,
+      extract relevant content, and compile comprehensive reports.
+    </epic-overview>
+
+    <architecture-summary>
+      Browser automation runs in a dedicated Docker container with Playwright and headless browsers, communicating
+      with the main Onyx Core service via internal APIs. All operations include comprehensive logging for debugging
+      and audit trails. The browser automation module operates as part of the tool ecosystem, enabling the LLM agent
+      to autonomously gather external intelligence while maintaining approval gates for sensitive actions.
+    </architecture-summary>
+
+    <service-architecture>
+      <diagram>
+┌─────────────────────────────────────────────────────────┐
+│  Suna (Frontend) - Agent Mode UI                       │
+└─────────────────┬───────────────────────────────────────┘
+                  │ POST /api/agent (task submission)
+                  ↓
+┌─────────────────────────────────────────────────────────┐
+│  Onyx Core (Python) - Tool Orchestration               │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │  Tool Router: select_tool(task) → web_search      │ │
+│  │             → scrape_url → fill_form → screenshot │ │
+│  └───────────────────────────────────────────────────┘ │
+└────┬─────────┬──────────┬──────────┬──────────────┬────┘
+     │         │          │          │              │
+     ↓         ↓          ↓          ↓              ↓
+┌─────────┐ ┌──────┐ ┌────────┐ ┌────────┐ ┌──────────────┐
+│SerpAPI/ │ │Redis │ │Playwright│ │Scraper│ │Screenshot   │
+│Exa API  │ │Cache │ │Browser   │ │Service│ │Service      │
+└─────────┘ └──────┘ └────────┘ └────────┘ └──────────────┘
+      </diagram>
+
+      <browser-manager-architecture>
+┌─────────────────────────────────────────────────────────┐
+│  Onyx Core (Python) - Tool Orchestration               │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │  Browser Manager: manage_browser_lifecycle()      │ │
+│  │                 → launch() → navigate() → close() │ │
+│  └───────────────────────────────────────────────────┘ │
+└────────────────────┬────────────────────────────────────┘
+                     │ Internal API calls
+                     ↓
+┌─────────────────────────────────────────────────────────┐
+│  Playwright Container (Docker)                          │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │  Headless Chrome + Firefox                        │ │
+│  │  Playwright Python API                            │ │
+│  │  Browser Context Management                       │ │
+│  └───────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+      </browser-manager-architecture>
+    </service-architecture>
+
+    <modules-and-services>
+      <module name="playwright-service" purpose="Browser automation" technology="Playwright + Chrome">
+        <responsibilities>
+          <item>Page navigation</item>
+          <item>Page interaction</item>
+          <item>Screenshot capture</item>
+        </responsibilities>
+        <integration-point>Onyx Core → Playwright API</integration-point>
+      </module>
+
+      <module name="cache-layer" purpose="Result caching" technology="Redis">
+        <responsibilities>
+          <item>Search results caching</item>
+          <item>Scraped content caching (24h TTL)</item>
+        </responsibilities>
+        <integration-point>All services → Redis</integration-point>
+      </module>
+
+      <module name="rate-limiter" purpose="Request throttling" technology="Redis + token bucket">
+        <responsibilities>
+          <item>API rate limiting</item>
+          <item>Request queuing</item>
+        </responsibilities>
+        <integration-point>All external calls</integration-point>
+      </module>
+    </modules-and-services>
+
+    <performance-requirements>
+      <browser-operations>
+        <metric name="Browser startup" target="&lt;2s" timeout="5s" note="First launch may be slower" />
+        <metric name="Page navigation" target="&lt;5s (95th %ile)" timeout="10s" note="Varies by site" />
+        <metric name="Page interaction" target="&lt;1s" timeout="3s" note="Click, fill, etc." />
+        <metric name="Browser cleanup" target="&lt;500ms" timeout="2s" note="Memory release" />
+      </browser-operations>
+
+      <resource-management>
+        <constraint name="Max Concurrent Browsers" value="1 instance (serial execution)" />
+        <constraint name="Memory Limit" value="500MB per browser instance" />
+        <constraint name="CPU Limit" value="30% during page load, &lt;10% idle" />
+        <constraint name="Auto-restart" value="If memory &gt;800MB, restart browser between operations" />
+        <constraint name="Zombie Process Detection" value="Monitor for orphaned browser processes every 5 min" />
+      </resource-management>
+    </performance-requirements>
+
+    <acceptance-criteria>
+      <criterion id="AC7.1.1">
+        <description>Playwright browser starts without GUI in Docker container</description>
+        <verification>
+          - Unit test: test_browser_launch_headless() verifies no GUI process
+          - Integration test: Launch browser and verify browser.is_connected() returns True
+          - Docker logs show "Browser launched successfully" with no X11/GUI errors
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.1.2">
+        <description>Browser can navigate to URLs and interact with pages (&lt;3s load time)</description>
+        <verification>
+          - Integration test: Navigate to https://example.com and verify content
+          - Performance test: 100 navigations to various sites, measure p95 latency &lt;3s
+          - Interaction test: Navigate to httpbin.org/forms/post, fill field, verify value
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.1.3">
+        <description>Supports screenshots and data extraction from rendered pages</description>
+        <verification>
+          - Unit test: Navigate to test page, capture screenshot, verify file size &gt;10KB
+          - Unit test: Extract text from https://example.com, verify "Example Domain" in output
+          - Visual test: Manually inspect screenshot to confirm full-page capture
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.1.4">
+        <description>Performance: page load &lt;3s, interaction &lt;1s for typical sites</description>
+        <verification>
+          - Load test: Automated script navigates to 100 URLs from test set
+          - Metrics logged: p50, p95, p99 latencies for navigation and interaction
+          - Performance dashboard: Real-time latency tracking in Grafana
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.1.5">
+        <description>Max 1 browser instance active (serial execution, no parallel browsers)</description>
+        <verification>
+          - Unit test: Attempt to launch 3 browsers concurrently, verify only 1 succeeds
+          - Integration test: Submit 5 concurrent web tasks, verify serial execution
+          - Monitoring: Resource usage shows only 1 browser process at any time
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.1.6">
+        <description>Browser cleanup: all pages closed after operations complete</description>
+        <verification>
+          - Unit test: After navigation, verify page and context are closed
+          - Integration test: Run 10 operations, check no memory leak (memory returns to baseline)
+          - Monitoring: Weekly check for zombie browser processes (alert if found)
+        </verification>
+      </criterion>
+    </acceptance-criteria>
+  </epic-technical-specification>
+
+  <prd-requirements>
+    <functional-requirements epic="F6: Web Automation &amp; Search">
+      <requirement id="F6.1">
+        <title>Web search</title>
+        <description>Tool: search_web(query) → top-5 results from SerpAPI or Exa</description>
+        <acceptance>Agent can invoke search_web tool with query parameter</acceptance>
+      </requirement>
+
+      <requirement id="F6.2">
+        <title>URL scraping</title>
+        <description>Tool: scrape_url(url) → extract text content, clean HTML</description>
+        <acceptance>Browser loads and renders JavaScript-heavy pages</acceptance>
+      </requirement>
+
+      <requirement id="F6.3">
+        <title>Form filling</title>
+        <description>Tool: fill_form(url, fields) → fill form fields, handle captchas (manual)</description>
+        <acceptance>Browser navigates to page and finds form fields</acceptance>
+      </requirement>
+
+      <requirement id="F6.4">
+        <title>Screenshot</title>
+        <description>Tool: screenshot(url) → capture full page screenshot as image</description>
+        <acceptance>Full-page screenshot captured (entire scrollHeight)</acceptance>
+      </requirement>
+
+      <requirement id="F6.5">
+        <title>Multi-step flows</title>
+        <description>Agent can chain multiple web actions (search → scrape → extract)</description>
+        <acceptance>Complex multi-step web automation workflows work end-to-end</acceptance>
+      </requirement>
+
+      <requirement id="F6.6">
+        <title>Headless browser</title>
+        <description>Use Playwright in headless + headed mode for debugging</description>
+        <acceptance>Playwright launches headless Chrome without GUI</acceptance>
+      </requirement>
+
+      <requirement id="F6.7">
+        <title>Search latency</title>
+        <description>Web operations complete in &lt;5s per action</description>
+        <acceptance>Page load &lt;5s (95th percentile)</acceptance>
+      </requirement>
+    </functional-requirements>
+
+    <non-functional-requirements>
+      <performance>
+        <requirement id="P1.6">Tool execution: Most tools complete in &lt;5s (web search &lt;3s, file ops &lt;2s)</requirement>
+      </performance>
+
+      <security>
+        <requirement id="S1.1">OAuth2 authentication for Google/Slack OAuth flow</requirement>
+        <requirement id="S1.2">Credential encryption: All API keys, tokens encrypted at rest (AES-256)</requirement>
+        <requirement id="S1.6">Input validation: Sanitize all user inputs; prevent SQL injection, XSS</requirement>
+        <requirement id="S1.9">Audit logging: Log all sensitive actions (file creation, code execution)</requirement>
+      </security>
+
+      <reliability>
+        <requirement id="R1.2">Auto-recovery: Service crashes automatically restart (Docker healthchecks)</requirement>
+        <requirement id="R1.5">Error handling: Graceful degradation; inform user of partial failures</requirement>
+        <requirement id="R1.6">Retry logic: Automatic retry for transient failures (API calls, DB)</requirement>
+      </reliability>
+    </non-functional-requirements>
+  </prd-requirements>
+
+  <architecture-context>
+    <project-structure>
+      <overview>
+        Manus Internal is a multi-service, self-hosted strategic AI platform combining real-time chat,
+        company-wide RAG, persistent memory, and autonomous agent execution. The architecture prioritizes
+        operational simplicity, data privacy, and low-latency performance within a resource-constrained
+        environment (KVM 4: 4 vCPU, 16GB RAM).
+      </overview>
+
+      <core-principle>
+        "Boring technology that works" – prefer proven, stable solutions (Next.js, PostgreSQL, Docker)
+        over cutting-edge complexity.
+      </core-principle>
+
+      <deployment-model>
+        Docker Compose orchestration on Hostinger KVM 4 VPS, with all data and processing internal
+        (no vendor lock-in).
+      </deployment-model>
+    </project-structure>
+
+    <technology-stack>
+      <frontend framework="Next.js 14" language="TypeScript" styling="Tailwind CSS" />
+      <backend>
+        <service name="Suna" technology="Node.js" purpose="Frontend API server" />
+        <service name="Onyx Core" technology="Python FastAPI" purpose="RAG service, tool orchestration" />
+      </backend>
+      <infrastructure>
+        <component name="PostgreSQL" version="15" purpose="Transactional data, auth, task history" />
+        <component name="Redis" version="7" purpose="Session cache, rate limiting, job queue" />
+        <component name="Qdrant" purpose="Vector database for semantic search" />
+        <component name="LiteLLM Proxy" purpose="LLM routing (DeepSeek primary, Ollama fallback)" />
+        <component name="Nginx" purpose="Reverse proxy, SSL termination" />
+      </infrastructure>
+    </technology-stack>
+
+    <epic-7-architecture-mapping>
+      <deliverable>Playwright browser, web search, URL scraping, form filling</deliverable>
+      <owns>
+        <item>onyx-core/services/browser_tools.py</item>
+        <item>Playwright container</item>
+      </owns>
+      <key-services>
+        <service>Playwright headless browser</service>
+        <service>SerpAPI (or Exa)</service>
+        <service>Cheerio (HTML parsing)</service>
+      </key-services>
+      <architecture>Headless browser in Docker, &lt;5s per action</architecture>
+      <stories>
+        <story id="7.1">Playwright Browser Setup &amp; Headless Automation</story>
+        <story id="7.2">Web Search Tool (SerpAPI or Exa)</story>
+        <story id="7.3">URL Scraping &amp; Content Extraction</story>
+        <story id="7.4">Form Filling &amp; Web Interaction</story>
+        <story id="7.5">Screenshot &amp; Page Capture</story>
+      </stories>
+    </epic-7-architecture-mapping>
+
+    <integration-patterns>
+      <pattern name="Tool Execution Flow">
+        <step>User toggles Agent Mode, asks complex task</step>
+        <step>Agent breaks into sub-tasks (Plan step)</step>
+        <step>For each sub-task: Selects appropriate tool (search, file, code, web)</step>
+        <step>Checks approval gates (sensitive actions)</step>
+        <step>Executes tool, logs output</step>
+        <step>Evaluates result, decides next step</step>
+        <step>Compiles final report with sources</step>
+        <step>Saves task history to PostgreSQL</step>
+      </pattern>
+    </integration-patterns>
+
+    <naming-conventions>
+      <api-routes>REST conventions with POST, GET, PATCH, DELETE verbs</api-routes>
+      <database-tables>snake_case, plural (e.g., users, conversations, memories)</database-tables>
+      <typescript-interfaces>PascalCase, singular (e.g., User, Message, Task)</typescript-interfaces>
+      <components>PascalCase, descriptive (e.g., ChatInterface, BrowserManager)</components>
+      <hooks>use* prefix, camelCase (e.g., useChat, useAgent, useBrowser)</hooks>
+      <env-vars>SCREAMING_SNAKE_CASE (e.g., PLAYWRIGHT_BROWSERS_PATH)</env-vars>
+    </naming-conventions>
+
+    <error-handling-pattern>
+      <standard>Try-catch with structured error mapping</standard>
+      <response-format>
+        {
+          "success": false,
+          "error": {
+            "code": "BROWSER_LAUNCH_FAILED",
+            "message": "Failed to launch browser",
+            "details": "Playwright connection timeout"
+          }
+        }
+      </response-format>
+      <error-codes>
+        <code name="AUTH_REQUIRED" description="Authentication required" />
+        <code name="BROWSER_LAUNCH_FAILED" description="Browser failed to launch" />
+        <code name="PAGE_LOAD_TIMEOUT" description="Page load exceeded timeout" />
+        <code name="BROWSER_CLEANUP_FAILED" description="Browser cleanup failed" />
+        <code name="MEMORY_LIMIT_EXCEEDED" description="Browser memory exceeded threshold" />
+      </error-codes>
+    </error-handling-pattern>
+
+    <logging-strategy>
+      <format>Structured JSON logs</format>
+      <fields>
+        <field name="timestamp" type="ISO8601" />
+        <field name="level" type="info|warn|error|debug" />
+        <field name="service" example="onyx-core|suna|playwright-service" />
+        <field name="userId" optional="true" />
+        <field name="action" example="browser_launch|page_navigation|screenshot_capture" />
+        <field name="details" type="object" />
+        <field name="error" optional="true" />
+      </fields>
+      <output>Docker container STDOUT (captured by Docker logs)</output>
+    </logging-strategy>
+  </architecture-context>
+
+  <existing-infrastructure>
+    <docker-environment>
+      <summary>
+        Docker Compose orchestration with 9 services: suna (Next.js), onyx-core (Python), postgres,
+        redis, qdrant, litellm-proxy, ollama, nginx, prometheus, grafana. All services connected
+        via manus-network bridge network (172.20.0.0/16).
+      </summary>
+
+      <services>
+        <service name="suna" port="3000" image="node:18-alpine" status="running">
+          <purpose>Frontend - Next.js 14 with Suna UI</purpose>
+          <volumes>
+            <mount source="./suna" target="/app" />
+            <mount source="./logs" target="/var/log/onyx" />
+          </volumes>
+          <environment>
+            <var name="NODE_ENV">development</var>
+            <var name="NEXT_PUBLIC_API_BASE">/</var>
+            <var name="REDIS_URL">redis://redis:6379</var>
+            <var name="QDRANT_URL">http://qdrant:6333</var>
+            <var name="LITELLM_URL">http://litellm-proxy:4000</var>
+          </environment>
+          <depends-on>postgres, redis, qdrant, litellm-proxy</depends-on>
+        </service>
+
+        <service name="onyx-core" port="8080" image="python:3.10-slim" status="running">
+          <purpose>Python RAG service and tool orchestration</purpose>
+          <volumes>
+            <mount source="./onyx-core" target="/app" />
+            <mount source="./logs" target="/var/log/onyx" />
+          </volumes>
+          <current-dependencies>
+            <dependency>fastapi==0.104.1</dependency>
+            <dependency>uvicorn[standard]==0.24.0</dependency>
+            <dependency>psycopg2-binary==2.9.9</dependency>
+            <dependency>qdrant-client==1.15.0</dependency>
+            <dependency>redis==5.0.1</dependency>
+            <dependency>google-api-python-client==2.108.0</dependency>
+            <dependency>beautifulsoup4==4.12.2</dependency>
+            <dependency>httpx==0.25.2</dependency>
+            <dependency>aiohttp==3.9.1</dependency>
+          </current-dependencies>
+          <missing-dependencies>
+            <note>Playwright and related browser automation dependencies NOT YET INSTALLED</note>
+          </missing-dependencies>
+        </service>
+
+        <service name="postgres" port="5432" image="postgres:15-alpine" status="running">
+          <purpose>Primary database for users, conversations, memories, tasks</purpose>
+          <volumes>
+            <mount source="postgres_data" target="/var/lib/postgresql/data" type="volume" />
+            <mount source="./docker/init-postgres.sql" target="/docker-entrypoint-initdb.d/01-schema.sql" />
+          </volumes>
+        </service>
+
+        <service name="redis" port="6379" image="redis:7-alpine" status="running">
+          <purpose>Cache, session store, job queue</purpose>
+          <volumes>
+            <mount source="redis_data" target="/data" type="volume" />
+          </volumes>
+        </service>
+
+        <service name="qdrant" port="6333" image="qdrant/qdrant:latest" status="running">
+          <purpose>Vector database for semantic search</purpose>
+          <volumes>
+            <mount source="qdrant_data" target="/qdrant/storage" type="volume" />
+          </volumes>
+        </service>
+
+        <service name="nginx" port="80,443" image="nginx:alpine" status="running">
+          <purpose>Reverse proxy, SSL termination</purpose>
+          <volumes>
+            <mount source="./nginx/nginx.conf" target="/etc/nginx/nginx.conf" readonly="true" />
+            <mount source="./logs/nginx" target="/var/log/nginx" />
+          </volumes>
+        </service>
+      </services>
+
+      <network>
+        <name>manus-network</name>
+        <driver>bridge</driver>
+        <subnet>172.20.0.0/16</subnet>
+      </network>
+
+      <volumes>
+        <volume name="postgres_data" driver="local" />
+        <volume name="redis_data" driver="local" />
+        <volume name="qdrant_data" driver="local" />
+        <volume name="ollama_models" driver="local" />
+        <volume name="prometheus_data" driver="local" />
+        <volume name="grafana_data" driver="local" />
+      </volumes>
+    </docker-environment>
+
+    <onyx-core-structure>
+      <dockerfile>
+        FROM python:3.11-slim
+        WORKDIR /app
+        # Install system dependencies (gcc for compilation)
+        # Create non-root user 'onyx'
+        # Install Python dependencies from requirements.txt
+        # Copy application code
+        # Health check on /health endpoint
+        EXPOSE 8000
+        CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+      </dockerfile>
+
+      <current-structure>
+        onyx-core/
+        ├── Dockerfile
+        ├── requirements.txt (NO Playwright yet)
+        ├── main.py (FastAPI server)
+        ├── config/
+        │   ├── qdrant_config.py
+        │   └── connectors.py
+        └── services/
+            ├── rag_service.py
+            └── sync_service.py
+      </current-structure>
+
+      <planned-additions>
+        onyx-core/
+        └── services/
+            └── browser_manager.py (NEW - Story 7.1)
+      </planned-additions>
+    </onyx-core-structure>
+
+    <environment-management>
+      <env-file>.env.local (default), can override with ENV_FILE variable</env-file>
+      <encryption>
+        <key name="ENCRYPTION_KEY">32-byte hex string (64 chars) for AES-256 encryption</key>
+      </encryption>
+      <secrets-storage>
+        <method>Docker Compose .env files</method>
+        <encryption>Encrypted values for API keys and credentials</encryption>
+      </secrets-storage>
+    </environment-management>
+  </existing-infrastructure>
+
+  <browser-automation-gaps>
+    <current-state>
+      <status>No browser automation infrastructure exists yet</status>
+      <missing-components>
+        <component>Playwright Python library</component>
+        <component>Playwright browsers (Chromium, Firefox)</component>
+        <component>Browser Manager service (browser_manager.py)</component>
+        <component>Playwright Docker container configuration</component>
+        <component>Browser automation tests</component>
+      </missing-components>
+    </current-state>
+
+    <required-additions>
+      <python-dependencies>
+        <dependency name="playwright" version="1.40.0" purpose="Browser automation library" />
+        <dependency name="psutil" version="5.9.0" purpose="Memory monitoring" />
+      </python-dependencies>
+
+      <docker-configuration>
+        <new-service name="playwright">
+          <image>mcr.microsoft.com/playwright/python:v1.40.0-jammy</image>
+          <container-name>onyx-playwright</container-name>
+          <purpose>Dedicated container with Playwright and headless browsers</purpose>
+          <volumes>
+            <mount source="./onyx-core" target="/app" />
+          </volumes>
+          <environment>
+            <var name="PLAYWRIGHT_BROWSERS_PATH">/ms-playwright</var>
+            <var name="BROWSER_HEADLESS">true</var>
+            <var name="BROWSER_TIMEOUT">10000</var>
+          </environment>
+          <resources>
+            <memory-limit>2g</memory-limit>
+            <cpu-limit>1.5</cpu-limit>
+          </resources>
+          <healthcheck>
+            <test>python -c "from playwright.sync_api import sync_playwright; p = sync_playwright().start(); p.chromium.launch(); p.stop()"</test>
+            <interval>60s</interval>
+            <timeout>10s</timeout>
+            <retries>3</retries>
+          </healthcheck>
+        </new-service>
+      </docker-configuration>
+
+      <new-service-file>
+        <path>onyx-core/services/browser_manager.py</path>
+        <purpose>Singleton browser manager for headless automation</purpose>
+        <key-methods>
+          <method name="launch">Launch headless browser if not already running</method>
+          <method name="navigate">Navigate to URL and return page object</method>
+          <method name="screenshot">Capture screenshot of page</method>
+          <method name="extract_text">Extract visible text content from page</method>
+          <method name="close_page">Close a page and release resources</method>
+          <method name="cleanup">Close browser and release all resources</method>
+          <method name="check_memory">Check current memory usage in MB</method>
+        </key-methods>
+      </new-service-file>
+
+      <integration-tests>
+        <path>onyx-core/tests/integration/test_browser_manager.py</path>
+        <tests>
+          <test name="test_browser_launch_headless">Verify browser launches in headless mode</test>
+          <test name="test_navigate_to_url">Verify browser can navigate to URLs</test>
+          <test name="test_screenshot_capture">Verify screenshot capture works</test>
+          <test name="test_text_extraction">Verify text extraction from pages</test>
+          <test name="test_browser_cleanup">Verify cleanup releases resources</test>
+          <test name="test_single_instance_constraint">Verify only one browser instance is active</test>
+        </tests>
+      </integration-tests>
+    </required-additions>
+  </browser-automation-gaps>
+
+  <dependencies-and-integration>
+    <external-dependencies>
+      <dependency name="Playwright" version="1.40.0+" type="Python library">
+        <purpose>Browser automation framework</purpose>
+        <installation>pip install playwright==1.40.0</installation>
+        <post-install>playwright install chromium firefox</post-install>
+      </dependency>
+
+      <dependency name="psutil" version="5.9.0" type="Python library">
+        <purpose>Memory monitoring and process management</purpose>
+        <installation>pip install psutil==5.9.0</installation>
+      </dependency>
+
+      <dependency name="Microsoft Playwright Docker Image" version="v1.40.0-jammy" type="Docker image">
+        <purpose>Pre-configured Docker image with Playwright and browsers</purpose>
+        <image>mcr.microsoft.com/playwright/python:v1.40.0-jammy</image>
+      </dependency>
+    </external-dependencies>
+
+    <internal-dependencies>
+      <dependency name="Epic 1: Foundation &amp; Infrastructure" status="completed">
+        <provides>Docker environment, Docker Compose orchestration, Redis cache</provides>
+        <required-for>Playwright container deployment</required-for>
+      </dependency>
+
+      <dependency name="Onyx Core" status="running">
+        <provides>Python FastAPI service, tool orchestration</provides>
+        <integration>Browser Manager will be added as new service module</integration>
+      </dependency>
+
+      <dependency name="Redis" status="running">
+        <provides>Caching layer for browser results</provides>
+        <use-case>Cache scraped content, search results (24h TTL)</use-case>
+      </dependency>
+
+      <dependency name="PostgreSQL" status="running">
+        <provides>Task history storage</provides>
+        <use-case>Log browser operations, store execution history</use-case>
+      </dependency>
+    </internal-dependencies>
+
+    <integration-points>
+      <point name="Onyx Core → Browser Manager">
+        <pattern>Python module import and async function calls</pattern>
+        <example>
+          from services.browser_manager import BrowserManager
+          manager = await BrowserManager.get_instance()
+          page = await manager.navigate('https://example.com')
+        </example>
+      </point>
+
+      <point name="Agent Mode → Browser Tools">
+        <pattern>Tool selection and execution via LLM agent</pattern>
+        <flow>
+          1. Agent receives task requiring web automation
+          2. Selects browser automation tool (scrape_url, screenshot, etc.)
+          3. Calls Browser Manager methods
+          4. Returns results to agent
+          5. Agent synthesizes into response
+        </flow>
+      </point>
+
+      <point name="Browser Manager → Redis Cache">
+        <pattern>Cache frequently accessed pages</pattern>
+        <cache-key>browser:url:{url_hash}</cache-key>
+        <ttl>24 hours</ttl>
+      </point>
+
+      <point name="Browser Manager → PostgreSQL">
+        <pattern>Log all browser operations</pattern>
+        <table>tasks</table>
+        <fields>user_id, action, url, status, execution_time, error_message</fields>
+      </point>
+    </integration-points>
+
+    <blocking-this-story>
+      <epic id="epic-1" name="Foundation &amp; Infrastructure" status="completed">
+        <required>Docker Compose environment must be operational</required>
+        <required>Redis cache must be running</required>
+        <required>PostgreSQL must be running</required>
+      </epic>
+    </blocking-this-story>
+
+    <blocked-by-this-story>
+      <story id="7-3" name="URL Scraping &amp; Content Extraction">
+        <reason>Requires Playwright for JavaScript rendering</reason>
+      </story>
+
+      <story id="7-4" name="Form Filling &amp; Web Interaction">
+        <reason>Requires Browser Manager for form automation</reason>
+      </story>
+
+      <story id="7-5" name="Screenshot &amp; Page Capture">
+        <reason>Requires Playwright screenshot API</reason>
+      </story>
+    </blocked-by-this-story>
+  </dependencies-and-integration>
+
+  <implementation-guidance>
+    <step-by-step>
+      <phase number="1" name="Docker Configuration">
+        <task>Add playwright service to docker-compose.yaml</task>
+        <task>Use Microsoft Playwright Python image (v1.40.0-jammy)</task>
+        <task>Mount onyx-core directory for code access</task>
+        <task>Set environment variables (PLAYWRIGHT_BROWSERS_PATH, BROWSER_HEADLESS, BROWSER_TIMEOUT)</task>
+        <task>Configure resource limits (2GB RAM, 1.5 CPU cores)</task>
+        <task>Add health check to verify browser can launch</task>
+        <task>Connect to manus-network bridge network</task>
+      </phase>
+
+      <phase number="2" name="Python Dependencies">
+        <task>Add playwright==1.40.0 to requirements.txt</task>
+        <task>Add psutil==5.9.0 to requirements.txt</task>
+        <task>Add aiohttp==3.9.0 to requirements.txt (if not present)</task>
+        <task>Run pip install -r requirements.txt in container</task>
+        <task>Run playwright install chromium firefox</task>
+      </phase>
+
+      <phase number="3" name="Browser Manager Service">
+        <task>Create onyx-core/services/browser_manager.py</task>
+        <task>Implement Singleton pattern for browser instance management</task>
+        <task>Implement launch() method with headless Chrome configuration</task>
+        <task>Implement navigate() method with configurable wait strategies</task>
+        <task>Implement screenshot() method for full-page capture</task>
+        <task>Implement extract_text() method for content extraction</task>
+        <task>Implement close_page() method for resource cleanup</task>
+        <task>Implement cleanup() method to close browser and contexts</task>
+        <task>Implement check_memory() method with auto-restart threshold</task>
+        <task>Add comprehensive logging for all operations</task>
+        <task>Add error handling for timeouts, navigation failures</task>
+      </phase>
+
+      <phase number="4" name="Integration Tests">
+        <task>Create onyx-core/tests/integration/test_browser_manager.py</task>
+        <task>Implement test_browser_launch_headless()</task>
+        <task>Implement test_navigate_to_url()</task>
+        <task>Implement test_screenshot_capture()</task>
+        <task>Implement test_text_extraction()</task>
+        <task>Implement test_browser_cleanup()</task>
+        <task>Implement test_single_instance_constraint()</task>
+        <task>Add performance tests for p95 latency measurement</task>
+        <task>Configure pytest-asyncio for async test support</task>
+      </phase>
+
+      <phase number="5" name="Verification &amp; Documentation">
+        <task>Run all integration tests and verify passing</task>
+        <task>Verify browser launches without GUI in Docker logs</task>
+        <task>Verify navigation to https://example.com succeeds</task>
+        <task>Verify screenshot capture produces PNG file &gt;10KB</task>
+        <task>Verify text extraction contains expected content</task>
+        <task>Verify memory cleanup (no zombie processes)</task>
+        <task>Verify single browser instance constraint</task>
+        <task>Document Browser Manager API in code docstrings</task>
+        <task>Update architecture documentation with browser service</task>
+        <task>Add troubleshooting guide for common browser issues</task>
+      </phase>
+    </step-by-step>
+
+    <key-design-decisions>
+      <decision name="Singleton Pattern">
+        <rationale>Enforce single browser instance constraint (serial execution)</rationale>
+        <implementation>Class-level _instance variable with async lock</implementation>
+      </decision>
+
+      <decision name="Headless Mode">
+        <rationale>VPS has no GUI; headless required for deployment</rationale>
+        <configuration>headless=True in browser.launch()</configuration>
+      </decision>
+
+      <decision name="Chromium Primary Browser">
+        <rationale>Best performance and compatibility with modern web</rationale>
+        <fallback>Firefox available for testing edge cases</fallback>
+      </decision>
+
+      <decision name="Browser Context Reuse">
+        <rationale>Avoid restarting browser for each operation (performance)</rationale>
+        <implementation>Persistent context created on launch, pages created/closed per operation</implementation>
+      </decision>
+
+      <decision name="Auto-Restart Threshold">
+        <rationale>Prevent memory leaks from long-running browser</rationale>
+        <threshold>800MB memory usage triggers cleanup and restart</threshold>
+      </decision>
+
+      <decision name="User Agent Identification">
+        <rationale>Ethical web scraping; identify as Manus bot</rationale>
+        <value>Manus Internal Bot (+https://m3rcury.com/manus-bot)</value>
+      </decision>
+    </key-design-decisions>
+
+    <performance-optimization>
+      <strategy>Reuse browser context across operations</strategy>
+      <strategy>Use domcontentloaded instead of networkidle when possible</strategy>
+      <strategy>Implement page pooling if needed (future enhancement)</strategy>
+      <strategy>Cache frequently accessed pages in Redis (24h TTL)</strategy>
+      <strategy>Disable images/CSS for text-only scraping (future enhancement)</strategy>
+    </performance-optimization>
+
+    <error-handling>
+      <scenario name="Browser Launch Failure">
+        <detection>Playwright throws LaunchError</detection>
+        <handling>Log error, retry once, return error to agent</handling>
+        <user-message>Browser failed to launch. Retrying...</user-message>
+      </scenario>
+
+      <scenario name="Page Load Timeout">
+        <detection>Navigation exceeds 10s timeout</detection>
+        <handling>Log timeout, return partial results if available</handling>
+        <user-message>Page load timeout. Returning partial results.</user-message>
+      </scenario>
+
+      <scenario name="Memory Threshold Exceeded">
+        <detection>Memory usage &gt;800MB</detection>
+        <handling>Log warning, trigger cleanup and restart</handling>
+        <user-message>Browser restarting due to high memory usage...</user-message>
+      </scenario>
+
+      <scenario name="Browser Crash">
+        <detection>browser.is_connected() returns False</detection>
+        <handling>Log crash, cleanup resources, return error</handling>
+        <user-message>Browser crashed. Please try again.</user-message>
+      </scenario>
+    </error-handling>
+
+    <security-considerations>
+      <isolation>Browser runs in dedicated Docker container</isolation>
+      <filesystem>No access to host filesystem beyond mounted volumes</filesystem>
+      <javascript>JavaScript execution sandboxed within browser context</javascript>
+      <cookies>Cookies cleared after each session</cookies>
+      <user-agent>Identify as Manus bot with contact info</user-agent>
+      <url-validation>Validate URLs before navigation (block known malicious domains)</url-validation>
+      <ssl>SSL certificate verification enabled</ssl>
+      <timeout>Timeout enforcement to prevent long-running requests</timeout>
+    </security-considerations>
+  </implementation-guidance>
+
+  <testing-strategy>
+    <unit-tests>
+      <test>Browser launch and initialization</test>
+      <test>Navigation to URLs with various wait strategies</test>
+      <test>Screenshot capture in different formats</test>
+      <test>Text extraction from various page structures</test>
+      <test>Resource cleanup and memory release</test>
+      <test>Error handling for timeouts and failed navigations</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>End-to-end browser automation workflows</test>
+      <test>Integration with Onyx Core tool system</test>
+      <test>Docker container health checks</test>
+      <test>Browser restart on memory threshold</test>
+      <test>Concurrent request queuing (serial execution)</test>
+    </integration-tests>
+
+    <performance-tests>
+      <test>Load test: 100 navigations to measure p95 latency</test>
+      <test>Memory leak test: 50 operations, verify memory returns to baseline</test>
+      <test>Browser startup time measurement</test>
+      <test>Page interaction speed (click, type, select)</test>
+    </performance-tests>
+
+    <manual-verification>
+      <test>Visual inspection of captured screenshots</test>
+      <test>Verify headless operation (no GUI windows)</test>
+      <test>Test against real websites (news, blogs, corporate sites)</test>
+      <test>Verify user agent identification</test>
+    </manual-verification>
+
+    <coverage-targets>
+      <target component="browser_manager.py" percentage="95%" />
+      <target component="Integration tests" percentage="100%" />
+      <target component="Error handling" percentage="100%" />
+    </coverage-targets>
+  </testing-strategy>
+
+  <risks-and-mitigations>
+    <risk severity="high" name="Memory leaks in Playwright">
+      <impact>Browser consumes all available memory, crashes system</impact>
+      <mitigation>Implement auto-restart at 800MB threshold</mitigation>
+      <mitigation>Monitor memory usage with psutil</mitigation>
+      <mitigation>Weekly monitoring for zombie processes</mitigation>
+    </risk>
+
+    <risk severity="medium" name="Browser crashes on complex sites">
+      <impact>Tool execution fails, user experience degraded</impact>
+      <mitigation>Retry logic with exponential backoff</mitigation>
+      <mitigation>Fallback to text-only mode (no JS rendering)</mitigation>
+      <mitigation>Log failures for analysis</mitigation>
+    </risk>
+
+    <risk severity="medium" name="Slow page loads causing timeouts">
+      <impact>User waits too long, timeouts occur frequently</impact>
+      <mitigation>Set reasonable 10s timeout</mitigation>
+      <mitigation>Return partial results on timeout</mitigation>
+      <mitigation>Use domcontentloaded instead of networkidle</mitigation>
+    </risk>
+
+    <risk severity="medium" name="Anti-bot detection blocks">
+      <impact>Some websites refuse to serve content</impact>
+      <mitigation>Use respectful user agent</mitigation>
+      <mitigation>Rate limiting per domain</mitigation>
+      <mitigation>Document unsupported sites</mitigation>
+      <mitigation>Manual intervention for sensitive sites</mitigation>
+    </risk>
+
+    <risk severity="low" name="Docker resource contention">
+      <impact>Browser performance degraded due to resource limits</impact>
+      <mitigation>Set mem_limit and cpus in docker-compose</mitigation>
+      <mitigation>Monitor with Prometheus</mitigation>
+      <mitigation>Scale to larger VPS if needed</mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <definition-of-done>
+    <checklist>
+      <item>Playwright Docker container deployed and running</item>
+      <item>Browser Manager service implemented with all core methods</item>
+      <item>All 6 acceptance criteria verified and passing</item>
+      <item>Unit tests: &gt;95% coverage of browser_manager.py</item>
+      <item>Integration tests: All browser workflows passing</item>
+      <item>Performance tests: p95 latency &lt;3s for navigation, &lt;1s for interaction</item>
+      <item>Documentation: Browser Manager API documented in code</item>
+      <item>Docker health check: Browser launch test passes every 60s</item>
+      <item>Memory monitoring: Auto-restart at 800MB threshold working</item>
+      <item>Code review: Approved by senior engineer</item>
+      <item>Merged to main branch and deployed to staging</item>
+    </checklist>
+  </definition-of-done>
+
+  <related-documentation>
+    <document path="/home/user/ONYX/docs/epics/epic-7-tech-spec.md" type="Epic Technical Specification" />
+    <document path="/home/user/ONYX/docs/PRD.md" section="F6: Web Automation &amp; Search" type="Product Requirements Document" />
+    <document path="/home/user/ONYX/docs/architecture.md" section="Epic 7: Web Automation" type="Architecture Document" />
+    <document path="/home/user/ONYX/docker-compose.yaml" type="Docker Compose Configuration" />
+    <document path="/home/user/ONYX/onyx-core/requirements.txt" type="Python Dependencies" />
+    <document path="/home/user/ONYX/onyx-core/Dockerfile" type="Dockerfile" />
+    <document path="https://playwright.dev/python/docs/intro" type="Playwright Documentation (External)" />
+    <document path="https://playwright.dev/python/docs/docker" type="Docker Playwright Images (External)" />
+  </related-documentation>
+</story-context>
