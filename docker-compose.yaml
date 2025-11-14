@@ -245,6 +245,37 @@ services:
       timeout: 10s
       retries: 3
 
+  # Playwright browser automation service
+  playwright:
+    image: mcr.microsoft.com/playwright/python:v1.40.0-jammy
+    container_name: onyx-playwright
+    working_dir: /app
+    env_file:
+      - ${ENV_FILE:-.env.local}
+    environment:
+      PYTHONPATH: /app
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      BROWSER_HEADLESS: "true"
+      BROWSER_TIMEOUT: "10000"
+      # Logging configuration
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      SERVICE_NAME: onyx-playwright
+    volumes:
+      - ./onyx-core:/app
+      - ./logs:/var/log/onyx
+    networks:
+      - manus-network
+    mem_limit: 2g
+    cpus: 1.5
+    healthcheck:
+      test: ["CMD", "python", "-c", "from playwright.sync_api import sync_playwright; p = sync_playwright().start(); browser = p.chromium.launch(); browser.close(); p.stop()"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
 networks:
   manus-network:
     driver: bridge

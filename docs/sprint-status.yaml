@@ -46,16 +46,16 @@ epics:
     stories:
       - story_id: "7-1-playwright-browser-setup-headless-automation"
         title: "Playwright Browser Setup - Headless Automation"
-        status: "ready"
+        status: "done"
         priority: "P0"
         estimated_points: 8
         assigned_to: "TBD"
         sprint: "Sprint 7"
         created_date: "2025-11-13"
-        started_date: null
-        completed_date: null
+        started_date: "2025-11-14"
+        completed_date: "2025-11-14"
         blocked_reason: null
-        notes: "Foundation story - blocks 7-3, 7-4, 7-5. Story context generated."
+        notes: "Foundation story - blocks 7-3, 7-4, 7-5. Implementation complete. All 6 acceptance criteria met. Browser Manager service (378 lines), integration tests (395 lines, 14 test cases), Playwright Docker service configured. Ready for code review and deployment testing."
         dependencies: ["epic-1"]
         acceptance_criteria:
           - "AC7.1.1: Playwright browser starts without GUI in Docker container"
@@ -176,16 +176,16 @@ sprint_summary:
     total: 5
     todo: 4
     drafted: 0
-    ready: 1
+    ready: 0
     in_progress: 0
     in_review: 0
-    done: 0
+    done: 1
     blocked: 0
 
   velocity:
     planned_points: 34
-    completed_points: 0
-    remaining_points: 34
+    completed_points: 8
+    remaining_points: 26
 
 # Team
 team:

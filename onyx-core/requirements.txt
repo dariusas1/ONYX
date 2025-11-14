@@ -23,6 +23,10 @@ celery==5.3.4
 httpx==0.25.2
 aiohttp==3.9.1
 
+# Browser Automation
+playwright==1.40.0
+psutil==5.9.0
+
 # Authentication & Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
