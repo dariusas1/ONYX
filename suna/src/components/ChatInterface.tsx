@@ -52,18 +52,30 @@ export function ChatInterface({
   );
 
   return (
-    <div className={`flex-1 flex flex-col ${className}`} role="main">
-      <MessageList
-        messages={messages}
-        isStreaming={isStreaming}
-        className="flex-1"
-      />
-      <InputBox
-        value={input}
-        onChange={setInput}
-        onSubmit={handleSubmit}
-        disabled={isStreaming}
-      />
+    <div
+      className={`flex-1 flex flex-col min-h-0 ${className}`}
+      role="main"
+      aria-label="Chat conversation"
+    >
+      <div className="flex-1 flex flex-col min-h-0">
+        <MessageList
+          messages={messages}
+          isStreaming={isStreaming}
+          className="flex-1"
+          aria-live="polite"
+          aria-label="Messages in conversation"
+        />
+      </div>
+
+      <div className="flex-shrink-0">
+        <InputBox
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSubmit}
+          disabled={isStreaming}
+          aria-label="Type and send your message"
+        />
+      </div>
     </div>
   );
 }

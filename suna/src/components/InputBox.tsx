@@ -68,9 +68,11 @@ export function InputBox({
   return (
     <div
       className={`border-t border-manus-border bg-manus-surface ${className}`}
+      role="form"
+      aria-label="Message input form"
     >
-      <div className="max-w-chat mx-auto px-4 py-4">
-        <div className="flex gap-3 items-end">
+      <div className="max-w-chat mx-auto px-3 sm:px-4 py-3 sm:py-4">
+        <div className="flex gap-2 sm:gap-3 items-end">
           {/* Textarea */}
           <div className="flex-1 relative">
             <textarea
@@ -80,17 +82,25 @@ export function InputBox({
               onKeyDown={handleKeyDown}
               disabled={disabled}
               placeholder={placeholder}
-              className="input w-full resize-none min-h-[44px] max-h-[200px] py-3"
+              className="input w-full resize-none min-h-[44px] max-h-[200px] py-3 text-sm sm:text-base"
               rows={1}
               aria-label="Message input"
-              aria-describedby="input-help"
+              aria-describedby={disabled ? undefined : "input-help"}
+              aria-invalid={false}
+              aria-multiline="true"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
-            <div
-              id="input-help"
-              className="absolute -bottom-5 left-0 text-xs text-manus-muted"
-            >
-              Press Enter to send, Shift+Enter for new line
-            </div>
+            {!disabled && (
+              <div
+                id="input-help"
+                className="absolute -bottom-5 sm:-bottom-4 left-0 text-xs text-manus-muted sr-only sm:not-sr-only"
+              >
+                Press Enter to send, Shift+Enter for new line
+              </div>
+            )}
           </div>
 
           {/* Send button */}
@@ -98,11 +108,13 @@ export function InputBox({
             type="button"
             onClick={handleSubmit}
             disabled={disabled || !value.trim()}
-            className="btn btn-primary h-11 w-11 flex items-center justify-center flex-shrink-0"
+            className="btn btn-primary h-10 sm:h-11 w-10 sm:w-11 flex items-center justify-center flex-shrink-0 min-w-[44px] min-h-[44px]"
             aria-label="Send message"
             title="Send message (Enter)"
+            aria-describedby="input-help"
           >
-            <Send className="w-5 h-5" aria-hidden="true" />
+            <Send className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
+            <span className="sr-only">Send</span>
           </button>
         </div>
       </div>

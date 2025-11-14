@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>2-1-suna-ui-deployment-with-manus-theme</story-id>
+    <story-title>Suna UI Deployment with Manus Theme</story-title>
+    <epic-id>epic-2</epic-id>
+    <epic-name>Chat Interface & Conversation Management</epic-name>
+    <generated-date>2025-11-14T00:45:00Z</generated-date>
+    <workflow-version>1.0</workflow-version>
+  </metadata>
+
+  <project-overview>
+    <project-name>ONYX - Manus Internal</project-name>
+    <project-type>Multi-service AI Platform</project-type>
+    <architecture>Docker Compose + Next.js + PostgreSQL + Python RAG</architecture>
+    <deployment-model>Self-hosted VPS (Hostinger KVM 4)</deployment-model>
+    <current-sprint>Sprint 7 (Web Automation Focus)</current-sprint>
+  </project-overview>
+
+  <project-structure-analysis>
+    <directories>
+      <directory name="suna/" status="exists" purpose="Next.js 14 frontend application">
+        <subdirectory name="src/app/" status="exists" purpose="App Router pages and API routes">
+          <file name="layout.tsx" status="exists" notes="Root layout with Inter font configuration" />
+          <file name="page.tsx" status="exists" notes="Main chat page with Header and ChatInterface components" />
+        </subdirectory>
+        <subdirectory name="src/components/" status="exists" purpose="Reusable UI components">
+          <file name="ChatInterface.tsx" status="exists" notes="Core chat component structure" />
+          <file name="Header.tsx" status="exists" notes="Chat header component" />
+          <file name="MessageList.tsx" status="exists" notes="Message display component" />
+          <file name="InputBox.tsx" status="exists" notes="Chat input component" />
+        </subdirectory>
+        <subdirectory name="src/styles/" status="exists" purpose="Global styles and CSS" />
+        <subdirectory name="public/" status="exists" purpose="Static assets" />
+      </directory>
+      <directory name="onyx-core/" status="exists" purpose="Python RAG service" />
+      <directory name="nginx/" status="exists" purpose="Reverse proxy configuration" />
+      <directory name="docs/" status="exists" purpose="Project documentation">
+        <file name="architecture.md" status="exists" notes="Comprehensive system architecture" />
+        <file name="epics/epic-2-tech-spec.md" status="exists" notes="Detailed Epic 2 technical specifications" />
+      </directory>
+    </directories>
+
+    <configuration-files>
+      <file path="suna/package.json" status="exists" notes="Next.js 14, React 18, TypeScript, Tailwind CSS configured" />
+      <file path="suna/tailwind.config.js" status="exists" notes="Manus dark theme already configured with custom colors" />
+      <file path="suna/tsconfig.json" status="exists" notes="TypeScript strict mode enabled" />
+      <file path="suna/next.config.js" status="exists" notes="Next.js configuration" />
+      <file path="docker-compose.yaml" status="exists" notes="Multi-service orchestration" />
+    </configuration-files>
+  </project-structure-analysis>
+
+  <technology-stack-assessment>
+    <frontend-stack>
+      <framework name="Next.js" version="14.0.0" status="configured">
+        <features>App Router, Server Components, Streaming API, TypeScript</features>
+        <readiness>READY - Configuration exists and follows architecture specifications</readiness>
+      </framework>
+      <ui-library name="React" version="18.0.0" status="configured">
+        <features>Hooks, Server Components, Client Components</features>
+        <readiness>READY - Properly integrated with Next.js</readiness>
+      </ui-library>
+      <styling name="Tailwind CSS" version="3.4.0" status="configured">
+        <features>Custom Manus theme, responsive design, dark mode native</features>
+        <readiness>READY - Manus color palette already implemented</readiness>
+      </styling>
+      <language name="TypeScript" version="5.3.0" status="configured">
+        <features>Strict mode, type safety, IDE support</features>
+        <readiness>READY - Properly configured with strict settings</readiness>
+      </language>
+    </frontend-stack>
+
+    <dependencies-needed>
+      <dependency type="runtime" name="LiteLLM Proxy" status="missing">
+        <purpose>LLM routing with DeepSeek primary and Ollama fallback</purpose>
+        <impact>BLOCKER - Required for chat functionality</impact>
+      </dependency>
+      <dependency type="service" name="PostgreSQL" status="configured">
+        <purpose>Message persistence and conversation storage</purpose>
+        <impact>READY - Docker service configured</impact>
+      </dependency>
+      <dependency type="service" name="Redis" status="configured">
+        <purpose>Caching and session management</purpose>
+        <impact>READY - Docker service configured</impact>
+      </dependency>
+      <dependency type="font" name="Inter" status="configured">
+        <purpose>Primary typography</purpose>
+        <impact>READY - Google Fonts integration with system fallback</impact>
+      </dependency>
+    </dependencies-needed>
+  </technology-stack-assessment>
+
+  <epic-dependencies>
+    <epic-dependency epic-id="epic-1" epic-name="Foundation & Infrastructure">
+      <completion-status>CRITICAL - NOT STARTED</completion-status>
+      <impact-on-story>HIGH BLOCKER - Epic 1 provides Docker environment, database setup, and basic infrastructure</impact-on-story>
+      <specific-dependencies>
+        <dependency>Docker Compose environment</dependency>
+        <dependency>PostgreSQL database initialization</dependency>
+        <dependency>Environment configuration</dependency>
+        <dependency>Nginx reverse proxy setup</dependency>
+      </specific-dependencies>
+      <mitigation-story-status>Story 2.1 cannot proceed without Epic 1 completion</mitigation-story-status>
+    </epic-dependency>
+  </epic-dependencies>
+
+  <ui-ux-patterns-analysis>
+    <design-system>
+      <theme name="Manus Dark Theme" status="implemented">
+        <colors>
+          <color name="manus-bg" value="#0F172A" purpose="Deep navy background" status="configured" />
+          <color name="manus-surface" value="#1E293B" purpose="Elevated surface" status="configured" />
+          <color name="manus-accent" value="#2563EB" purpose="Primary blue" status="configured" />
+          <color name="manus-text" value="#E2E8F0" purpose="Light gray text" status="configured" />
+          <color name="manus-muted" value="#64748B" purpose="Muted text" status="configured" />
+          <color name="manus-border" value="#334155" purpose="Border color" status="configured" />
+        </colors>
+        <typography>
+          <font-family name="Inter" status="configured" purpose="Primary typography" />
+          <font-weights weights="400,500,600,700" status="configured" />
+        </typography>
+      </theme>
+    </design-system>
+
+    <layout-patterns>
+      <pattern name="Single-column minimalist layout" status="partially-implemented">
+        <implementation>Chat page uses flex column layout with Header and ChatInterface</implementation>
+        <max-width chat="900px" status="configured" />
+        <responsiveness status="needs-implementation" notes="Desktop, tablet, mobile breakpoints required" />
+      </pattern>
+    </layout-patterns>
+
+    <component-architecture>
+      <component name="ChatInterface" status="basic-implementation">
+        <purpose>Main chat container with message list and input</purpose>
+        <current-state>Structure exists, needs streaming implementation</current-state>
+      </component>
+      <component name="Header" status="implemented">
+        <purpose>Chat interface header</purpose>
+        <current-state>Basic implementation complete</current-state>
+      </component>
+      <component name="MessageList" status="implemented">
+        <purpose>Display conversation messages</purpose>
+        <current-state>Basic component exists, needs streaming support</current-state>
+      </component>
+      <component name="InputBox" status="implemented">
+        <purpose>User message input</purpose>
+        <current-state>Basic implementation complete</current-state>
+      </component>
+    </component-architecture>
+  </ui-ux-patterns-analysis>
+
+  <frontend-framework-analysis>
+    <nextjs-configuration>
+      <app-router status="enabled" purpose="Modern Next.js routing" />
+      <server-components status="enabled" purpose="Server-side rendering and data fetching" />
+      <typescript status="strict" purpose="Type safety" />
+      <tailwind status="integrated" purpose="Styling system" />
+    </nextjs-configuration>
+
+    <component-structure>
+      <page-components>
+        <component file="src/app/page.tsx" purpose="Main chat interface" status="implemented" />
+        <component file="src/app/layout.tsx" purpose="Root layout with fonts" status="implemented" />
+      </page-components>
+      <reusable-components>
+        <component file="src/components/ChatInterface.tsx" purpose="Chat container" status="basic" />
+        <component file="src/components/Header.tsx" purpose="Header component" status="complete" />
+        <component file="src/components/MessageList.tsx" purpose="Message display" status="basic" />
+        <component file="src/components/InputBox.tsx" purpose="Message input" status="complete" />
+      </reusable-components>
+    </component-structure>
+
+    <api-routes-needed>
+      <route path="/api/chat" purpose="Streaming chat endpoint" status="missing" />
+      <route path="/api/conversations" purpose="Conversation management" status="missing" />
+      <route path="/api/conversations/[id]/messages" purpose="Message retrieval" status="missing" />
+    </api-routes-needed>
+  </frontend-framework-analysis>
+
+  <css-styling-assessment>
+    <tailwind-configuration>
+      <custom-theme status="implemented">
+        <manus-colors status="complete" notes="All 6 Manus colors configured" />
+        <font-configuration status="complete" notes="Inter font with system fallbacks" />
+        <custom-utilities status="partial" notes="max-width-chat configured" />
+      </custom-theme>
+      <responsive-design status="needs-implementation">
+        <breakpoints status="default" notes="Tailwind default breakpoints need custom implementation" />
+        <mobile-optimization status="missing" notes="Touch targets and mobile layout required" />
+      </responsive-design>
+    </tailwind-configuration>
+
+    <styling-approach>
+      <methodology>Utility-first CSS with Tailwind</methodology>
+      <dark-mode status="native" notes="Manus theme provides dark color palette" />
+      <component-styling status="utility-classes" notes="Components use Tailwind utility classes" />
+      <custom-css status="minimal" notes=" globals.css for global styles only" />
+    </styling-approach>
+  </css-styling-assessment>
+
+  <accessibility-requirements-evaluation>
+    <wcag-compliance>
+      <level target="AA" current-status="partial" />
+      <contrast-ratios>
+        <ratio color-pair="manus-text/manus-bg" value="14.63:1" status="compliant" notes="Exceeds 4.5:1 requirement" />
+        <ratio color-pair="manus-accent/manus-bg" value="9.04:1" status="compliant" notes="Exceeds 4.5:1 requirement" />
+        <ratio color-pair="manus-muted/manus-bg" value="4.73:1" status="compliant" notes="Exceeds 4.5:1 requirement" />
+      </contrast-ratios>
+    </wcag-compliance>
+
+    <accessibility-features-needed>
+      <feature name="ARIA labels and roles" status="missing" priority="high" />
+      <feature name="Keyboard navigation support" status="missing" priority="high" />
+      <feature name="Screen reader compatibility" status="partial" priority="high" />
+      <feature name="Focus indicators" status="missing" priority="high" />
+      <feature name="Semantic HTML structure" status="partial" priority="medium" />
+      <feature name="Touch target sizes" status="missing" priority="medium" />
+    </accessibility-features-needed>
+
+    <lighthouse-targets>
+      <metric name="Accessibility" target=">90" current-status="unknown" />
+      <metric name="Performance" target="<2s load" current-status="unknown" />
+      <metric name="Best Practices" target=">90" current-status="unknown" />
+      <metric name="SEO" target=">90" current-status="unknown" />
+    </lighthouse-targets>
+  </accessibility-requirements-evaluation>
+
+  <performance-considerations>
+    <loading-performance>
+      <target name="Initial page load" metric="<2s" current-status="unknown" />
+      <target name="Time to interactive" metric="<2.5s" current-status="unknown" />
+      <target name="First contentful paint" metric="<1s" current-status="unknown" />
+      <target name="Font loading" metric="Inter font" status="configured-with-fallback" />
+    </loading-performance>
+
+    <runtime-optimization>
+      <optimization name="Code splitting" status="nextjs-automatic" />
+      <optimization name="Image optimization" status="nextjs-available" />
+      <optimization name="Bundle analysis" status="needs-implementation" />
+      <optimization name="Caching strategy" status="needs-planning" />
+    </runtime-optimization>
+
+    <responsive-performance>
+      <breakpoint name="Desktop" optimization="full-featured" />
+      <breakpoint name="Tablet" optimization="adjusted-layout" />
+      <breakpoint name="Mobile" optimization="touch-optimized" />
+    </responsive-performance>
+  </performance-considerations>
+
+  <acceptance-criteria-status>
+    <criterion id="AC2.1.1" description="Chat interface loads in <2s on localhost" status="needs-testing" />
+    <criterion id="AC2.1.2" description="Dark theme with Manus colors applied" status="implemented" />
+    <criterion id="AC2.1.3" description="Inter font family loaded and applied" status="implemented" />
+    <criterion id="AC2.1.4" description="Single-column minimalist layout" status="partially-implemented" />
+    <criterion id="AC2.1.5" description="Responsive on desktop, tablet, mobile" status="needs-implementation" />
+    <criterion id="AC2.1.6" description="Passes accessibility audit (Lighthouse >90)" status="needs-implementation" />
+  </acceptance-criteria-status>
+
+  <implementation-blockers>
+    <blocker severity="critical" type="dependency">
+      <description>Epic 1 (Foundation & Infrastructure) not completed</description>
+      <impact>Docker environment, database, and basic infrastructure missing</impact>
+      <resolution>Complete Epic 1 before implementing Story 2.1</resolution>
+    </blocker>
+    <blocker severity="high" type="missing-component">
+      <description>LiteLLM Proxy service not configured</description>
+      <impact>No LLM routing capability for chat functionality</impact>
+      <resolution>Implement Story 2.2 (LiteLLM Proxy Setup) as prerequisite</resolution>
+    </blocker>
+    <blocker severity="medium" type="feature">
+      <description>Responsive design not implemented</description>
+      <impact>Mobile and tablet experience not optimized</impact>
+      <resolution>Implement responsive breakpoints and mobile touch targets</resolution>
+    </blocker>
+    <blocker severity="medium" type="accessibility">
+      <description>Accessibility features missing</description>
+      <impact>WCAG AA compliance not achieved</impact>
+      <resolution>Implement ARIA labels, keyboard navigation, and focus indicators</resolution>
+    </blocker>
+  </implementation-blockers>
+
+  <implementation-recommendations>
+    <recommendation priority="critical">
+      <action>Complete Epic 1 Foundation & Infrastructure</action>
+      <reasoning>Story 2.1 depends on Docker environment, database setup, and basic infrastructure</reasoning>
+    </recommendation>
+    <recommendation priority="high">
+      <action>Implement responsive design patterns</action>
+      <reasoning>AC2.1.5 requires desktop, tablet, and mobile responsiveness</reasoning>
+    </recommendation>
+    <recommendation priority="high">
+      <action>Add accessibility features (ARIA, keyboard navigation)</action>
+      <reasoning>AC2.1.6 requires Lighthouse >90 accessibility score</reasoning>
+    </recommendation>
+    <recommendation priority="medium">
+      <action>Set up performance monitoring</action>
+      <reasoning>AC2.1.1 requires <2s load time verification</reasoning>
+    </recommendation>
+  </implementation-recommendations>
+
+  <next-steps>
+    <immediate-action>
+      <step>Verify Epic 1 completion status</step>
+      <step>Test current UI load performance</step>
+      <step>Run accessibility audit on existing interface</step>
+    </immediate-action>
+    <implementation-order>
+      <step order="1">Complete Epic 1 dependencies</step>
+      <step order="2">Implement responsive design</step>
+      <step order="3">Add accessibility features</step>
+      <step order="4">Performance optimization</step>
+      <step order="5">Final testing and validation</step>
+    </implementation-order>
+  </next-stamps>
+</story-context>

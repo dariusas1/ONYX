@@ -87,8 +87,8 @@
 @layer utilities {
   /* Custom scrollbar styling for webkit browsers */
   .scrollbar-thin::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -109,14 +109,124 @@
     scrollbar-color: var(--manus-border) var(--manus-bg);
   }
 
+  /* Screen reader only content */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Not screen reader only (for responsive showing) */
+  .not-sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .manus-high-contrast {
+      --manus-bg: #000000;
+      --manus-surface: #1a1a1a;
+      --manus-text: #ffffff;
+      --manus-muted: #cccccc;
+      --manus-border: #ffffff;
+      --manus-accent: #0066ff;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Focus visible utilities */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-manus-accent focus-visible:ring-offset-2 focus-visible:ring-offset-manus-bg;
+  }
+
+  /* Touch target size utilities */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
   /* Text truncation utilities */
   .text-truncate {
     @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+
+  .text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .text-truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   /* Prevent text selection for UI elements */
   .select-none-important {
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  /* Responsive spacing utilities */
+  .container-responsive {
+    @apply mx-auto px-3 sm:px-4 lg:px-6;
+  }
+
+  /* Responsive text sizing */
+  .text-responsive {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-lg {
+    @apply text-base sm:text-lg lg:text-xl;
+  }
+
+  /* Mobile-first responsive utilities */
+  .mobile\:hidden {
+    @apply hidden;
+  }
+
+  @media (min-width: 640px) {
+    .mobile\:hidden {
+      @apply block;
+    }
+  }
+
+  /* Touch-friendly hover states */
+  .touch-lift {
+    @apply transition-transform duration-200 active:scale-95;
+  }
+
+  /* Performance optimization */
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  .gpu-accelerated {
+    transform: translateZ(0);
   }
 }

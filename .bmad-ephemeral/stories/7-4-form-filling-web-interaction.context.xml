@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-key>7-4-form-filling-web-interaction</story-key>
+    <epic-id>7</epic-id>
+    <story-id>4</story-id>
+    <story-title>Form Filling & Web Interaction</story-title>
+    <status>drafted</status>
+    <generated-date>2025-01-13</generated-date>
+    <user>darius</user>
+  </metadata>
+
+  <user-story>
+    <as-a>user</as-a>
+    <i-want>agent to fill web forms and interact with pages</i-want>
+    <so-that>agent can submit surveys, sign up, interact with web apps</so-that>
+  </user-story>
+
+  <story-tasks>
+    <task id="7.4.1" title="Form Field Detection &amp; Identification">
+      <subtask>Analyze HTML DOM to identify form elements</subtask>
+      <subtask>Support input types: text, email, password, textarea</subtask>
+      <subtask>Support select elements (dropdowns)</subtask>
+      <subtask>Support checkbox and radio button groups</subtask>
+      <subtask>Handle form field labels and placeholder mapping</subtask>
+    </task>
+
+    <task id="7.4.2" title="Field Value Mapping &amp; Validation">
+      <subtask>Map provided field values to form inputs</subtask>
+      <subtask>Handle field name variations (name, id, label matching)</subtask>
+      <subtask>Validate field values before filling</subtask>
+      <subtask>Handle required field validation</subtask>
+    </task>
+
+    <task id="7.4.3" title="Form Interaction API">
+      <subtask>Create API endpoint: POST /tools/fill_form</subtask>
+      <subtask>Accept parameters: url, fields: {name: value}, submit: boolean</subtask>
+      <subtask>Use Playwright's fill() and click() methods</subtask>
+      <subtask>Return success status and result page content</subtask>
+    </task>
+
+    <task id="7.4.4" title="Error Handling &amp; Edge Cases">
+      <subtask>Handle missing fields gracefully</subtask>
+      <subtask>Detect and report CAPTCHA (manual intervention required)</subtask>
+      <subtask>Handle blocked sites or access denied</subtask>
+      <subtask>Timeout handling for slow-loading pages</subtask>
+    </task>
+
+    <task id="7.4.5" title="Testing &amp; Validation">
+      <subtask>Unit tests for form field detection</subtask>
+      <subtask>Integration tests with sample forms</subtask>
+      <subtask>Performance benchmarks (&lt;5s execution)</subtask>
+      <subtask>Error scenario testing</subtask>
+    </task>
+  </story-tasks>
+
+  <acceptance-criteria>
+    <ac id="1">
+      <given>agent invokes fill_form tool</given>
+      <when>tool called with URL and field values</when>
+      <then>browser navigates to page</then>
+    </ac>
+
+    <ac id="2">
+      <given>page loaded with forms</given>
+      <when>agent processes form fields</when>
+      <then>finds form fields and fills them</then>
+    </ac>
+
+    <ac id="3">
+      <given>form fields identified</given>
+      <when>processing different input types</when>
+      <then>handles common field types (text, select, checkbox, radio)</then>
+    </ac>
+
+    <ac id="4">
+      <given>form filled</given>
+      <when>agent decides on action</when>
+      <then>can submit form or just fill (agent decides)</then>
+    </ac>
+
+    <ac id="5">
+      <given>form interaction complete</given>
+      <when>operation finishes</when>
+      <then>returns success/failure and result page</then>
+    </ac>
+
+    <ac id="6">
+      <given>performance requirements</given>
+      <when>form filling executes</when>
+      <then>execution time &lt;5s</then>
+    </ac>
+  </acceptance-criteria>
+
+  <artifacts>
+    <docs>
+      <doc path="/docs/epics/epic-7-tech-spec.md" type="epic-technical-specification" relevance="critical">
+        Epic 7 Technical Specification contains comprehensive web automation design including:
+        - Form Filling Workflow (Section: Workflows and Sequencing)
+        - Form Interaction API specifications with FormFillRequest/FormFillResult schemas
+        - Browser Manager API with fill_field() and click_element() methods
+        - Field detection strategies (name, id, label, placeholder)
+        - Security considerations for form automation
+        - Performance requirements: &lt;5s for typical forms
+        - Error handling for CAPTCHAs and blocked requests
+      </doc>
+
+      <doc path="/docs/stories/7-1-playwright-browser-setup-headless-automation.context.xml" type="story-context" relevance="critical">
+        Story 7-1 Context provides foundational browser automation infrastructure:
+        - Browser Manager singleton pattern implementation
+        - Headless Chrome configuration for Docker environment
+        - Memory monitoring with auto-restart at 800MB threshold
+        - Serial execution constraint (max 1 browser instance)
+        - URL validation and security blocklists
+        - Performance targets: navigation &lt;3s, interaction &lt;1s
+        - Zombie process monitoring and cleanup
+      </doc>
+
+      <doc path="/docs/PRD.md" type="product-requirements" relevance="high">
+        Product Requirements Document F6.3: Form Filling tool specification:
+        - Tool: fill_form(url, fields) → fill form fields, handle captchas (manual)
+        - Acceptance: Browser navigates to page and finds form fields
+        - Multi-step flows capability with agent tool chaining
+        - Headless browser requirement for deployment
+      </doc>
+
+      <doc path="/docs/architecture.md" type="system-architecture" relevance="high">
+        System architecture covering:
+        - Epic 7: Web Automation & Search integration patterns
+        - Agent Mode tool orchestration and approval gates
+        - Docker Compose service orchestration
+        - Onyx Core service architecture with tool registry
+        - Error handling patterns with structured error codes
+      </doc>
+    </docs>
+
+    <code>
+      <implementation file="/onyx-core/services/browser_manager.py" type="existing-infrastructure" relevance="critical">
+        Browser Manager Service provides foundational capabilities:
+        - Singleton pattern with async lock for single browser instance
+        - Headless Chrome browser automation with optimized Docker settings
+        - Memory monitoring using psutil with auto-restart threshold
+        - URL validation against security blocklist (localhost, internal IPs)
+        - Navigation method with configurable wait strategies
+        - Serial execution enforcement via operation locks
+        - Zombie process monitoring and cleanup
+        - Comprehensive logging and error handling
+      </implementation>
+
+      <implementation file="/onyx-core/services/content_extractor.py" type="service-pattern" relevance="medium">
+        Content Extraction Service demonstrates service architecture patterns:
+        - Service class with factory function pattern
+        - MIME type handling and routing
+        - Google Drive API integration patterns
+        - Error handling with structured logging
+        - Type hints and comprehensive documentation
+      </implementation>
+
+      <implementation file="/onyx-core/main.py" type="api-integration" relevance="high">
+        Onyx Core FastAPI main service for tool registration:
+        - REST API endpoint patterns for tool integration
+        - Agent Mode task execution framework
+        - Health check and monitoring patterns
+        - Error handling and response formatting
+      </implementation>
+
+      <api endpoint="POST /tools/fill_form" type="new-endpoint" relevance="critical">
+        Form Filling Tool API specification:
+        Request: {
+          "url": "string (required)",
+          "fields": "object {field_name: value} (required)",
+          "submit": "boolean (optional, default: false)",
+          "timeout": "number (optional, default: 5000)",
+          "selector_strategy": "name|id|label|placeholder (optional)"
+        }
+        Response: {
+          "success": "boolean",
+          "fields_filled": "array",
+          "fields_failed": "array",
+          "result_url": "string (optional)",
+          "result_content": "string (optional)",
+          "execution_time": "number (milliseconds)"
+        }
+      </api>
+    </code>
+
+    <interfaces>
+      <form-detection-strategy priority="1" name="name-attribute">
+        Primary field identification using HTML name attribute
+        Implementation: page.locator(f'input[name="{field_name}"]')
+        Fallback to id, label text, and placeholder text matching
+      </form-detection-strategy>
+
+      <form-detection-strategy priority="2" name="id-attribute">
+        Secondary field identification using HTML id attribute
+        Implementation: page.locator(f'#{field_id}')
+      </form-detection-strategy>
+
+      <form-detection-strategy priority="3" name="label-text">
+        Fallback field identification using &lt;label&gt; text content
+        Implementation: page.locator('label', has_text=field_label).input
+      </form-detection-strategy>
+
+      <form-detection-strategy priority="4" name="placeholder-text">
+        Advanced fallback using placeholder attribute
+        Implementation: page.locator(f'[placeholder*="{placeholder_text}"]')
+      </form-detection-strategy>
+
+      <field-types-supported>
+        <type name="text-input" implementation="page.fill(selector, value)" />
+        <type name="email-input" implementation="page.fill(selector, value)" />
+        <type name="password-input" implementation="page.fill(selector, value)" />
+        <type name="textarea" implementation="page.fill(selector, value)" />
+        <type name="select-dropdown" implementation="page.select_option(selector, value)" />
+        <type name="checkbox" implementation="page.check(selector)" />
+        <type name="radio-button" implementation="page.check(selector)" />
+      </field-types-supported>
+    </interfaces>
+
+    <constraints>
+      <performance constraint="execution-time" limit="&lt;5s" type="acceptance-criteria">
+        Form filling must complete within 5 seconds for typical forms (5-10 fields)
+        Measured from URL navigation to completion
+      </performance>
+
+      <resource constraint="browser-instances" limit="1" type="singleton-pattern">
+        Maximum 1 browser instance active (serial execution)
+        Enforced by Browser Manager singleton with async locks
+      </resource>
+
+      <security constraint="password-fields" behavior="skip-unless-explicit" type="safety">
+        Never fill password fields unless explicitly requested in API call
+        Sanitize field values to prevent XSS injection
+      </security>
+
+      <security constraint="captcha-detection" action="manual-intervention" type="error-handling">
+        Detect CAPTCHA presence and return error requiring manual intervention
+        Document unsupported sites with anti-bot measures
+      </security>
+
+      <validation constraint="url-validation" action="block-internal" type="security">
+        Validate URLs against blocklist (localhost, internal IPs, file://)
+        Only allow http/https schemes with proper domain validation
+      </validation>
+    </constraints>
+
+    <dependencies>
+      <dependency name="story-7-1-playwright-browser-setup" status="completed" type="prerequisite">
+        Provides Browser Manager service and headless Chrome automation
+        Required for page navigation and form element interaction
+      </dependency>
+
+      <dependency name="story-5-2-agent-tool-selection" status="completed" type="integration">
+        Agent Mode tool selection logic for routing form filling requests
+        Integrates fill_form tool into agent tool registry
+      </dependency>
+
+      <dependency name="story-5-3-approval-gates" status="completed" type="security">
+        Approval gates for sensitive form submissions
+        Requires user approval before submitting forms with sensitive data
+      </dependency>
+
+      <dependency name="playwright-python-library" version="1.40.0+" type="python-dependency">
+        Browser automation framework with form interaction capabilities
+        Already installed in onyx-core from story 7-1 implementation
+      </dependency>
+
+      <dependency name="onyx-core-fastapi" version="running" type="service-dependency">
+        Python FastAPI service for tool endpoint registration
+        Provides request handling, error responses, and logging framework
+      </dependency>
+
+      <dependency name="redis-cache" version="running" type="infrastructure">
+        Caching layer for form completion results and audit trail
+        Optional for form results caching (shorter TTL than search results)
+      </dependency>
+    </dependencies>
+  </artifacts>
+
+  <tests>
+    <standards>
+      <unit-test-coverage target="85%" component="form-fill-service" />
+      <integration-test-coverage target="100%" component="form-workflow" />
+      <error-path-coverage target="100%" component="error-handling" />
+      <field-type-support target="100%" component="form-elements" />
+    </standards>
+
+    <locations>
+      <path type="unit-tests">onyx-core/tests/unit/test_form_fill_service.py</path>
+      <path type="integration-tests">onyx-core/tests/integration/test_form_fill_workflow.py</path>
+      <path type="test-forms">onyx-core/tests/fixtures/test_forms/</path>
+      <path type="performance-tests">onyx-core/tests/performance/test_form_fill_latency.py</path>
+      <path type="security-tests">onyx-core/tests/security/test_form_fill_safety.py</path>
+    </locations>
+
+    <ideas>
+      <test name="test_field_detection_strategies">
+        Test all field detection strategies (name, id, label, placeholder)
+        Verify fallback behavior when primary strategy fails
+        Test with various HTML form structures and edge cases
+      </test>
+
+      <test name="test_form_field_types">
+        Unit test each supported field type (text, select, checkbox, radio)
+        Verify proper Playwright method calls for each type
+        Test value validation and sanitization
+      </test>
+
+      <test name="test_form_submission_workflow">
+        Integration test with httpbin.org/forms/post test endpoint
+        Verify field filling, validation, and optional submission
+        Test with and without submit=True parameter
+      </test>
+
+      <test name="test_performance_benchmarks">
+        Load test: 100 form fills with 5-10 fields each
+        Verify &lt;5s execution time for typical forms
+        Measure memory usage before/after operations
+      </test>
+
+      <test name="test_error_handling_scenarios">
+        Test CAPTCHA detection and error response
+        Test missing fields handling and partial completion
+        Test timeout scenarios and graceful degradation
+        Test blocked URLs and security validation
+      </test>
+
+      <test name="test_screenshot_capture_audit">
+        Verify before/after screenshots are captured
+        Test screenshot storage and base64 encoding
+        Validate audit trail for form interactions
+      </test>
+    </ideas>
+  </tests>
+</story-context>
