@@ -24,7 +24,9 @@
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
     "clsx": "^2.0.0",
-    "lucide-react": "^0.294.0"
+    "lucide-react": "^0.294.0",
+    "winston": "^3.11.0",
+    "prom-client": "^15.0.0"
   },
   "devDependencies": {
     "eslint": "^8.0.0",
