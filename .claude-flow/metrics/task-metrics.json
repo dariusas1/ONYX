@@ -1,18 +1,10 @@
 [
   {
-<<<<<<< HEAD
-    "id": "cmd-hooks-1763083010044",
+    "id": "cmd-hooks-1763104111413",
     "type": "hooks",
     "success": true,
-    "duration": 8.587542000000013,
-    "timestamp": 1763083010053,
-=======
-    "id": "cmd-hooks-1763079013306",
-    "type": "hooks",
-    "success": true,
-    "duration": 14.679832999999974,
-    "timestamp": 1763079013321,
->>>>>>> story/1-6-monitoring-logging-foundation
+    "duration": 19.036166000000094,
+    "timestamp": 1763104111432,
     "metadata": {}
   }
 ]
