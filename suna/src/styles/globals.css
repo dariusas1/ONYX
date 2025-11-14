@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Manus Dark Theme */
+  --manus-bg: #0F172A;        /* Deep navy background */
+  --manus-surface: #1E293B;   /* Elevated surface */
+  --manus-accent: #2563EB;    /* Primary blue */
+  --manus-text: #E2E8F0;      /* Light gray text */
+  --manus-muted: #64748B;     /* Muted text */
+  --manus-border: #334155;    /* Border color */
+
+  /* Semantic color mappings */
+  --color-background: var(--manus-bg);
+  --color-surface: var(--manus-surface);
+  --color-primary: var(--manus-accent);
+  --color-text-primary: var(--manus-text);
+  --color-text-secondary: var(--manus-muted);
+  --color-border: var(--manus-border);
+}
+
+@layer base {
+  * {
+    @apply border-manus-border;
+  }
+
+  body {
+    @apply bg-manus-bg text-manus-text antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Ensure proper text rendering */
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Focus ring styling for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-manus-accent ring-offset-2 ring-offset-manus-bg;
+  }
+}
+
+@layer components {
+  /* Button base styles */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-manus-accent;
+  }
+
+  .btn-primary {
+    @apply bg-manus-accent text-white hover:bg-blue-600;
+  }
+
+  .btn-secondary {
+    @apply bg-manus-surface text-manus-text hover:bg-slate-700;
+  }
+
+  /* Input base styles */
+  .input {
+    @apply bg-manus-surface border border-manus-border rounded-lg px-4 py-2;
+    @apply text-manus-text placeholder:text-manus-muted;
+    @apply focus:outline-none focus:ring-2 focus:ring-manus-accent focus:border-transparent;
+    @apply transition-all duration-200;
+  }
+
+  /* Card/Surface styles */
+  .card {
+    @apply bg-manus-surface border border-manus-border rounded-lg p-4;
+  }
+
+  /* Message bubble styles */
+  .message {
+    @apply rounded-lg px-4 py-3 max-w-full;
+  }
+
+  .message-user {
+    @apply bg-manus-accent text-white;
+  }
+
+  .message-assistant {
+    @apply bg-manus-surface text-manus-text border border-manus-border;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar styling for webkit browsers */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-manus-bg;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-manus-border rounded-full;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-manus-muted;
+  }
+
+  /* Firefox scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--manus-border) var(--manus-bg);
+  }
+
+  /* Text truncation utilities */
+  .text-truncate {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  }
+
+  /* Prevent text selection for UI elements */
+  .select-none-important {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}

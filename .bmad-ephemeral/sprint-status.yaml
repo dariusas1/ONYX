@@ -48,7 +48,7 @@ development_status:
 
   # Epic 2: Chat Interface & Core Intelligence
   epic-2: contexted
-  2-1-suna-ui-deployment-manus-theme: ready-for-dev
+  2-1-suna-ui-deployment-manus-theme: in-progress
   2-2-litellm-proxy-setup-model-routing: backlog
   2-3-message-history-persistence: backlog
   2-4-message-streaming-real-time-response-display: backlog

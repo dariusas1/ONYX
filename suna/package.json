@@ -24,7 +24,10 @@
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
     "clsx": "^2.0.0",
-    "lucide-react": "^0.294.0"
+    "lucide-react": "^0.294.0",
+    "@tailwindcss/typography": "^0.5.10",
+    "react-window": "^1.8.10",
+    "@types/react-window": "^1.8.8"
   },
   "devDependencies": {
     "eslint": "^8.0.0",
