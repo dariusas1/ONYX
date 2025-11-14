@@ -67,16 +67,16 @@ epics:
 
       - story_id: "7-2-web-search-tool-serpapi-exa"
         title: "Web Search Tool (SerpAPI or Exa)"
-        status: "todo"
+        status: "ready"
         priority: "P0"
         estimated_points: 5
         assigned_to: "TBD"
         sprint: "Sprint 7"
-        created_date: null
+        created_date: "2025-11-14"
         started_date: null
         completed_date: null
         blocked_reason: null
-        notes: "Independent story - enables web search capabilities"
+        notes: "Independent story - enables web search capabilities. Story file created with comprehensive implementation details for SerpAPI and Exa integration. Context file generated with full technical specification, Redis cache integration details, and API integration patterns."
         dependencies: []
         acceptance_criteria:
           - "AC7.2.1: Agent can invoke search_web tool with query parameter"
@@ -174,9 +174,9 @@ sprint_summary:
 
   story_count:
     total: 5
-    todo: 4
+    todo: 3
     drafted: 0
-    ready: 0
+    ready: 1
     in_progress: 0
     in_review: 0
     done: 1
