@@ -86,6 +86,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-postgres.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./docker/migrations/002-google-drive-sync.sql:/docker-entrypoint-initdb.d/02-google-drive-sync.sql
     networks:
       - manus-network
     healthcheck:

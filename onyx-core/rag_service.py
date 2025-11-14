@@ -18,6 +18,7 @@ from qdrant_client.models import ( # pyright: ignore[reportMissingImports]
     Filter,
     FieldCondition,
     MatchValue,
+    MatchAny,
     OptimizersConfigDiff,
 )
 from openai import OpenAI
@@ -126,18 +127,20 @@ class RAGService:
         top_k: int = 5,
         source_filter: Optional[str] = None,
         score_threshold: float = 0.5,
+        user_email: Optional[str] = None,
     ) -> List[SearchResult]:
         """
-        Search for documents using semantic similarity
+        Search for documents using semantic similarity with permission filtering
 
         Args:
             query: Search query string
             top_k: Number of top results to return
             source_filter: Optional filter for document source
             score_threshold: Minimum similarity score threshold
+            user_email: User email for permission filtering (REQUIRED for secure search)
 
         Returns:
-            List of search results
+            List of search results filtered by user permissions
         """
         try:
             # Ensure collection exists
@@ -146,16 +149,36 @@ class RAGService:
             # Embed the query
             query_embedding = self.embed_query(query)
 
-            # Build filter if source filter is provided
-            search_filter = None
+            # Build filter conditions
+            filter_conditions = []
+
+            # Add source filter if provided
             if source_filter:
-                search_filter = Filter(
-                    must=[
-                        FieldCondition(
-                            key="source", match=MatchValue(value=source_filter)
-                        )
-                    ]
+                filter_conditions.append(
+                    FieldCondition(
+                        key="source", match=MatchValue(value=source_filter)
+                    )
                 )
+
+            # Add permission filter if user_email is provided (CRITICAL for security)
+            if user_email:
+                # Permission filter: user must have access OR document is public (permissions contains "*")
+                # This uses MatchAny to check if the permissions array contains either the user's email or "*"
+                filter_conditions.append(
+                    FieldCondition(
+                        key="metadata.permissions",
+                        match=MatchAny(any=[user_email, "*"])
+                    )
+                )
+                logger.debug(f"Applying permission filter for user: {user_email}")
+            else:
+                # WARNING: No permission filtering applied - only use for public/unauthenticated searches
+                logger.warning("Search performed without permission filtering - this may expose private documents!")
+
+            # Build final filter
+            search_filter = None
+            if filter_conditions:
+                search_filter = Filter(must=filter_conditions)
 
             # Search in Qdrant
             search_result = self.qdrant_client.search(
@@ -181,7 +204,8 @@ class RAGService:
                     results.append(result)
 
             logger.info(
-                f"Search completed: {len(results)} results for query: '{query}'"
+                f"Search completed: {len(results)} results for query: '{query}' "
+                f"(user: {user_email or 'unauthenticated'})"
             )
             return results
 

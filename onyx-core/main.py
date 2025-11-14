@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
@@ -6,8 +6,11 @@ import os
 from datetime import datetime
 from typing import Optional, Dict, Any
 from health import router as health_router
+from api.google_drive import router as google_drive_router
 from contextlib import asynccontextmanager
 from rag_service import get_rag_service
+from services.sync_scheduler import start_scheduler, stop_scheduler
+from utils.auth import require_authenticated_user
 import logging
 
 # Configure logging
@@ -32,10 +35,24 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"❌ Failed to initialize RAG service: {e}")
 
+    # Start sync scheduler
+    try:
+        await start_scheduler()
+        logger.info("✅ Sync scheduler started successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to start sync scheduler: {e}")
+
     yield
 
     # Shutdown
     logger.info("🛑 Onyx Core is shutting down...")
+
+    # Stop sync scheduler
+    try:
+        await stop_scheduler()
+        logger.info("✅ Sync scheduler stopped successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to stop sync scheduler: {e}")
 
 
 # Create FastAPI application
@@ -63,6 +80,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health_router, tags=["Health"])
+app.include_router(google_drive_router, tags=["Google Drive"])
 
 
 # Root endpoint
@@ -81,8 +99,24 @@ async def root():
 
 # Search endpoint with actual RAG functionality
 @app.get("/search")
-async def search_documents(query: str, top_k: int = 5, source: Optional[str] = None):
-    """Search documents using RAG"""
+async def search_documents(
+    query: str,
+    top_k: int = 5,
+    source: Optional[str] = None,
+    current_user: dict = Depends(require_authenticated_user)
+):
+    """
+    Search documents using RAG with permission filtering
+
+    Args:
+        query: Search query
+        top_k: Number of results to return (max 20)
+        source: Optional source filter (e.g., 'google_drive')
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        Search results filtered by user permissions
+    """
     try:
         if not query or not query.strip():
             raise HTTPException(status_code=400, detail="Query parameter is required")
@@ -90,11 +124,16 @@ async def search_documents(query: str, top_k: int = 5, source: Optional[str] = N
         # Get RAG service
         rag_service = await get_rag_service()
 
-        # Perform search
+        # Get user email for permission filtering
+        user_email = current_user["email"]
+
+        # Perform search with permission filtering
+        # The RAG service will filter results based on user permissions
         results = await rag_service.search(
             query=query.strip(),
             top_k=min(top_k, 20),  # Limit to 20 max results
             source_filter=source,
+            user_email=user_email,  # Add user email for permission filtering
         )
 
         # Convert results to response format
@@ -116,6 +155,7 @@ async def search_documents(query: str, top_k: int = 5, source: Optional[str] = N
                 "query": query,
                 "top_k": top_k,
                 "source_filter": source,
+                "user_email": user_email,
                 "results_count": len(search_results),
                 "results": search_results,
             },
@@ -194,26 +234,7 @@ async def get_document_count():
         )
 
 
-@app.post("/sync/google-drive")
-async def sync_google_drive():
-    """Trigger Google Drive synchronization"""
-    try:
-        # This is a placeholder for future Google Drive sync implementation
-        # For now, return a success response indicating the sync endpoint exists
-        return {
-            "success": True,
-            "data": {
-                "sync_id": "google-drive-sync",
-                "status": "not_implemented",
-                "message": "Google Drive sync endpoint exists but implementation is pending",
-                "note": "This will be implemented in a future story with Google Drive integration",
-            },
-        }
-    except Exception as e:
-        logger.error(f"Google Drive sync failed: {e}")
-        raise HTTPException(
-            status_code=500, detail="Sync service temporarily unavailable"
-        )
+# Note: Google Drive sync endpoints moved to api/google_drive.py router
 
 
 # Global exception handler
