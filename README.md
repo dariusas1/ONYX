@@ -64,6 +64,81 @@ All services implement health check endpoints:
 - Redis: `redis-cli ping`
 - Qdrant: `GET /health`
 
+## Qdrant Vector Database Setup
+
+The Qdrant vector database powers semantic search for the RAG (Retrieval-Augmented Generation) system.
+
+### Initialization
+
+After starting services with `docker compose up -d`, initialize the Qdrant collection:
+
+```bash
+# Initialize the documents collection
+python scripts/init-qdrant.py
+```
+
+This script:
+- Creates the "documents" collection with 1536-dimensional vectors (OpenAI text-embedding-3-small)
+- Configures on-disk storage for large corpus support
+- Sets up optimized indexing parameters
+- Is idempotent (safe to run multiple times)
+
+### Verification
+
+Verify Qdrant is running correctly:
+
+```bash
+# Check health endpoint
+curl http://localhost:6333/health
+
+# List collections
+curl http://localhost:6333/collections
+
+# Get collection info
+curl http://localhost:6333/collections/documents
+```
+
+### Performance Benchmarking
+
+Test search performance:
+
+```bash
+# Run benchmark script
+python scripts/benchmark-qdrant-search.py
+```
+
+This validates:
+- Search latency <100ms (95th percentile) for top-10 results
+- Successful upsert operations
+- Correct API responses
+
+### Testing
+
+Run integration and unit tests:
+
+```bash
+# Integration tests (requires Docker running)
+bash tests/integration/test_qdrant_setup.sh
+
+# Unit tests
+pytest tests/unit/test_qdrant_collection.py -v
+```
+
+### Environment Variables
+
+Required for Qdrant and embeddings:
+
+```bash
+# Qdrant connection
+QDRANT_URL=http://qdrant:6333          # Internal Docker network
+QDRANT_API_KEY=                        # Optional - leave empty for development
+
+# OpenAI API for embeddings
+OPENAI_API_KEY=your-openai-api-key-here  # Required for RAG functionality
+```
+
+Add these to your `.env.local` file.
+
 ## Development
 
 ### Frontend Development

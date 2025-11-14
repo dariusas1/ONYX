@@ -1,0 +1,991 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>3-2-google-drive-connector-auto-sync</story-id>
+    <story-title>Google Drive Connector &amp; Auto-Sync</story-title>
+    <epic-id>epic-3</epic-id>
+    <epic-title>Knowledge Retrieval (RAG)</epic-title>
+    <status>drafted</status>
+    <context-generated>2025-11-14</context-generated>
+    <story-points>8</story-points>
+    <priority>High</priority>
+  </metadata>
+
+  <story-details>
+    <user-story>
+      <as-a>user</as-a>
+      <i-want>all my Google Drive documents automatically indexed every 10 minutes</i-want>
+      <so-that>Manus always has current knowledge without manual uploads and can provide grounded strategic advice based on company documents</so-that>
+    </user-story>
+
+    <business-context>
+      <description>
+        The Google Drive connector is a critical data source for Manus Internal's RAG system. It provides automated access to the primary repository of company knowledge including strategic planning documents, board decks, financial reports, product specifications, meeting notes, and contracts.
+      </description>
+      <business-impact>
+        - Enables real-time strategic advice based on latest company documents
+        - Reduces founder cognitive load by automating knowledge synchronization
+        - Ensures RAG responses are backed by current, verifiable sources
+        - Provides foundation for citation-based strategic recommendations
+      </business-impact>
+    </business-context>
+
+    <acceptance-criteria>
+      <criterion id="AC3.2.1">
+        <title>User Authentication with Google OAuth</title>
+        <given>User initiates Google Drive sync for the first time</given>
+        <when>User clicks "Connect Google Drive" in dashboard</when>
+        <then>Redirected to Google OAuth consent screen</then>
+        <and>
+          - User grants Manus permission to access Drive (read-only scope)
+          - OAuth token stored encrypted in PostgreSQL (AES-256)
+          - Token refresh handled automatically before expiry
+          - User can disconnect/reconnect Google Drive account
+        </and>
+      </criterion>
+
+      <criterion id="AC3.2.2">
+        <title>Auto-Sync Job Runs Every 10 Minutes</title>
+        <given>User has authenticated Google Drive</given>
+        <when>Sync job is scheduled (cron: */10 * * * *)</when>
+        <then>Sync job triggers every 10 minutes automatically</then>
+        <and>
+          - Job checks for new or modified files since last sync
+          - Uses incremental sync (sync_token) not full scan
+          - Job runs in background without blocking user interactions
+          - Sync status visible in dashboard ("Last sync: X min ago")
+          - Only one sync job runs at a time (prevents overlap)
+        </and>
+      </criterion>
+
+      <criterion id="AC3.2.3">
+        <title>All Accessible Drive Files Listed and New/Modified Files Detected</title>
+        <given>Sync job is running</given>
+        <when>Job lists files from Google Drive API</when>
+        <then>All files accessible to user are retrieved (paginated if &gt;1000 files)</then>
+        <and>
+          - Change detection compares modifiedTime with last sync timestamp
+          - New files (created since last sync) are flagged for indexing
+          - Modified files (updated since last sync) are flagged for re-indexing
+          - Deleted files (no longer accessible) are removed from index
+          - Pagination handled correctly (using pageToken for &gt;1000 files)
+        </and>
+      </criterion>
+
+      <criterion id="AC3.2.4">
+        <title>File Metadata Stored Correctly</title>
+        <given>File is detected as new or modified</given>
+        <when>File metadata is stored in PostgreSQL</when>
+        <then>Following metadata fields are stored:</then>
+        <fields>
+          - source_id: Google Drive file ID (unique identifier)
+          - title: File name
+          - modified_at: Last modified timestamp from Drive
+          - owner_email: File owner's email address
+          - sharing_status: "private", "shared", "public"
+          - permissions: JSON array of user emails with access
+          - mime_type: File type (application/vnd.google-apps.document, etc.)
+          - file_size: Size in bytes
+        </fields>
+        <and>
+          - Metadata is deduplicated by source_id (upsert on conflict)
+          - indexed_at timestamp recorded when indexing completes
+        </and>
+      </criterion>
+
+      <criterion id="AC3.2.5">
+        <title>File Permissions Respected (Permission-Aware Indexing)</title>
+        <given>File is being indexed</given>
+        <when>Sync job checks file permissions</when>
+        <then>Only files where current user has read access are indexed</then>
+        <and>
+          - File permissions stored in documents.permissions field
+          - Shared files include all user emails with access
+          - Private files only include owner's email
+          - Files without user access are skipped (logged as "permission denied")
+          - Permission changes on Drive propagate to index on next sync
+          - Search results filtered by current user's permissions
+        </and>
+      </criterion>
+
+      <criterion id="AC3.2.6">
+        <title>Sync Status Visible on Dashboard</title>
+        <given>User viewing Manus dashboard</given>
+        <when>Dashboard loads</when>
+        <then>Sync status section displays:</then>
+        <display>
+          - "Last sync: X minutes ago"
+          - "Files indexed: 1,247"
+          - Sync job status: "Running", "Success", "Failed"
+          - Next sync time: "Next sync in Y minutes"
+          - Error messages (if sync failed): Clear error description
+        </display>
+        <and>
+          - Status updates in real-time (WebSocket or polling every 30s)
+          - User can manually trigger sync ("Sync Now" button)
+          - Manual sync respects same permission rules
+        </and>
+      </criterion>
+
+      <criterion id="AC3.2.7">
+        <title>Error Rate &lt;2% on Sync Jobs</title>
+        <given>Sync job completes</given>
+        <when>Sync results are logged</when>
+        <then>Success rate calculated: (documents_synced / total_documents) &gt;= 0.98</then>
+        <and>
+          - Failed files logged with error messages (permission_denied, rate_limit_exceeded, network_timeout, invalid_format)
+          - Retry logic implemented for transient failures (exponential backoff: 1s, 5s, 30s; max 3 retries)
+          - Alert triggered if error rate &gt;5% (indicates systemic issue)
+          - Sync job continues even if some files fail (partial success)
+        </and>
+      </criterion>
+    </acceptance-criteria>
+  </story-details>
+
+  <dependencies>
+    <prerequisite status="completed">
+      <story-id>1-1-project-setup-repository-initialization</story-id>
+      <description>Docker Compose infrastructure in place</description>
+    </prerequisite>
+    <prerequisite status="completed">
+      <story-id>1-3-environment-configuration-secrets-management</story-id>
+      <description>.env.local setup for Google OAuth credentials</description>
+    </prerequisite>
+    <prerequisite status="completed">
+      <story-id>3-1-qdrant-vector-database-setup</story-id>
+      <description>Qdrant collection "documents" created with 1536-dim vectors, vector upsert and search operations working</description>
+      <notes>
+        - Qdrant client configured in Onyx Core
+        - Collection uses OpenAI text-embedding-3-small (1536 dimensions)
+        - Cosine distance metric configured
+        - On-disk storage enabled for large corpus support
+      </notes>
+    </prerequisite>
+    <blocks>
+      <story-id>3-5-hybrid-search-semantic-keyword</story-id>
+      <reason>Needs Drive data source</reason>
+    </blocks>
+    <blocks>
+      <story-id>3-6-citation-source-link-generation</story-id>
+      <reason>Needs Drive metadata for citations</reason>
+    </blocks>
+  </dependencies>
+
+  <architecture>
+    <system-overview>
+      <description>
+        Google Drive connector integrates with the RAG pipeline as a data source.
+        It authenticates users via Google OAuth2, auto-syncs every 10 minutes,
+        respects file permissions, supports multiple file types, and enables >95% RAG relevance.
+      </description>
+      <flow>
+        Google Drive API (OAuth2)
+        ↓
+        Sync Job (BullMQ - every 10 min)
+        ↓
+        File Detection (new/modified/deleted)
+        ↓
+        Content Extraction (export to Markdown/CSV/PDF)
+        ↓
+        Chunking (500 tokens per chunk, 50 token overlap)
+        ↓
+        Embedding Generation (OpenAI text-embedding-3-small)
+        ↓
+        Qdrant Vector Storage (1536-dim vectors)
+        ↓
+        PostgreSQL Metadata Storage (documents table)
+      </flow>
+    </system-overview>
+
+    <service-integration>
+      <service name="Onyx Core">Python FastAPI service handling RAG operations</service>
+      <service name="Qdrant">Vector database for semantic search (localhost:6333)</service>
+      <service name="PostgreSQL">Document metadata and sync status (localhost:5432)</service>
+      <service name="Redis">Search result caching (5-minute TTL)</service>
+      <service name="Google Drive API">Document sync and permission checks (v3)</service>
+      <service name="OpenAI API">Embedding generation (text-embedding-3-small)</service>
+    </service-integration>
+
+    <google-drive-api>
+      <setup>
+        1. Enable Google Drive API in Google Cloud Console
+        2. Create OAuth 2.0 credentials (Client ID, Client Secret)
+        3. Configure redirect URI: http://localhost:3000/api/auth/google/callback
+        4. Request scopes:
+           - https://www.googleapis.com/auth/drive.readonly
+           - https://www.googleapis.com/auth/drive.metadata.readonly
+      </setup>
+
+      <oauth-flow>
+        1. User clicks "Connect Google Drive"
+        2. Redirect to Google consent: https://accounts.google.com/o/oauth2/v2/auth?...
+        3. User approves access
+        4. Google redirects to callback with code
+        5. Backend exchanges code for access_token + refresh_token
+        6. Encrypt tokens (AES-256) and store in PostgreSQL
+        7. Set session cookie for authenticated state
+      </oauth-flow>
+
+      <environment-variables>
+        GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+        GOOGLE_CLIENT_SECRET=your-client-secret
+        GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+        ENCRYPTION_KEY=your-64-character-hex-string
+      </environment-variables>
+    </google-drive-api>
+  </architecture>
+
+  <data-models>
+    <postgresql-schema>
+      <table name="documents">
+        <description>Existing table - add Drive-specific fields</description>
+        <alterations>
+          ALTER TABLE documents ADD COLUMN IF NOT EXISTS mime_type TEXT;
+          ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_size BIGINT;
+          ALTER TABLE documents ADD COLUMN IF NOT EXISTS owner_email TEXT;
+          ALTER TABLE documents ADD COLUMN IF NOT EXISTS sharing_status TEXT;
+        </alterations>
+        <existing-columns>
+          - id: UUID PRIMARY KEY
+          - source_type: TEXT ('google_drive', 'slack', 'upload')
+          - source_id: TEXT UNIQUE (Google Drive file ID)
+          - title: TEXT (file name)
+          - content_hash: TEXT (SHA-256 for deduplication)
+          - file_size: BIGINT
+          - mime_type: TEXT
+          - embedding_model: TEXT DEFAULT 'text-embedding-3-small'
+          - chunk_count: INTEGER DEFAULT 0
+          - last_synced_at: TIMESTAMP
+          - created_at: TIMESTAMP DEFAULT NOW()
+        </existing-columns>
+      </table>
+
+      <table name="drive_sync_state">
+        <description>New table for incremental sync</description>
+        <sql>
+          CREATE TABLE IF NOT EXISTS drive_sync_state (
+            user_id UUID PRIMARY KEY REFERENCES users(id),
+            sync_token TEXT,  -- Google Drive sync token for incremental changes
+            last_sync_at TIMESTAMP,
+            files_synced INTEGER DEFAULT 0,
+            files_failed INTEGER DEFAULT 0,
+            last_error TEXT,
+            updated_at TIMESTAMP DEFAULT NOW()
+          );
+        </sql>
+      </table>
+
+      <table name="sync_jobs">
+        <description>New table for job tracking</description>
+        <sql>
+          CREATE TABLE IF NOT EXISTS sync_jobs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id),
+            source_type TEXT NOT NULL DEFAULT 'google_drive',
+            status TEXT NOT NULL,  -- 'running', 'success', 'failed'
+            started_at TIMESTAMP DEFAULT NOW(),
+            completed_at TIMESTAMP,
+            documents_synced INTEGER DEFAULT 0,
+            documents_failed INTEGER DEFAULT 0,
+            error_message TEXT,
+            INDEX idx_sync_jobs_user (user_id, started_at DESC)
+          );
+        </sql>
+      </table>
+
+      <table name="oauth_tokens">
+        <description>New table for encrypted credential storage</description>
+        <sql>
+          CREATE TABLE IF NOT EXISTS oauth_tokens (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id UUID NOT NULL REFERENCES users(id),
+            provider TEXT NOT NULL,  -- 'google_drive'
+            encrypted_access_token BYTEA NOT NULL,
+            encrypted_refresh_token BYTEA NOT NULL,
+            token_expiry TIMESTAMP NOT NULL,
+            scopes TEXT[],
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW(),
+            UNIQUE(user_id, provider)
+          );
+        </sql>
+      </table>
+    </postgresql-schema>
+
+    <drive-file-metadata>
+      <typescript-interface>
+        interface DriveFileMetadata {
+          id: string;              // Google Drive file ID
+          name: string;            // File name
+          mimeType: string;        // MIME type
+          modifiedTime: string;    // ISO 8601 timestamp
+          createdTime: string;     // ISO 8601 timestamp
+          owners: Array&lt;{
+            emailAddress: string;
+            displayName: string;
+          }&gt;;
+          permissions: Array&lt;{
+            emailAddress?: string;
+            type: 'user' | 'group' | 'domain' | 'anyone';
+            role: 'owner' | 'organizer' | 'fileOrganizer' | 'writer' | 'commenter' | 'reader';
+          }&gt;;
+          size?: string;           // File size in bytes (not available for Google Docs/Sheets)
+          webViewLink: string;     // URL to view file in Drive
+          capabilities: {
+            canDownload: boolean;
+            canEdit: boolean;
+            canCopy: boolean;
+          };
+        }
+      </typescript-interface>
+    </drive-file-metadata>
+
+    <qdrant-payload-schema>
+      <description>Payload structure for vectors stored in Qdrant "documents" collection</description>
+      <fields>
+        - doc_id: string (UUID from PostgreSQL documents.id)
+        - title: string (file name)
+        - source_type: string ("google_drive")
+        - source_id: string (Google Drive file ID)
+        - chunk_index: integer (for chunked documents)
+        - chunk_text: string (500-char snippet)
+        - created_at: datetime (ISO 8601)
+        - modified_at: datetime (ISO 8601)
+        - owner_email: string (file owner's email)
+        - permissions: [string] (user emails with access)
+      </fields>
+    </qdrant-payload-schema>
+  </data-models>
+
+  <apis-and-interfaces>
+    <google-drive-api>
+      <endpoint name="List Files (Incremental Sync)">
+        <method>GET</method>
+        <url>https://www.googleapis.com/drive/v3/files</url>
+        <params>
+          pageToken={token}
+          fields=nextPageToken,files(id,name,mimeType,modifiedTime,createdTime,owners,permissions,size,webViewLink,capabilities)
+        </params>
+        <headers>
+          Authorization: Bearer {access_token}
+        </headers>
+      </endpoint>
+
+      <endpoint name="Export Google Doc to Markdown">
+        <method>GET</method>
+        <url>https://www.googleapis.com/drive/v3/files/{fileId}/export</url>
+        <params>mimeType=text/markdown</params>
+        <headers>Authorization: Bearer {access_token}</headers>
+      </endpoint>
+
+      <endpoint name="Export Google Sheet to CSV">
+        <method>GET</method>
+        <url>https://www.googleapis.com/drive/v3/files/{fileId}/export</url>
+        <params>mimeType=text/csv</params>
+        <headers>Authorization: Bearer {access_token}</headers>
+      </endpoint>
+
+      <endpoint name="Download Binary Files (PDF)">
+        <method>GET</method>
+        <url>https://www.googleapis.com/drive/v3/files/{fileId}</url>
+        <params>alt=media</params>
+        <headers>Authorization: Bearer {access_token}</headers>
+      </endpoint>
+    </google-drive-api>
+
+    <internal-sync-api>
+      <endpoint name="Trigger Sync">
+        <method>POST</method>
+        <url>/api/sync/google-drive</url>
+        <content-type>application/json</content-type>
+        <headers>Authorization: Bearer {session_token}</headers>
+        <request-body>
+          {
+            "folder_ids": ["1XyZ...", "1AbC..."],  // Optional: specific folders
+            "full_sync": false                      // Default: incremental sync
+          }
+        </request-body>
+        <response>
+          {
+            "job_id": "sync-uuid",
+            "status": "running",
+            "started_at": "2025-11-14T10:35:00Z"
+          }
+        </response>
+      </endpoint>
+
+      <endpoint name="Get Sync Status">
+        <method>GET</method>
+        <url>/api/sync/status/{job_id}</url>
+        <response>
+          {
+            "job_id": "sync-uuid",
+            "status": "success",
+            "documents_synced": 47,
+            "documents_failed": 2,
+            "completed_at": "2025-11-14T10:37:00Z",
+            "errors": [
+              {
+                "file_id": "1AbC...",
+                "file_name": "Confidential Doc.pdf",
+                "error": "Permission denied"
+              }
+            ]
+          }
+        </response>
+      </endpoint>
+    </internal-sync-api>
+  </apis-and-interfaces>
+
+  <existing-codebase>
+    <file path="/home/user/ONYX/onyx-core/rag_service.py">
+      <description>Existing RAG service with Qdrant integration</description>
+      <key-components>
+        - RAGService class with OpenAI embeddings (text-embedding-3-small)
+        - VECTOR_SIZE = 1536 (configured for OpenAI embeddings)
+        - embed_query() method using OpenAI API
+        - search() method for semantic search
+        - add_document() method for indexing
+        - ensure_collection_exists() for collection management
+      </key-components>
+      <integration-points>
+        - Use RAGService.embed_query() to generate embeddings for Drive documents
+        - Use RAGService.add_document() to index Drive files
+        - Extend with Google Drive-specific methods
+      </integration-points>
+    </file>
+
+    <file path="/home/user/ONYX/docker-compose.yaml">
+      <description>Docker Compose configuration with all services</description>
+      <services>
+        - onyx-core: Python RAG service (port 8080)
+        - qdrant: Vector database (port 6333)
+        - postgres: PostgreSQL database (port 5432)
+        - redis: Cache and job queue (port 6379)
+      </services>
+      <environment>
+        - QDRANT_URL: http://qdrant:6333
+        - OPENAI_API_KEY: Required for embeddings
+        - Add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
+      </environment>
+    </file>
+
+    <file path="/home/user/ONYX/docker/init-postgres.sql">
+      <description>PostgreSQL schema initialization</description>
+      <existing-tables>
+        - users: User accounts (email, google_id, encrypted_google_token)
+        - documents: RAG metadata (source_type, source_id, title, content_hash, file_size, mime_type)
+        - api_keys: Encrypted credentials (user_id, service_name, encrypted_key)
+      </existing-tables>
+      <new-tables-needed>
+        - drive_sync_state: Track incremental sync tokens
+        - sync_jobs: Job execution history
+        - oauth_tokens: OAuth credential storage
+      </new-tables-needed>
+    </file>
+  </existing-codebase>
+
+  <implementation-guidance>
+    <setup-steps>
+      <step number="1">
+        <title>Configure Google Cloud Project</title>
+        <tasks>
+          - Create project in Google Cloud Console
+          - Enable Google Drive API
+          - Create OAuth 2.0 credentials
+          - Configure authorized redirect URIs
+          - Add to .env.local: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, ENCRYPTION_KEY (generate with: openssl rand -hex 32)
+        </tasks>
+      </step>
+
+      <step number="2">
+        <title>Implement OAuth2 Flow</title>
+        <tasks>
+          - Create /api/auth/google/authorize route (redirect to Google)
+          - Create /api/auth/google/callback route (handle code exchange)
+          - Implement token encryption/decryption utilities (AES-256)
+          - Store encrypted tokens in PostgreSQL oauth_tokens table
+          - Implement token refresh logic (before expiry)
+        </tasks>
+      </step>
+
+      <step number="3">
+        <title>Create Sync Job Worker (BullMQ)</title>
+        <tasks>
+          - Create sync job queue in Redis
+          - Implement worker to process sync jobs
+          - Schedule cron job: */10 * * * * (every 10 minutes)
+          - Implement incremental sync using sync_token
+          - Handle pagination (Google API returns max 1000 results per request)
+        </tasks>
+      </step>
+
+      <step number="4">
+        <title>Implement File Detection</title>
+        <tasks>
+          - List files with modifiedTime > last_sync_at
+          - Filter by permissions (only accessible files)
+          - Detect new files (not in PostgreSQL)
+          - Detect modified files (modifiedTime changed)
+          - Detect deleted files (no longer in Drive response)
+        </tasks>
+      </step>
+
+      <step number="5">
+        <title>Implement Content Extraction</title>
+        <tasks>
+          - Google Docs → export to Markdown
+          - Google Sheets → export to CSV (parse to text)
+          - PDFs → download and extract text (PyPDF2)
+          - Images → skip for MVP (OCR deferred to future)
+          - Other formats → skip with warning log
+        </tasks>
+      </step>
+
+      <step number="6">
+        <title>Implement Permission Extraction</title>
+        <tasks>
+          - Parse permissions array from Drive API
+          - Extract user emails with read access
+          - Store in documents.permissions JSONB field
+          - Handle special cases: type: 'anyone' → public file, type: 'domain' → all users in domain, type: 'group' → expand group members (future)
+        </tasks>
+      </step>
+
+      <step number="7">
+        <title>Integrate with Qdrant Indexing</title>
+        <tasks>
+          - Chunk extracted content (500 tokens, 50 overlap)
+          - Generate embeddings via OpenAI API (use existing RAGService.embed_query())
+          - Upsert vectors to Qdrant "documents" collection
+          - Include permissions in Qdrant payload for filtering
+          - Store metadata in PostgreSQL documents table
+        </tasks>
+      </step>
+    </setup-steps>
+
+    <python-implementation-example>
+      <code>
+        # onyx-core/services/google_drive_sync.py
+        import os
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+        from googleapiclient.discovery import build
+        from cryptography.fernet import Fernet
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        class GoogleDriveSync:
+            def __init__(self, user_id: str):
+                self.user_id = user_id
+                self.drive_service = None
+                self.sync_token = None
+
+            def _get_credentials(self) -> Credentials:
+                """Retrieve and decrypt OAuth tokens from PostgreSQL."""
+                # Fetch encrypted tokens from oauth_tokens table
+                token_record = fetch_oauth_tokens(self.user_id, 'google_drive')
+
+                # Decrypt tokens
+                fernet = Fernet(os.getenv('ENCRYPTION_KEY'))
+                access_token = fernet.decrypt(token_record['encrypted_access_token']).decode()
+                refresh_token = fernet.decrypt(token_record['encrypted_refresh_token']).decode()
+
+                # Create credentials object
+                creds = Credentials(
+                    token=access_token,
+                    refresh_token=refresh_token,
+                    token_uri='https://oauth2.googleapis.com/token',
+                    client_id=os.getenv('GOOGLE_CLIENT_ID'),
+                    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+                    scopes=['https://www.googleapis.com/auth/drive.readonly']
+                )
+
+                # Refresh if expired
+                if creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                    self._update_tokens(creds)
+
+                return creds
+
+            def sync_files(self, full_sync: bool = False):
+                """Sync Google Drive files (incremental or full)."""
+                if not self.drive_service:
+                    self._initialize_drive_service()
+
+                # Get sync token for incremental sync
+                if not full_sync:
+                    sync_state = fetch_sync_state(self.user_id)
+                    self.sync_token = sync_state.get('sync_token')
+
+                logger.info(f"Starting {'full' if full_sync else 'incremental'} sync for user {self.user_id}")
+
+                try:
+                    files = self._list_files()
+                    for file_metadata in files:
+                        try:
+                            self._process_file(file_metadata)
+                        except Exception as e:
+                            logger.error(f"Failed to process file {file_metadata['id']}: {e}")
+
+                    update_sync_state(self.user_id, self.sync_token)
+                    logger.info(f"Sync completed successfully for user {self.user_id}")
+                except Exception as e:
+                    logger.error(f"Sync failed for user {self.user_id}: {e}")
+                    raise
+
+            def _list_files(self) -> list:
+                """List all accessible files from Google Drive (paginated)."""
+                files = []
+                page_token = None
+
+                while True:
+                    response = self.drive_service.files().list(
+                        pageSize=1000,
+                        pageToken=page_token,
+                        fields='nextPageToken, newStartPageToken, files(id, name, mimeType, modifiedTime, createdTime, owners, permissions, size, webViewLink, capabilities)',
+                        includeItemsFromAllDrives=True,
+                        supportsAllDrives=True
+                    ).execute()
+
+                    files.extend(response.get('files', []))
+
+                    if 'newStartPageToken' in response:
+                        self.sync_token = response['newStartPageToken']
+
+                    page_token = response.get('nextPageToken')
+                    if not page_token:
+                        break
+
+                logger.info(f"Listed {len(files)} files from Google Drive")
+                return files
+      </code>
+    </python-implementation-example>
+  </implementation-guidance>
+
+  <testing-requirements>
+    <unit-tests>
+      <test name="Token Encryption/Decryption">
+        <description>Verify OAuth tokens are encrypted and decrypted correctly</description>
+        <code>
+          def test_token_encryption():
+              from cryptography.fernet import Fernet
+              key = Fernet.generate_key()
+              fernet = Fernet(key)
+              access_token = "ya29.a0AfH6SMBx..."
+              encrypted = fernet.encrypt(access_token.encode())
+              decrypted = fernet.decrypt(encrypted).decode()
+              assert decrypted == access_token
+        </code>
+      </test>
+
+      <test name="Permission Extraction">
+        <description>Verify permissions are extracted correctly from Drive API response</description>
+        <code>
+          def test_permission_extraction():
+              file_metadata = {
+                  'id': '1XyZ',
+                  'name': 'Test Doc',
+                  'permissions': [
+                      {'type': 'user', 'emailAddress': 'user1@example.com', 'role': 'reader'},
+                      {'type': 'user', 'emailAddress': 'user2@example.com', 'role': 'writer'},
+                      {'type': 'anyone', 'role': 'reader'}
+                  ]
+              }
+              sync = GoogleDriveSync(user_id='test-user')
+              permissions = sync._extract_permissions(file_metadata)
+              assert 'user1@example.com' in permissions
+              assert 'user2@example.com' in permissions
+              assert '*' in permissions  # Public access
+        </code>
+      </test>
+
+      <test name="Content Extraction (Google Doc)">
+        <description>Verify Google Doc content is extracted as Markdown</description>
+        <code>
+          def test_google_doc_extraction(mocker):
+              mock_export = mocker.patch('googleapiclient.discovery.Resource.export')
+              mock_export.return_value.execute.return_value = b'# Test Document\n\nThis is a test.'
+
+              sync = GoogleDriveSync(user_id='test-user')
+              content = sync._extract_content({
+                  'id': '1XyZ',
+                  'mimeType': 'application/vnd.google-apps.document'
+              })
+
+              assert content == '# Test Document\n\nThis is a test.'
+        </code>
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test name="OAuth Flow End-to-End">
+        <description>Test full OAuth flow from authorization to token storage</description>
+        <script>
+          #!/bin/bash
+          # tests/integration/test-google-oauth.sh
+          echo "Testing Google OAuth flow..."
+
+          # 1. Start authorization (simulated)
+          AUTH_URL=$(curl -s http://localhost:3000/api/auth/google/authorize | jq -r '.auth_url')
+          echo "Authorization URL: $AUTH_URL"
+
+          # 2. Simulate callback with authorization code
+          CODE="mock-auth-code-12345"
+          CALLBACK_RESPONSE=$(curl -s -X POST http://localhost:3000/api/auth/google/callback \
+            -H "Content-Type: application/json" \
+            -d "{\"code\": \"$CODE\"}")
+
+          # 3. Verify token stored
+          TOKEN_STORED=$(echo $CALLBACK_RESPONSE | jq -r '.token_stored')
+          if [ "$TOKEN_STORED" != "true" ]; then
+              echo "❌ OAuth token storage failed"
+              exit 1
+          fi
+
+          echo "✅ OAuth flow completed successfully"
+        </script>
+      </test>
+
+      <test name="Auto-Sync Job Execution">
+        <description>Test sync job triggers, executes, and completes successfully</description>
+        <script>
+          #!/bin/bash
+          # tests/integration/test-drive-sync.sh
+          echo "Testing Google Drive sync job..."
+
+          # 1. Trigger manual sync
+          SYNC_RESPONSE=$(curl -s -X POST http://localhost:3000/api/sync/google-drive \
+            -H "Authorization: Bearer $TEST_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"full_sync": false}')
+
+          JOB_ID=$(echo $SYNC_RESPONSE | jq -r '.job_id')
+          echo "Sync job started: $JOB_ID"
+
+          # 2. Poll for job completion (max 5 minutes)
+          for i in {1..30}; do
+              sleep 10
+              STATUS_RESPONSE=$(curl -s http://localhost:3000/api/sync/status/$JOB_ID \
+                -H "Authorization: Bearer $TEST_TOKEN")
+
+              STATUS=$(echo $STATUS_RESPONSE | jq -r '.status')
+              if [ "$STATUS" = "success" ]; then
+                  DOCS_SYNCED=$(echo $STATUS_RESPONSE | jq -r '.documents_synced')
+                  DOCS_FAILED=$(echo $STATUS_RESPONSE | jq -r '.documents_failed')
+                  echo "✅ Sync completed: $DOCS_SYNCED synced, $DOCS_FAILED failed"
+
+                  # Verify error rate &lt;2%
+                  TOTAL=$((DOCS_SYNCED + DOCS_FAILED))
+                  ERROR_RATE=$(echo "scale=4; $DOCS_FAILED / $TOTAL" | bc)
+                  if (( $(echo "$ERROR_RATE &lt; 0.02" | bc -l) )); then
+                      echo "✅ Error rate within target: $ERROR_RATE"
+                  else
+                      echo "❌ Error rate too high: $ERROR_RATE"
+                      exit 1
+                  fi
+                  exit 0
+              fi
+              echo "Waiting for sync to complete... ($i/30)"
+          done
+
+          echo "❌ Sync job timed out"
+          exit 1
+        </script>
+      </test>
+
+      <test name="Permission-Aware Search">
+        <description>Verify search results are filtered by user permissions</description>
+        <code>
+          def test_permission_filtered_search():
+              # Index test documents with different permissions
+              index_test_document(
+                  doc_id='doc-1',
+                  content='Public document',
+                  permissions=['*']  # Public
+              )
+
+              index_test_document(
+                  doc_id='doc-2',
+                  content='Private document',
+                  permissions=['user1@example.com']  # Private to user1
+              )
+
+              # Search as user1
+              results_user1 = search_documents(
+                  query='document',
+                  user_email='user1@example.com'
+              )
+              assert len(results_user1) == 2  # Can see both documents
+
+              # Search as user2
+              results_user2 = search_documents(
+                  query='document',
+                  user_email='user2@example.com'
+              )
+              assert len(results_user2) == 1  # Can only see public document
+              assert results_user2[0]['doc_id'] == 'doc-1'
+        </code>
+      </test>
+    </integration-tests>
+
+    <manual-verification-checklist>
+      - User can authenticate with Google OAuth ("Connect Google Drive" button)
+      - OAuth consent screen shows correct scopes (drive.readonly)
+      - Tokens stored encrypted in PostgreSQL (verify oauth_tokens table)
+      - Sync job runs every 10 minutes automatically (check cron logs)
+      - Dashboard displays sync status ("Last sync: X min ago")
+      - Files from Google Drive appear in search results
+      - Permissions respected (private files not accessible to other users)
+      - Modified files re-indexed on next sync (change doc, wait 10 min, verify update)
+      - Deleted files removed from index (delete doc in Drive, wait 10 min, verify removal)
+      - Error messages clear and actionable (e.g., "Permission denied" for inaccessible files)
+      - Manual sync ("Sync Now" button) works correctly
+      - Sync job doesn't overlap (second sync waits if first still running)
+    </manual-verification-checklist>
+  </testing-requirements>
+
+  <external-dependencies>
+    <google-drive-api>
+      <version>v3</version>
+      <rate-limits>1000 queries per 100 seconds per user</rate-limits>
+      <quotas>Sufficient for MVP (1,000,000,000 queries/day)</quotas>
+    </google-drive-api>
+
+    <google-oauth-library>
+      <python>
+        - google-auth &gt;= 2.23.0
+        - google-auth-httplib2 &gt;= 0.1.1
+        - google-api-python-client &gt;= 2.100.0
+      </python>
+      <node>
+        - googleapis ^118.0.0
+        - bullmq ^4.9.0
+        - crypto ^1.0.1
+      </node>
+    </google-oauth-library>
+
+    <python-dependencies>
+      # Add to onyx-core/requirements.txt
+      google-auth&gt;=2.23.0
+      google-auth-httplib2&gt;=0.1.1
+      google-api-python-client&gt;=2.100.0
+      cryptography&gt;=41.0.0  # For token encryption
+      PyPDF2&gt;=3.0.0  # For PDF text extraction
+    </python-dependencies>
+  </external-dependencies>
+
+  <performance-targets>
+    <sync-performance>
+      - Google Drive sync: &lt;2 minutes for 1000 files (incremental)
+      - Full sync: &lt;30 minutes for 50k documents (initial index)
+      - Throughput: 500 documents/minute
+    </sync-performance>
+
+    <resource-utilization>
+      - Network: &lt;100MB/min during full sync
+      - CPU: &lt;2 vCPU during sync
+      - Memory: &lt;512MB per sync job
+    </resource-utilization>
+
+    <error-handling>
+      - Retry logic: Exponential backoff (1s, 5s, 30s), max 3 retries
+      - Error rate target: &lt;2% on sync jobs
+      - Alert threshold: &gt;5% error rate (indicates systemic issue)
+    </error-handling>
+  </performance-targets>
+
+  <security-considerations>
+    <oauth-security>
+      - Store tokens encrypted in PostgreSQL (AES-256)
+      - Never log OAuth tokens (use [REDACTED] in logs)
+      - Implement token refresh before expiry
+      - Rotate encryption key regularly (document procedure)
+    </oauth-security>
+
+    <permission-security>
+      - Only index files user can access (verify permissions before indexing)
+      - Filter search results by current user's permissions
+      - Implement permission audit log for compliance
+      - Permission changes on Drive propagate to index on next sync
+    </permission-security>
+
+    <api-security>
+      - Review Google API scopes (use minimal necessary permissions)
+      - Implement rate limiting (100 search queries/min per user)
+      - Monitor API usage for anomalies
+      - Secure credential storage (no credentials in logs or version control)
+    </api-security>
+  </security-considerations>
+
+  <risks-and-mitigations>
+    <risk severity="high">
+      <description>Google API rate limits exceeded</description>
+      <mitigation>Implement exponential backoff, batch requests where possible, monitor rate limit headers, use sync_token for incremental sync (not full scan)</mitigation>
+    </risk>
+
+    <risk severity="medium">
+      <description>OAuth token expiry during sync</description>
+      <mitigation>Implement automatic token refresh before expiry, retry sync if token expires mid-operation</mitigation>
+    </risk>
+
+    <risk severity="medium">
+      <description>Large file indexing timeouts</description>
+      <mitigation>Stream content extraction (don't load entire file in memory), set timeout limits (30s per file), skip files &gt;50MB with warning</mitigation>
+    </risk>
+
+    <risk severity="high">
+      <description>Permission sync lag (security risk)</description>
+      <mitigation>Verify permissions on every sync, log permission changes, implement permission audit log, alert on access control failures</mitigation>
+    </risk>
+
+    <risk severity="medium">
+      <description>Sync job overlap (race conditions)</description>
+      <mitigation>Use job queue concurrency control (max 1 sync job per user), implement distributed lock if needed</mitigation>
+    </risk>
+
+    <risk severity="low">
+      <description>Network failures during sync</description>
+      <mitigation>Retry transient failures (max 3 attempts), continue sync even if some files fail (partial success), log all failures for investigation</mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <definition-of-done>
+    <checklist>
+      - [ ] Google OAuth2 flow implemented and tested
+      - [ ] User can connect Google Drive account via "Connect Google Drive" button
+      - [ ] OAuth consent screen displays correct scopes
+      - [ ] Tokens stored encrypted (AES-256) in PostgreSQL oauth_tokens table
+      - [ ] Token refresh logic implemented and tested
+      - [ ] Auto-sync job operational
+      - [ ] BullMQ job queue configured in Redis
+      - [ ] Sync job runs every 10 minutes automatically (cron: */10 * * * *)
+      - [ ] Incremental sync using sync_token (not full scan every time)
+      - [ ] Only one sync job runs at a time (concurrency control)
+      - [ ] File detection and indexing working
+      - [ ] New files detected and indexed
+      - [ ] Modified files detected and re-indexed
+      - [ ] Deleted files removed from index
+      - [ ] Pagination handled correctly (&gt;1000 files)
+      - [ ] Content extraction supports multiple formats
+      - [ ] Google Docs exported as Markdown
+      - [ ] Google Sheets exported as CSV
+      - [ ] PDFs extracted with text content
+      - [ ] Unsupported formats logged and skipped
+      - [ ] Permission-aware indexing implemented
+      - [ ] File permissions extracted from Drive API
+      - [ ] Only accessible files indexed
+      - [ ] Permissions stored in PostgreSQL and Qdrant payload
+      - [ ] Search results filtered by current user's permissions
+      - [ ] All acceptance criteria verified (AC3.2.1 - AC3.2.7)
+      - [ ] Unit tests pass for token encryption, permission extraction, content extraction
+      - [ ] Integration tests pass for OAuth flow, sync job execution
+      - [ ] Performance tests confirm sync latency &lt;2 minutes for 1000 files
+      - [ ] Manual verification checklist completed
+      - [ ] Documentation updated (README.md, .env.example)
+      - [ ] Code reviewed and merged to main branch
+      - [ ] Sprint status updated to "done" in sprint-status.yaml
+    </checklist>
+  </definition-of-done>
+</story-context>
