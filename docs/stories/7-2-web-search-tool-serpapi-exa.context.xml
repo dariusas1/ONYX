@@ -1,0 +1,1090 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>7-2-web-search-tool-serpapi-exa</story-id>
+    <story-title>Web Search Tool (SerpAPI or Exa)</story-title>
+    <epic-id>epic-7</epic-id>
+    <epic-title>Web Automation &amp; Search</epic-title>
+    <priority>P0</priority>
+    <status>drafted</status>
+    <estimated-points>5</estimated-points>
+    <context-generated>2025-11-14</context-generated>
+  </metadata>
+
+  <story-overview>
+    <summary>
+      Implement web search capability for Epic 7 (Web Automation &amp; Search) using SerpAPI (Google/Bing) and Exa (semantic search) APIs.
+      This story enables Manus to search the web for current information, research topics, and gather external intelligence
+      for strategic decision-making. Web search is independent of browser automation (Story 7-1), making it ideal for parallel development.
+      Performance target: &lt;3s for search operations with aggressive 24h caching to minimize API costs.
+    </summary>
+
+    <business-value>
+      Without web search capabilities, Manus cannot:
+      - Answer questions about recent events or current information
+      - Research competitors or market trends
+      - Find documentation, articles, or technical resources
+      - Verify information against external sources
+      - Conduct market intelligence or competitive analysis
+
+      Web search transforms Manus from a static knowledge base into a dynamic intelligence platform that can
+      actively research and discover information on demand. This is a critical capability for strategic leadership
+      where timely external intelligence is essential for decision-making.
+    </business-value>
+
+    <blocking-dependencies>
+      This story requires:
+      - Epic 1: Foundation &amp; Infrastructure (Redis cache infrastructure)
+      - SerpAPI API key ($50/month, 100 searches/day)
+      - Exa AI API key ($20/month, 1000 searches/month)
+
+      This story blocks:
+      - Story 7-3: URL Scraping &amp; Content Extraction (search results provide URLs to scrape)
+    </blocking-dependencies>
+  </story-overview>
+
+  <epic-technical-specification>
+    <epic-overview>
+      Epic 7 enables Manus Internal to perform autonomous web research, market analysis, and competitive intelligence
+      through headless browser automation and intelligent web search. The web search capability provides two complementary
+      approaches: traditional Google/Bing search via SerpAPI for broad information discovery, and semantic/neural search
+      via Exa for finding conceptually related content. Together, these tools enable comprehensive web-based research
+      workflows where Manus can autonomously gather external intelligence.
+    </epic-overview>
+
+    <architecture-summary>
+      Web search integrates with the Onyx Core Python service via new search manager and API client modules.
+      Search operations utilize external APIs (SerpAPI/Exa) with Redis caching to minimize costs (24h TTL).
+      Rate limiting prevents quota exhaustion. All operations include comprehensive logging for debugging,
+      cost tracking, and audit trails. The search module operates as part of the tool ecosystem, enabling
+      the LLM agent to autonomously research external information while maintaining cost controls.
+    </architecture-summary>
+
+    <service-architecture>
+      <diagram>
+┌─────────────────────────────────────────────────────────┐
+│  Suna (Frontend) - Agent Mode UI                       │
+└─────────────────┬───────────────────────────────────────┘
+                  │ POST /api/agent (task submission)
+                  ↓
+┌─────────────────────────────────────────────────────────┐
+│  Onyx Core (Python) - Tool Orchestration               │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │  Search Manager: search_web(query, source, ...)  │ │
+│  │                → SerpAPI → Google/Bing results    │ │
+│  │                → Exa API → Semantic results       │ │
+│  └───────────────────────────────────────────────────┘ │
+└────┬──────────────────────┬───────────────────────┬─────┘
+     │                      │                       │
+     ↓                      ↓                       ↓
+┌─────────┐          ┌──────────┐          ┌──────────────┐
+│ SerpAPI │          │ Exa AI   │          │ Redis Cache  │
+│ Google  │          │ Semantic │          │ 24h TTL      │
+│ Bing    │          │ Search   │          │              │
+└─────────┘          └──────────┘          └──────────────┘
+      </diagram>
+
+      <search-manager-architecture>
+┌─────────────────────────────────────────────────────────┐
+│  Search Manager (search_manager.py)                     │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │  search_web(query, source, num_results, ...)      │ │
+│  │  ├─→ Check Redis cache first                      │ │
+│  │  ├─→ If miss: Call SerpAPI or Exa                 │ │
+│  │  ├─→ Parse and normalize results                  │ │
+│  │  ├─→ Cache for 24h                                │ │
+│  │  └─→ Return SearchResult with metadata            │ │
+│  └───────────────────────────────────────────────────┘ │
+│                                                          │
+│  Components:                                             │
+│  - SerpAPIClient (serpapi_client.py)                    │
+│  - ExaClient (exa_client.py)                            │
+│  - CacheManager (cache_manager.py) - uses Redis         │
+│  - RateLimiter (rate_limiter.py) - token bucket         │
+└─────────────────────────────────────────────────────────┘
+      </search-manager-architecture>
+    </service-architecture>
+
+    <modules-and-services>
+      <module name="search-manager" purpose="Unified search interface" technology="Python">
+        <responsibilities>
+          <item>Unified interface for multiple search providers</item>
+          <item>Automatic fallback from SerpAPI to Exa if one fails</item>
+          <item>Query parameter handling (time range, result count)</item>
+          <item>Result normalization into standard schema</item>
+          <item>Caching integration with Redis (24h TTL)</item>
+        </responsibilities>
+        <file-path>onyx-core/services/search_manager.py</file-path>
+      </module>
+
+      <module name="serpapi-client" purpose="SerpAPI integration" technology="Python + aiohttp">
+        <responsibilities>
+          <item>Google Search via SerpAPI REST API</item>
+          <item>Bing Search support (alternative engine)</item>
+          <item>Result parsing and normalization</item>
+          <item>Error handling for API failures</item>
+          <item>Rate limiting (100 searches/day)</item>
+        </responsibilities>
+        <file-path>onyx-core/services/serpapi_client.py</file-path>
+      </module>
+
+      <module name="exa-client" purpose="Exa semantic search" technology="Python + aiohttp">
+        <responsibilities>
+          <item>Semantic/neural search via Exa API</item>
+          <item>Autoprompt feature for query optimization</item>
+          <item>Relevance scoring and ranking</item>
+          <item>Result parsing and normalization</item>
+          <item>Rate limiting (1000 searches/month → ~33/day)</item>
+        </responsibilities>
+        <file-path>onyx-core/services/exa_client.py</file-path>
+      </module>
+
+      <module name="cache-layer" purpose="Result caching" technology="Redis">
+        <responsibilities>
+          <item>Redis-backed caching with 24h TTL</item>
+          <item>Cache key generation from query + parameters</item>
+          <item>Cache hit/miss tracking for metrics</item>
+          <item>Automatic eviction (LRU policy)</item>
+        </responsibilities>
+        <file-path>onyx-core/services/cache_manager.py</file-path>
+        <integration-point>All search services → Redis</integration-point>
+      </module>
+
+      <module name="rate-limiter" purpose="Request throttling" technology="Redis + token bucket">
+        <responsibilities>
+          <item>Token bucket algorithm per API</item>
+          <item>SerpAPI: 100 searches/day → ~4/hour</item>
+          <item>Exa: 1000 searches/month → ~33/day</item>
+          <item>Queue requests when rate limited</item>
+          <item>Background token refill job</item>
+        </responsibilities>
+        <file-path>onyx-core/services/rate_limiter.py</file-path>
+        <integration-point>All external API calls</integration-point>
+      </module>
+    </modules-and-services>
+
+    <data-models>
+      <schema name="SearchRequest">
+        <description>Input schema for search_web tool</description>
+        <fields>
+          <field name="query" type="str" required="true" description="Search query string" />
+          <field name="source" type="Literal['serpapi', 'exa', 'auto']" default="auto" description="Search provider or auto-select" />
+          <field name="num_results" type="int" default="5" description="Number of results to return (1-10)" />
+          <field name="time_range" type="Optional[Literal['past_day', 'past_week', 'past_month', 'past_year']]" default="None" description="Filter by time range" />
+          <field name="engine" type="Optional[Literal['google', 'bing']]" default="google" description="Search engine for SerpAPI" />
+          <field name="use_autoprompt" type="bool" default="true" description="Use Exa autoprompt feature" />
+        </fields>
+      </schema>
+
+      <schema name="SearchResult">
+        <description>Output schema for search results</description>
+        <fields>
+          <field name="query" type="str" description="Original search query" />
+          <field name="source" type="Literal['serpapi', 'exa']" description="Actual provider used" />
+          <field name="results" type="List[SearchResultItem]" description="List of search results" />
+          <field name="total_results" type="int" description="Total number of results" />
+          <field name="search_time_ms" type="int" description="Total execution time in milliseconds" />
+          <field name="cached" type="bool" description="Whether result was from cache" />
+          <field name="timestamp" type="datetime" description="When search was executed" />
+        </fields>
+      </schema>
+
+      <schema name="SearchResultItem">
+        <description>Individual search result item</description>
+        <fields>
+          <field name="title" type="str" description="Page title" />
+          <field name="url" type="str" description="Full URL to page" />
+          <field name="snippet" type="str" description="Excerpt (100-200 chars)" />
+          <field name="position" type="int" description="Ranking position (1-based)" />
+          <field name="domain" type="str" description="Domain extracted from URL" />
+          <field name="publish_date" type="Optional[datetime]" description="Publication date if available" />
+          <field name="relevance_score" type="Optional[float]" description="Exa relevance score (0-1)" />
+        </fields>
+      </schema>
+    </data-models>
+
+    <performance-requirements>
+      <search-operations>
+        <metric name="SerpAPI search" target="&lt;2s" timeout="10s" note="External API dependency" />
+        <metric name="Exa search" target="&lt;3s" timeout="10s" note="External API dependency" />
+        <metric name="Cache hit" target="&lt;50ms" note="Redis lookup" />
+        <metric name="Result parsing" target="&lt;100ms" note="For 10 results" />
+        <metric name="Total latency (cache miss)" target="&lt;3s" note="Including API call + parsing" />
+      </search-operations>
+
+      <api-limits>
+        <limit name="SerpAPI" value="100 searches/day" cost="$50/month" note="~4 searches/hour" />
+        <limit name="Exa" value="1000 searches/month" cost="$20/month" note="~33 searches/day" />
+        <limit name="Redis" value="unlimited" cost="self-hosted" note="1GB max cache size" />
+      </api-limits>
+
+      <caching-strategy>
+        <cache-ttl value="24h" />
+        <cache-key-format>search:{source}:{normalized_query}:{time_range}:{engine}</cache-key-format>
+        <target-hit-rate>&gt;70%</target-hit-rate>
+        <eviction-policy>LRU (Least Recently Used)</eviction-policy>
+      </caching-strategy>
+    </performance-requirements>
+
+    <acceptance-criteria>
+      <criterion id="AC7.2.1">
+        <description>Agent can invoke search_web tool with query parameter</description>
+        <verification>
+          - Unit test: test_search_web_invocation() verifies tool can be called
+          - Integration test: Search with "test query" returns valid SearchResult object
+          - Log verification: Search request logged with query, source, timestamp
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.2.2">
+        <description>Returns top-5 results with title, URL, snippet, domain, position</description>
+        <verification>
+          - Unit test: test_search_result_schema() validates all required fields present
+          - Integration test: Search returns exactly 5 results (or fewer for niche queries)
+          - Field validation: title non-empty, url valid HTTP/HTTPS, snippet 100-200 chars
+          - Position test: Verify positions are 1, 2, 3, 4, 5 in order
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.2.3">
+        <description>Results from Google/Bing via SerpAPI or semantic search via Exa</description>
+        <verification>
+          - Integration test: test_serpapi_search() verifies SerpAPI integration
+          - Integration test: test_exa_search() verifies Exa integration
+          - Integration test: test_auto_fallback() verifies SerpAPI → Exa fallback
+          - Mock test: Verify correct API endpoint called based on source parameter
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.2.4">
+        <description>Latency &lt;3s for search API calls (external dependency)</description>
+        <verification>
+          - Performance test: 50 searches with timing, verify p95 &lt;3s
+          - Latency logging: Log search_time_ms for all requests
+          - Metrics: Track p50, p95, p99 latencies in production
+          - Alert: Trigger if p95 exceeds 3s for sustained period
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.2.5">
+        <description>Supports time range filtering (past week/month/year)</description>
+        <verification>
+          - Unit test: test_time_range_filtering() for each time range option
+          - Integration test: Search with time_range="past_week" returns recent results
+          - SerpAPI test: Verify tbs=qdr:w parameter passed for past week
+          - Exa test: Time range filtering via start_published_date parameter
+          - Validation: Results have publish_date within specified range (where available)
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.2.6">
+        <description>Results cached for 24h to minimize API costs</description>
+        <verification>
+          - Unit test: test_cache_hit() verifies cached results returned
+          - Unit test: test_cache_miss() verifies new API call on cache miss
+          - Integration test: First search cached=false, second search cached=true
+          - Performance test: Cache hit &lt;50ms, cache miss ~2-3s
+          - TTL test: Verify cache expires after 24h (mock Redis TTL)
+          - Metrics: Track cache hit rate (target: &gt;70%)
+        </verification>
+      </criterion>
+    </acceptance-criteria>
+  </epic-technical-specification>
+
+  <prd-requirements>
+    <functional-requirements epic="F6: Web Automation &amp; Search">
+      <requirement id="F6.1">
+        <title>Web search</title>
+        <description>Tool: search_web(query) → top-5 results from SerpAPI or Exa</description>
+        <acceptance>Agent can invoke search_web tool with query parameter</acceptance>
+        <details>
+          - Primary use case: Research current information, market trends, competitor intelligence
+          - Search providers: SerpAPI (Google/Bing), Exa (semantic search)
+          - Automatic fallback: Try SerpAPI first, fall back to Exa if it fails
+          - Result format: Top-5 results with title, URL, snippet, domain
+          - Time filtering: Support past week/month/year filters
+          - Caching: 24h TTL to minimize API costs (target &gt;70% cache hit rate)
+        </details>
+      </requirement>
+
+      <requirement id="F6.7">
+        <title>Search latency</title>
+        <description>Web operations complete in &lt;5s per action</description>
+        <acceptance>Page load &lt;5s (95th percentile)</acceptance>
+        <details>
+          - Search operations: &lt;3s for API calls (external dependency)
+          - Cache hits: &lt;50ms for cached results
+          - Result parsing: &lt;100ms for 10 results
+          - Total latency (cache miss): &lt;3s including API call + parsing
+        </details>
+      </requirement>
+    </functional-requirements>
+
+    <non-functional-requirements>
+      <performance>
+        <requirement id="P1.6">Tool execution: Most tools complete in &lt;5s (web search &lt;3s, file ops &lt;2s)</requirement>
+      </performance>
+
+      <security>
+        <requirement id="S1.2">Credential encryption: All API keys, tokens encrypted at rest (AES-256)</requirement>
+        <requirement id="S1.6">Input validation: Sanitize all user inputs; prevent SQL injection, XSS</requirement>
+        <requirement id="S1.9">Audit logging: Log all sensitive actions (file creation, code execution)</requirement>
+        <requirement id="S1.10">API key management: Store SerpAPI and Exa keys in encrypted environment variables</requirement>
+      </security>
+
+      <reliability>
+        <requirement id="R1.2">Auto-recovery: Service crashes automatically restart (Docker healthchecks)</requirement>
+        <requirement id="R1.5">Error handling: Graceful degradation; inform user of partial failures</requirement>
+        <requirement id="R1.6">Retry logic: Automatic retry for transient failures (API calls, DB)</requirement>
+        <requirement id="R1.7">Fallback strategy: If SerpAPI fails → try Exa; if Exa fails → return cached results</requirement>
+      </reliability>
+
+      <cost-management>
+        <requirement id="C1.1">API quota management: Track daily/monthly usage to avoid quota exhaustion</requirement>
+        <requirement id="C1.2">Aggressive caching: 24h TTL for search results to minimize API costs</requirement>
+        <requirement id="C1.3">Rate limiting: Prevent quota exhaustion with token bucket algorithm</requirement>
+        <requirement id="C1.4">Cost monitoring: Alert if approaching 80% of daily/monthly quota</requirement>
+      </cost-management>
+    </non-functional-requirements>
+  </prd-requirements>
+
+  <architecture-context>
+    <project-structure>
+      <overview>
+        Manus Internal is a multi-service, self-hosted strategic AI platform combining real-time chat,
+        company-wide RAG, persistent memory, and autonomous agent execution. The architecture prioritizes
+        operational simplicity, data privacy, and low-latency performance within a resource-constrained
+        environment (KVM 4: 4 vCPU, 16GB RAM).
+      </overview>
+
+      <core-principle>
+        "Boring technology that works" – prefer proven, stable solutions (Next.js, PostgreSQL, Docker)
+        over cutting-edge complexity.
+      </core-principle>
+
+      <deployment-model>
+        Docker Compose orchestration on Hostinger KVM 4 VPS, with all data and processing internal
+        (no vendor lock-in).
+      </deployment-model>
+    </project-structure>
+
+    <technology-stack>
+      <frontend framework="Next.js 14" language="TypeScript" styling="Tailwind CSS" />
+      <backend>
+        <service name="Suna" technology="Node.js" purpose="Frontend API server" />
+        <service name="Onyx Core" technology="Python FastAPI" purpose="RAG service, tool orchestration" />
+      </backend>
+      <infrastructure>
+        <component name="PostgreSQL" version="15" purpose="Transactional data, auth, task history" />
+        <component name="Redis" version="7" purpose="Session cache, rate limiting, job queue, search result caching" />
+        <component name="Qdrant" purpose="Vector database for semantic search" />
+        <component name="LiteLLM Proxy" purpose="LLM routing (DeepSeek primary, Ollama fallback)" />
+        <component name="Nginx" purpose="Reverse proxy, SSL termination" />
+      </infrastructure>
+    </technology-stack>
+
+    <epic-7-architecture-mapping>
+      <deliverable>Web search tools, browser automation, URL scraping, form filling</deliverable>
+      <owns>
+        <item>onyx-core/services/search_manager.py (NEW - Story 7.2)</item>
+        <item>onyx-core/services/serpapi_client.py (NEW - Story 7.2)</item>
+        <item>onyx-core/services/exa_client.py (NEW - Story 7.2)</item>
+        <item>onyx-core/services/cache_manager.py (NEW - Story 7.2)</item>
+        <item>onyx-core/services/rate_limiter.py (NEW - Story 7.2)</item>
+        <item>onyx-core/services/browser_manager.py (Story 7.1 - COMPLETED)</item>
+      </owns>
+      <key-services>
+        <service>SerpAPI (Google/Bing search)</service>
+        <service>Exa AI (semantic search)</service>
+        <service>Redis (caching layer)</service>
+      </key-services>
+      <architecture>External API integration with Redis caching, &lt;3s per search</architecture>
+      <stories>
+        <story id="7.1">Playwright Browser Setup &amp; Headless Automation (COMPLETED)</story>
+        <story id="7.2">Web Search Tool (SerpAPI or Exa) (THIS STORY)</story>
+        <story id="7.3">URL Scraping &amp; Content Extraction</story>
+        <story id="7.4">Form Filling &amp; Web Interaction</story>
+        <story id="7.5">Screenshot &amp; Page Capture</story>
+      </stories>
+    </epic-7-architecture-mapping>
+
+    <integration-patterns>
+      <pattern name="Search Tool Execution Flow">
+        <step>User asks question requiring external information</step>
+        <step>Agent recognizes need for web search</step>
+        <step>Selects search_web tool with appropriate query</step>
+        <step>Search Manager checks Redis cache first</step>
+        <step>If cache miss: Calls SerpAPI or Exa API</step>
+        <step>Parses results into SearchResult schema</step>
+        <step>Caches results for 24h in Redis</step>
+        <step>Returns results to agent</step>
+        <step>Agent synthesizes results into response with citations</step>
+        <step>Logs search operation to PostgreSQL</step>
+      </pattern>
+
+      <pattern name="API Fallback Strategy">
+        <step>If source="auto" (default): Try SerpAPI first</step>
+        <step>If SerpAPI fails or rate limited: Fall back to Exa</step>
+        <step>If both fail: Check cache for stale results (expired but available)</step>
+        <step>If no cache: Return error with retry suggestion</step>
+      </pattern>
+    </integration-patterns>
+
+    <naming-conventions>
+      <api-routes>REST conventions with POST, GET, PATCH, DELETE verbs</api-routes>
+      <database-tables>snake_case, plural (e.g., users, conversations, memories)</database-tables>
+      <python-classes>PascalCase, singular (e.g., SearchManager, SerpAPIClient, ExaClient)</python-classes>
+      <python-functions>snake_case (e.g., search_web, parse_results, generate_cache_key)</python-functions>
+      <env-vars>SCREAMING_SNAKE_CASE (e.g., SERPAPI_API_KEY, EXA_API_KEY, REDIS_URL)</env-vars>
+    </naming-conventions>
+
+    <error-handling-pattern>
+      <standard>Try-catch with structured error mapping</standard>
+      <response-format>
+        {
+          "success": false,
+          "error": {
+            "code": "SEARCH_API_FAILED",
+            "message": "Search failed",
+            "details": "SerpAPI connection timeout"
+          }
+        }
+      </response-format>
+      <error-codes>
+        <code name="SEARCH_API_FAILED" description="External API call failed" />
+        <code name="SEARCH_RATE_LIMITED" description="API rate limit exceeded" />
+        <code name="SEARCH_INVALID_QUERY" description="Query validation failed" />
+        <code name="SEARCH_CACHE_ERROR" description="Redis cache error" />
+        <code name="SEARCH_TIMEOUT" description="API request timeout" />
+      </error-codes>
+    </error-handling-pattern>
+
+    <logging-strategy>
+      <format>Structured JSON logs</format>
+      <fields>
+        <field name="timestamp" type="ISO8601" />
+        <field name="level" type="info|warn|error|debug" />
+        <field name="service" example="search-manager|serpapi-client|exa-client" />
+        <field name="userId" optional="true" />
+        <field name="action" example="web_search_completed|cache_hit|cache_miss|api_call" />
+        <field name="query" type="string" />
+        <field name="source" example="serpapi|exa|auto" />
+        <field name="results_count" type="int" />
+        <field name="cached" type="bool" />
+        <field name="latency_ms" type="int" />
+        <field name="error" optional="true" />
+      </fields>
+      <output>Docker container STDOUT (captured by Docker logs)</output>
+    </logging-strategy>
+  </architecture-context>
+
+  <existing-infrastructure>
+    <docker-environment>
+      <summary>
+        Docker Compose orchestration with 9 services: suna (Next.js), onyx-core (Python), postgres,
+        redis, qdrant, litellm-proxy, ollama, nginx, prometheus, grafana. All services connected
+        via manus-network bridge network (172.20.0.0/16). Redis is already running and available
+        for search result caching and rate limiting.
+      </summary>
+
+      <redis-infrastructure>
+        <service name="redis" port="6379" image="redis:7-alpine" status="running">
+          <purpose>Cache, session store, job queue, search result caching</purpose>
+          <connection-url>redis://redis:6379</connection-url>
+          <volumes>
+            <mount source="redis_data" target="/data" type="volume" />
+          </volumes>
+          <healthcheck>
+            <test>redis-cli ping</test>
+            <interval>10s</interval>
+            <timeout>5s</timeout>
+            <retries>5</retries>
+          </healthcheck>
+          <existing-use-cases>
+            <use-case>Session management for user authentication</use-case>
+            <use-case>Job queue for background tasks (BullMQ)</use-case>
+            <use-case>Rate limiting for API calls</use-case>
+          </existing-use-cases>
+          <new-use-cases-for-story-7-2>
+            <use-case>Cache search results (24h TTL)</use-case>
+            <use-case>Rate limiting for SerpAPI and Exa APIs (token bucket)</use-case>
+            <use-case>Track API usage metrics (daily/monthly counters)</use-case>
+          </new-use-cases-for-story-7-2>
+        </service>
+      </redis-infrastructure>
+
+      <onyx-core-structure>
+        <current-structure>
+          onyx-core/
+          ├── Dockerfile
+          ├── requirements.txt
+          ├── main.py (FastAPI server)
+          ├── config/
+          │   ├── qdrant_config.py
+          │   └── connectors.py
+          └── services/
+              ├── rag_service.py
+              ├── sync_service.py
+              └── browser_manager.py (Story 7.1 - COMPLETED)
+        </current-structure>
+
+        <planned-additions-for-story-7-2>
+          onyx-core/
+          └── services/
+              ├── search_manager.py (NEW - Unified search interface)
+              ├── serpapi_client.py (NEW - SerpAPI integration)
+              ├── exa_client.py (NEW - Exa AI integration)
+              ├── cache_manager.py (NEW - Redis caching layer)
+              └── rate_limiter.py (NEW - Token bucket rate limiting)
+        </planned-additions-for-story-7-2>
+
+        <existing-dependencies>
+          <dependency>fastapi==0.104.1</dependency>
+          <dependency>uvicorn[standard]==0.24.0</dependency>
+          <dependency>psycopg2-binary==2.9.9</dependency>
+          <dependency>qdrant-client==1.15.0</dependency>
+          <dependency>redis==5.0.1 (ALREADY INSTALLED - reuse for caching)</dependency>
+          <dependency>httpx==0.25.2</dependency>
+          <dependency>aiohttp==3.9.1 (ALREADY INSTALLED - reuse for API calls)</dependency>
+        </existing-dependencies>
+
+        <new-dependencies-for-story-7-2>
+          <dependency name="pydantic" version="2.5.0" purpose="Data validation (already in project)" />
+          <note>No new dependencies required! aiohttp and redis are already installed.</note>
+        </new-dependencies-for-story-7-2>
+      </onyx-core-structure>
+
+      <environment-management>
+        <env-file>.env.local (default), can override with ENV_FILE variable</env-file>
+        <redis-url>REDIS_URL=redis://redis:6379 (already configured)</redis-url>
+        <new-environment-variables>
+          <var name="SERPAPI_API_KEY" required="true" description="SerpAPI API key for Google/Bing search" />
+          <var name="EXA_API_KEY" required="true" description="Exa AI API key for semantic search" />
+        </new-environment-variables>
+        <encryption>
+          <key name="ENCRYPTION_KEY">32-byte hex string (64 chars) for AES-256 encryption</key>
+          <note>API keys should be encrypted at rest using existing encryption infrastructure</note>
+        </encryption>
+      </environment-management>
+    </docker-environment>
+
+    <existing-redis-patterns>
+      <pattern name="Cache Access Pattern">
+        <description>Standard Redis caching pattern already used in Onyx Core</description>
+        <example>
+          import redis.asyncio as redis
+          from typing import Optional
+
+          redis_client = redis.from_url("redis://redis:6379", decode_responses=True)
+
+          # Get cached value
+          cached = await redis_client.get(cache_key)
+
+          # Set with TTL
+          await redis_client.setex(cache_key, ttl_seconds, json_value)
+
+          # Delete
+          await redis_client.delete(cache_key)
+        </example>
+      </pattern>
+
+      <pattern name="Rate Limiting Pattern">
+        <description>Token bucket algorithm for API rate limiting</description>
+        <example>
+          # Initialize bucket with max tokens
+          bucket_key = f"ratelimit:{service}"
+          await redis_client.set(bucket_key, max_tokens)
+
+          # Consume token
+          tokens = await redis_client.get(bucket_key)
+          if tokens > 0:
+              await redis_client.decr(bucket_key)
+              # Proceed with API call
+          else:
+              # Rate limited
+        </example>
+      </pattern>
+    </existing-redis-patterns>
+
+    <api-integration-patterns>
+      <existing-api-integrations>
+        <integration name="Google Drive API">
+          <pattern>OAuth2 authentication, REST API calls with aiohttp</pattern>
+          <error-handling>Retry on transient errors, graceful degradation</error-handling>
+        </integration>
+
+        <integration name="Slack API">
+          <pattern>OAuth2 authentication, webhook-based real-time updates</pattern>
+          <error-handling>Exponential backoff on rate limits</error-handling>
+        </integration>
+      </existing-api-integrations>
+
+      <new-api-integrations-for-story-7-2>
+        <integration name="SerpAPI">
+          <endpoint>https://serpapi.com/search</endpoint>
+          <authentication>API key via query parameter</authentication>
+          <method>GET</method>
+          <rate-limit>100 searches/day</rate-limit>
+          <error-handling>Retry once on timeout, fall back to Exa on failure</error-handling>
+        </integration>
+
+        <integration name="Exa AI">
+          <endpoint>https://api.exa.ai/search</endpoint>
+          <authentication>Bearer token in Authorization header</authentication>
+          <method>POST</method>
+          <rate-limit>1000 searches/month (~33/day)</rate-limit>
+          <error-handling>Retry once on timeout, return cached results on failure</error-handling>
+        </integration>
+      </new-api-integrations-for-story-7-2>
+    </api-integration-patterns>
+  </existing-infrastructure>
+
+  <dependencies-and-integration>
+    <external-dependencies>
+      <dependency name="SerpAPI" type="External API" cost="$50/month">
+        <purpose>Google and Bing search results</purpose>
+        <endpoint>https://serpapi.com/search</endpoint>
+        <authentication>API key (query parameter)</authentication>
+        <rate-limit>100 searches/day</rate-limit>
+        <documentation>https://serpapi.com/search-api</documentation>
+      </dependency>
+
+      <dependency name="Exa AI" type="External API" cost="$20/month">
+        <purpose>Semantic/neural search</purpose>
+        <endpoint>https://api.exa.ai/search</endpoint>
+        <authentication>Bearer token (Authorization header)</authentication>
+        <rate-limit>1000 searches/month (~33/day)</rate-limit>
+        <documentation>https://docs.exa.ai/reference/search</documentation>
+      </dependency>
+
+      <dependency name="Redis" type="Internal Service" cost="self-hosted">
+        <purpose>Result caching and rate limiting</purpose>
+        <connection>redis://redis:6379</connection>
+        <status>running</status>
+        <note>Already deployed in Epic 1, reuse for Story 7.2</note>
+      </dependency>
+    </external-dependencies>
+
+    <internal-dependencies>
+      <dependency name="Epic 1: Foundation &amp; Infrastructure" status="completed">
+        <provides>Docker environment, Docker Compose orchestration, Redis cache</provides>
+        <required-for>Redis caching infrastructure for search results</required-for>
+      </dependency>
+
+      <dependency name="Onyx Core" status="running">
+        <provides>Python FastAPI service, tool orchestration</provides>
+        <integration>Search Manager will be added as new service module</integration>
+      </dependency>
+
+      <dependency name="Redis" status="running">
+        <provides>Caching layer, rate limiting infrastructure</provides>
+        <use-case>Cache search results (24h TTL), rate limiting for APIs</use-case>
+      </dependency>
+
+      <dependency name="PostgreSQL" status="running">
+        <provides>Task history storage</provides>
+        <use-case>Log search operations, store execution history, track API usage</use-case>
+      </dependency>
+    </internal-dependencies>
+
+    <integration-points>
+      <point name="Onyx Core → Search Manager">
+        <pattern>Python module import and async function calls</pattern>
+        <example>
+          from services.search_manager import SearchManager
+          manager = SearchManager()
+          result = await manager.search_web(query="Anthropic Claude pricing")
+        </example>
+      </point>
+
+      <point name="Agent Mode → Search Tools">
+        <pattern>Tool selection and execution via LLM agent</pattern>
+        <flow>
+          1. Agent receives task requiring external information
+          2. Selects search_web tool
+          3. Calls Search Manager methods
+          4. Returns results to agent
+          5. Agent synthesizes into response with citations
+        </flow>
+      </point>
+
+      <point name="Search Manager → Redis Cache">
+        <pattern>Cache search results with 24h TTL</pattern>
+        <cache-key>search:{source}:{normalized_query}:{time_range}:{engine}</cache-key>
+        <ttl>86400 seconds (24 hours)</ttl>
+        <eviction>LRU (Least Recently Used) when cache reaches 1GB</eviction>
+      </point>
+
+      <point name="Search Manager → PostgreSQL">
+        <pattern>Log all search operations</pattern>
+        <table>tasks</table>
+        <fields>user_id, action, query, source, status, execution_time, results_count, cached, error_message</fields>
+      </point>
+
+      <point name="Rate Limiter → Redis">
+        <pattern>Token bucket algorithm with Redis counters</pattern>
+        <key-format>ratelimit:{service} (e.g., ratelimit:serpapi, ratelimit:exa)</key-format>
+        <refill-strategy>Background job refills tokens every 24 hours</refill-strategy>
+      </point>
+    </integration-points>
+
+    <blocking-this-story>
+      <epic id="epic-1" name="Foundation &amp; Infrastructure" status="completed">
+        <required>Docker Compose environment must be operational</required>
+        <required>Redis cache must be running</required>
+        <required>PostgreSQL must be running</required>
+      </epic>
+    </blocking-this-story>
+
+    <blocked-by-this-story>
+      <story id="7-3" name="URL Scraping &amp; Content Extraction">
+        <reason>Search results provide URLs for content extraction</reason>
+        <note>Story 7-3 can use search results as input for URL scraping</note>
+      </story>
+    </blocked-by-this-story>
+  </dependencies-and-integration>
+
+  <implementation-guidance>
+    <step-by-step>
+      <phase number="1" name="Environment Configuration">
+        <task>Add SERPAPI_API_KEY to .env.example and .env.local</task>
+        <task>Add EXA_API_KEY to .env.example and .env.local</task>
+        <task>Verify REDIS_URL is already configured (redis://redis:6379)</task>
+        <task>Document API key acquisition process in README</task>
+      </phase>
+
+      <phase number="2" name="Cache Manager Service">
+        <task>Create onyx-core/services/cache_manager.py</task>
+        <task>Implement async Redis client connection (reuse redis.asyncio)</task>
+        <task>Implement get() method for cache lookups</task>
+        <task>Implement set() method with TTL support</task>
+        <task>Implement delete() method for cache invalidation</task>
+        <task>Add error handling for Redis connection failures</task>
+        <task>Add logging for cache hits/misses</task>
+      </phase>
+
+      <phase number="3" name="Rate Limiter Service">
+        <task>Create onyx-core/services/rate_limiter.py</task>
+        <task>Implement token bucket algorithm using Redis counters</task>
+        <task>Configure rate limits: SerpAPI (100/day), Exa (33/day)</task>
+        <task>Implement acquire_token() method</task>
+        <task>Implement refill_tokens() background job</task>
+        <task>Add logging for rate limit events</task>
+        <task>Add alerts for approaching quota limits</task>
+      </phase>
+
+      <phase number="4" name="SerpAPI Client">
+        <task>Create onyx-core/services/serpapi_client.py</task>
+        <task>Implement async aiohttp client for SerpAPI REST API</task>
+        <task>Implement search() method with query, engine, num, time_range parameters</task>
+        <task>Implement result parsing into SearchResultItem schema</task>
+        <task>Implement domain extraction from URLs</task>
+        <task>Add time range filter mapping (past_day → qdr:d, etc.)</task>
+        <task>Add error handling for API timeouts and rate limits</task>
+        <task>Add comprehensive logging for API calls</task>
+      </phase>
+
+      <phase number="5" name="Exa Client">
+        <task>Create onyx-core/services/exa_client.py</task>
+        <task>Implement async aiohttp client for Exa AI REST API</task>
+        <task>Implement search() method with query, num_results, time_range, use_autoprompt parameters</task>
+        <task>Implement result parsing into SearchResultItem schema</task>
+        <task>Implement domain extraction from URLs</task>
+        <task>Add time range filter calculation (start_published_date)</task>
+        <task>Add relevance score parsing (Exa provides this)</task>
+        <task>Add error handling for API timeouts and rate limits</task>
+        <task>Add comprehensive logging for API calls</task>
+      </phase>
+
+      <phase number="6" name="Search Manager">
+        <task>Create onyx-core/services/search_manager.py</task>
+        <task>Implement SearchManager class with unified interface</task>
+        <task>Implement search_web() method with source="auto" fallback logic</task>
+        <task>Implement cache key generation from query + parameters</task>
+        <task>Implement cache-first lookup pattern</task>
+        <task>Implement automatic fallback: SerpAPI → Exa → cached results</task>
+        <task>Implement result normalization into SearchResult schema</task>
+        <task>Add timing measurement (search_time_ms)</task>
+        <task>Add comprehensive error handling</task>
+        <task>Add logging for all search operations</task>
+      </phase>
+
+      <phase number="7" name="Unit Tests">
+        <task>Create onyx-core/tests/unit/test_search_manager.py</task>
+        <task>Implement test_search_web_invocation()</task>
+        <task>Implement test_search_result_schema()</task>
+        <task>Implement test_cache_hit()</task>
+        <task>Implement test_cache_miss()</task>
+        <task>Implement test_serpapi_source_selection()</task>
+        <task>Implement test_exa_source_selection()</task>
+        <task>Implement test_auto_fallback()</task>
+        <task>Create onyx-core/tests/unit/test_serpapi_client.py</task>
+        <task>Create onyx-core/tests/unit/test_exa_client.py</task>
+        <task>Create onyx-core/tests/unit/test_cache_manager.py</task>
+        <task>Create onyx-core/tests/unit/test_rate_limiter.py</task>
+      </phase>
+
+      <phase number="8" name="Integration Tests">
+        <task>Create onyx-core/tests/integration/test_search_integration.py</task>
+        <task>Implement test_serpapi_search() (requires API key)</task>
+        <task>Implement test_exa_search() (requires API key)</task>
+        <task>Implement test_time_range_filtering()</task>
+        <task>Implement test_performance_latency() (50 searches, measure p95)</task>
+        <task>Implement test_cache_integration() (verify cache hit/miss cycle)</task>
+        <task>Implement test_rate_limiting() (verify quota enforcement)</task>
+        <task>Configure pytest-asyncio for async test support</task>
+        <task>Add pytest marker for skipping tests without API keys</task>
+      </phase>
+
+      <phase number="9" name="Verification &amp; Documentation">
+        <task>Run all unit tests and verify passing</task>
+        <task>Run integration tests (with API keys) and verify passing</task>
+        <task>Verify search returns valid results from SerpAPI</task>
+        <task>Verify search returns valid results from Exa</task>
+        <task>Verify auto fallback works (SerpAPI → Exa)</task>
+        <task>Verify cache hit/miss behavior</task>
+        <task>Verify rate limiting prevents quota exhaustion</task>
+        <task>Verify latency &lt;3s for p95</task>
+        <task>Document Search Manager API in code docstrings</task>
+        <task>Update architecture documentation with search services</task>
+        <task>Add troubleshooting guide for API key issues</task>
+      </phase>
+    </step-by-step>
+
+    <key-design-decisions>
+      <decision name="Auto Fallback Strategy">
+        <rationale>Maximize reliability by trying SerpAPI first, falling back to Exa</rationale>
+        <implementation>source="auto" tries SerpAPI → Exa → cached results (stale)</implementation>
+      </decision>
+
+      <decision name="24h Cache TTL">
+        <rationale>Balance freshness with cost savings (target &gt;70% cache hit rate)</rationale>
+        <implementation>Redis SETEX with 86400 seconds TTL</implementation>
+      </decision>
+
+      <decision name="Normalized Cache Keys">
+        <rationale>Maximize cache hits by normalizing queries (lowercase, trim whitespace)</rationale>
+        <implementation>cache_key = "search:{source}:{normalized_query}:{time_range}:{engine}"</implementation>
+      </decision>
+
+      <decision name="Token Bucket Rate Limiting">
+        <rationale>Prevent quota exhaustion while allowing bursts</rationale>
+        <implementation>Redis counters with background refill job</implementation>
+      </decision>
+
+      <decision name="Result Snippet Truncation">
+        <rationale>Ensure consistent snippet length for UI rendering</rationale>
+        <implementation>Truncate to 200 characters, preserving word boundaries</implementation>
+      </decision>
+
+      <decision name="Domain Extraction">
+        <rationale>Help users identify authoritative sources</rationale>
+        <implementation>Extract domain from URL, remove www. prefix</implementation>
+      </decision>
+    </key-design-decisions>
+
+    <performance-optimization>
+      <strategy>Cache-first lookup pattern (check Redis before API call)</strategy>
+      <strategy>Normalize queries for maximum cache hit rate</strategy>
+      <strategy>Parallel API calls not needed (serial is fast enough &lt;3s)</strategy>
+      <strategy>Connection pooling for aiohttp (reuse TCP connections)</strategy>
+      <strategy>Set reasonable timeouts (10s) to prevent long waits</strategy>
+    </performance-optimization>
+
+    <error-handling>
+      <scenario name="SerpAPI API Failure">
+        <detection>HTTP error code or connection timeout</detection>
+        <handling>Log error, retry once, fall back to Exa if source="auto"</handling>
+        <user-message>SerpAPI failed, trying Exa instead...</user-message>
+      </scenario>
+
+      <scenario name="Exa API Failure">
+        <detection>HTTP error code or connection timeout</detection>
+        <handling>Log error, retry once, check for stale cached results</handling>
+        <user-message>Exa failed, checking for cached results...</user-message>
+      </scenario>
+
+      <scenario name="Rate Limit Exceeded">
+        <detection>Token bucket returns False (no tokens available)</detection>
+        <handling>Log warning, return error to user, suggest trying later</handling>
+        <user-message>Search quota exceeded. Try again later or use alternative source.</user-message>
+      </scenario>
+
+      <scenario name="Invalid Query">
+        <detection>Empty query or query validation fails</detection>
+        <handling>Return validation error immediately (no API call)</handling>
+        <user-message>Invalid search query. Please provide a valid search term.</user-message>
+      </scenario>
+
+      <scenario name="Redis Cache Error">
+        <detection>Redis connection failure or timeout</detection>
+        <handling>Log error, proceed with API call (cache miss), return results</handling>
+        <user-message>Cache unavailable, fetching fresh results...</user-message>
+      </scenario>
+
+      <scenario name="All Providers Failed">
+        <detection>SerpAPI and Exa both fail, no cached results</detection>
+        <handling>Log critical error, return error to user</handling>
+        <user-message>All search providers failed. Please try again later.</user-message>
+      </scenario>
+    </error-handling>
+
+    <security-considerations>
+      <api-keys>Store in encrypted environment variables (never log or expose)</api-keys>
+      <query-sanitization>Validate and sanitize user queries before sending to APIs</query-sanitization>
+      <url-validation>Verify URLs in results before returning to user</url-validation>
+      <rate-limiting>Prevent abuse and quota exhaustion</rate-limiting>
+      <cache-isolation>Future enhancement: per-user cache isolation</cache-isolation>
+      <audit-logging>Log all search operations for security audit trail</audit-logging>
+    </security-considerations>
+
+    <cost-management>
+      <strategy>Aggressive caching (24h TTL) to minimize API calls</strategy>
+      <strategy>Rate limiting to prevent quota exhaustion</strategy>
+      <strategy>Monitor daily/monthly usage and alert at 80% quota</strategy>
+      <strategy>Auto fallback reduces dependency on any single paid API</strategy>
+      <monitoring>
+        <metric>SerpAPI daily usage (max 100/day)</metric>
+        <metric>Exa monthly usage (max 1000/month)</metric>
+        <metric>Cache hit rate (target &gt;70%)</metric>
+        <metric>Cost per search (amortized with caching)</metric>
+      </monitoring>
+    </cost-management>
+  </implementation-guidance>
+
+  <testing-strategy>
+    <unit-tests>
+      <test>Search Manager: search_web invocation</test>
+      <test>Search Manager: result schema validation</test>
+      <test>Search Manager: cache key generation</test>
+      <test>Search Manager: source selection (serpapi, exa, auto)</test>
+      <test>Search Manager: auto fallback logic</test>
+      <test>SerpAPI Client: search method with various parameters</test>
+      <test>SerpAPI Client: result parsing and normalization</test>
+      <test>SerpAPI Client: time range filter mapping</test>
+      <test>Exa Client: search method with various parameters</test>
+      <test>Exa Client: result parsing and normalization</test>
+      <test>Exa Client: relevance score parsing</test>
+      <test>Cache Manager: get/set/delete operations</test>
+      <test>Cache Manager: TTL expiration</test>
+      <test>Rate Limiter: token acquisition</test>
+      <test>Rate Limiter: quota enforcement</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>End-to-end SerpAPI search (requires API key)</test>
+      <test>End-to-end Exa search (requires API key)</test>
+      <test>Time range filtering (past_week, past_month, past_year)</test>
+      <test>Cache hit/miss cycle verification</test>
+      <test>Rate limiting enforcement (simulate quota exhaustion)</test>
+      <test>Auto fallback (SerpAPI → Exa)</test>
+      <test>Performance: 50 searches, measure p95 latency</test>
+    </integration-tests>
+
+    <performance-tests>
+      <test>Latency test: 50 searches, verify p95 &lt;3s</test>
+      <test>Cache performance: verify cache hit &lt;50ms</test>
+      <test>API timeout: verify 10s timeout enforcement</test>
+      <test>Concurrent requests: verify serial execution (no race conditions)</test>
+    </performance-tests>
+
+    <manual-verification>
+      <test>Real-world search: "Anthropic Claude pricing"</test>
+      <test>Real-world search: "OpenAI GPT-4 capabilities"</test>
+      <test>Time-filtered search: tech news from past week</test>
+      <test>Semantic search: "AI agent frameworks comparison" via Exa</test>
+      <test>Cache verification: second identical search returns cached result</test>
+      <test>Rate limiting: exhaust quota and verify error message</test>
+    </manual-verification>
+
+    <coverage-targets>
+      <target component="search_manager.py" percentage="95%" />
+      <target component="serpapi_client.py" percentage="90%" />
+      <target component="exa_client.py" percentage="90%" />
+      <target component="cache_manager.py" percentage="95%" />
+      <target component="rate_limiter.py" percentage="95%" />
+      <target component="Integration tests" percentage="100%" />
+      <target component="Error handling" percentage="100%" />
+    </coverage-targets>
+  </testing-strategy>
+
+  <risks-and-mitigations>
+    <risk severity="high" name="API quota exhaustion">
+      <impact>Exceed daily/monthly limits, incur overage charges or service disruption</impact>
+      <mitigation>Aggressive 24h caching (target &gt;70% hit rate)</mitigation>
+      <mitigation>Token bucket rate limiting with conservative limits</mitigation>
+      <mitigation>Automatic fallback between SerpAPI and Exa</mitigation>
+      <mitigation>Alert at 80% quota consumption</mitigation>
+    </risk>
+
+    <risk severity="high" name="API key exposure">
+      <impact>Unauthorized usage, security breach, financial loss</impact>
+      <mitigation>Store API keys in encrypted environment variables</mitigation>
+      <mitigation>Never log API keys or include in error messages</mitigation>
+      <mitigation>Rotate keys regularly (quarterly)</mitigation>
+      <mitigation>IP whitelist for API access (if supported)</mitigation>
+    </risk>
+
+    <risk severity="medium" name="API downtime">
+      <impact>Search functionality unavailable, degraded user experience</impact>
+      <mitigation>Automatic fallback from SerpAPI to Exa</mitigation>
+      <mitigation>Return stale cached results if both APIs fail</mitigation>
+      <mitigation>Graceful error messages to user</mitigation>
+      <mitigation>Monitor API health with external status pages</mitigation>
+    </risk>
+
+    <risk severity="medium" name="Rate limit exceeded">
+      <impact>Search requests blocked, user cannot search</impact>
+      <mitigation>Token bucket algorithm with conservative limits</mitigation>
+      <mitigation>Queue excess requests for later (future enhancement)</mitigation>
+      <mitigation>Alert user when approaching limit</mitigation>
+      <mitigation>Track usage and adjust limits as needed</mitigation>
+    </risk>
+
+    <risk severity="low" name="Cache poisoning">
+      <impact>Incorrect or stale results returned to users</impact>
+      <mitigation>Validate cached data before returning</mitigation>
+      <mitigation>24h TTL limits staleness</mitigation>
+      <mitigation>Cache invalidation on demand (future enhancement)</mitigation>
+    </risk>
+
+    <risk severity="low" name="Slow API response">
+      <impact>User waits too long, timeout errors</impact>
+      <mitigation>10s timeout on API calls</mitigation>
+      <mitigation>Return partial results if available</mitigation>
+      <mitigation>Use cache aggressively to avoid slow API calls</mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <definition-of-done>
+    <checklist>
+      <item>Search Manager service implemented with unified interface</item>
+      <item>SerpAPI integration complete with Google/Bing support</item>
+      <item>Exa integration complete with semantic search</item>
+      <item>Cache layer integrated with 24h TTL</item>
+      <item>Rate limiter implemented with token bucket algorithm</item>
+      <item>All 6 acceptance criteria verified and passing</item>
+      <item>Unit tests: &gt;90% coverage of search logic</item>
+      <item>Integration tests: Real API calls (with API keys)</item>
+      <item>Performance tests: p95 latency &lt;3s verified</item>
+      <item>Documentation: API usage documented in code</item>
+      <item>Environment variables: API keys documented in .env.example</item>
+      <item>Error handling: All API failures handled gracefully</item>
+      <item>Code review: Approved by senior engineer</item>
+      <item>Merged to main branch and deployed to staging</item>
+    </checklist>
+  </definition-of-done>
+
+  <related-documentation>
+    <document path="/home/user/ONYX/docs/epics/epic-7-tech-spec.md" type="Epic Technical Specification" />
+    <document path="/home/user/ONYX/docs/PRD.md" section="F6: Web Automation &amp; Search" type="Product Requirements Document" />
+    <document path="/home/user/ONYX/docs/architecture.md" section="Epic 7: Web Automation" type="Architecture Document" />
+    <document path="/home/user/ONYX/docker-compose.yaml" type="Docker Compose Configuration" />
+    <document path="/home/user/ONYX/.env.example" type="Environment Variables Template" />
+    <document path="/home/user/ONYX/onyx-core/requirements.txt" type="Python Dependencies" />
+    <document path="/home/user/ONYX/onyx-core/services/browser_manager.py" type="Browser Manager Service (Story 7.1)" />
+    <document path="https://serpapi.com/search-api" type="SerpAPI Documentation (External)" />
+    <document path="https://docs.exa.ai/reference/search" type="Exa AI Documentation (External)" />
+    <document path="https://redis.io/docs/manual/client-side-caching/" type="Redis Caching Documentation (External)" />
+  </related-documentation>
+</story-context>
