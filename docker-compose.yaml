@@ -25,7 +25,7 @@ services:
     volumes:
       - ./suna:/app
       - /app/node_modules
-      - ./logs:/var/log/onyx
+      - ./logs/suna:/var/log/onyx
     depends_on:
       - postgres
       - redis
@@ -33,6 +33,12 @@ services:
       - litellm-proxy
     networks:
       - manus-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=suna,environment=development"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
@@ -58,13 +64,19 @@ services:
       PYTHON_ENV: development
     volumes:
       - ./onyx-core:/app
-      - ./logs:/var/log/onyx
+      - ./logs/onyx-core:/var/log/onyx
     depends_on:
       - qdrant
       - postgres
       - redis
     networks:
       - manus-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=onyx-core,environment=development"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -194,6 +206,12 @@ services:
       - onyx-core
     networks:
       - manus-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=nginx,environment=development"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s
