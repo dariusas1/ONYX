@@ -18,7 +18,7 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
       maxWidth: {
         'chat': '900px',  // Maximum content width for chat interface
