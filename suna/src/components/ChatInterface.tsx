@@ -10,12 +10,14 @@ export interface ChatInterfaceProps {
 }
 
 export function ChatInterface({
-  conversationId,
+  conversationId: _conversationId,
   className = '',
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+
+  // Note: conversationId will be used in Story 2.3 for message persistence
 
   // Handle message submission
   // Note: Full streaming implementation will be added in Story 2.4

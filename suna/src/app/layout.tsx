@@ -1,8 +1,27 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
 
-// Note: Inter font will be loaded via CSS from CDN in production
-// For build environments without network access, we use system fonts as fallback
+// Configure Inter font with Next.js Font Optimization
+// For environments without network access, set NEXT_PUBLIC_SKIP_FONTS=true
+// and the build will use system fonts as fallback
+const useGoogleFonts = process.env.NEXT_PUBLIC_SKIP_FONTS !== 'true';
+
+let inter: { className: string };
+
+if (useGoogleFonts) {
+  const { Inter } = require('next/font/google');
+  inter = Inter({
+    subsets: ['latin'],
+    weight: ['400', '500', '600', '700'],
+    display: 'swap',
+    variable: '--font-inter',
+    fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+    adjustFontFallback: true,
+  });
+} else {
+  // Use system fonts for offline builds
+  inter = { className: 'font-sans' };
+}
 
 export const metadata: Metadata = {
   title: 'ONYX - Strategic AI Advisor',
@@ -27,12 +46,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-sans">
+      <body className={`${inter.className} font-sans`}>
         {children}
       </body>
     </html>
