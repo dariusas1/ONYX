@@ -982,5 +982,77 @@
     "cpuLoad": 1.73077392578125,
     "platform": "darwin",
     "uptime": 569711
+  },
+  {
+    "timestamp": 1763103437892,
+    "memoryTotal": 17179869184,
+    "memoryUsed": 17028251648,
+    "memoryFree": 151617536,
+    "memoryUsagePercent": 99.11746978759766,
+    "memoryEfficiency": 0.8825302124023438,
+    "cpuCount": 8,
+    "cpuLoad": 1.446533203125,
+    "platform": "darwin",
+    "uptime": 569741
+  },
+  {
+    "timestamp": 1763103467894,
+    "memoryTotal": 17179869184,
+    "memoryUsed": 16967254016,
+    "memoryFree": 212615168,
+    "memoryUsagePercent": 98.76241683959961,
+    "memoryEfficiency": 1.2375831604003906,
+    "cpuCount": 8,
+    "cpuLoad": 2.13006591796875,
+    "platform": "darwin",
+    "uptime": 569771
+  },
+  {
+    "timestamp": 1763103497898,
+    "memoryTotal": 17179869184,
+    "memoryUsed": 17065279488,
+    "memoryFree": 114589696,
+    "memoryUsagePercent": 99.33300018310547,
+    "memoryEfficiency": 0.6669998168945312,
+    "cpuCount": 8,
+    "cpuLoad": 1.92462158203125,
+    "platform": "darwin",
+    "uptime": 569801
+  },
+  {
+    "timestamp": 1763103527897,
+    "memoryTotal": 17179869184,
+    "memoryUsed": 17025990656,
+    "memoryFree": 153878528,
+    "memoryUsagePercent": 99.10430908203125,
+    "memoryEfficiency": 0.89569091796875,
+    "cpuCount": 8,
+    "cpuLoad": 2.47216796875,
+    "platform": "darwin",
+    "uptime": 569831
+  },
+  {
+    "timestamp": 1763103557898,
+    "memoryTotal": 17179869184,
+    "memoryUsed": 16940220416,
+    "memoryFree": 239648768,
+    "memoryUsagePercent": 98.60506057739258,
+    "memoryEfficiency": 1.3949394226074219,
+    "cpuCount": 8,
+    "cpuLoad": 2.03057861328125,
+    "platform": "darwin",
+    "uptime": 569861
+  },
+  {
+    "timestamp": 1763103587900,
+    "memoryTotal": 17179869184,
+    "memoryUsed": 16989372416,
+    "memoryFree": 190496768,
+    "memoryUsagePercent": 98.89116287231445,
+    "memoryEfficiency": 1.1088371276855469,
+    "cpuCount": 8,
+    "cpuLoad": 2.31048583984375,
+    "platform": "darwin",
+    "uptime": 569891
   }
 ]
