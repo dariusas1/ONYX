@@ -1,13 +1,7 @@
 {
-<<<<<<< HEAD
-  "startTime": 1763083009970,
-  "sessionId": "session-1763083009970",
-  "lastActivity": 1763083009970,
-=======
-  "startTime": 1763079013239,
-  "sessionId": "session-1763079013239",
-  "lastActivity": 1763079013239,
->>>>>>> story/1-6-monitoring-logging-foundation
+  "startTime": 1763103426700,
+  "sessionId": "session-1763103426700",
+  "lastActivity": 1763103426700,
   "sessionDuration": 0,
   "totalTasks": 1,
   "successfulTasks": 1,

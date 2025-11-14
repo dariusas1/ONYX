@@ -1,0 +1,180 @@
+<story-context id="7-3-url-scraping-content-extraction" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>3</storyId>
+    <title>URL Scraping & Content Extraction</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-13</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>.bmad-ephemeral/stories/7-3-url-scraping-content-extraction.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a user</asA>
+    <iWant>agent to scrape web pages and extract clean text</iWant>
+    <soThat>agent can read and analyze web content</soThat>
+    <tasks>
+- [ ] Task 1: Implement scrape_url tool endpoint (AC: 7.3.1, 7.3.2, 7.3.5, 7.3.7)
+  - [ ] Subtask 1.1: Create Express API endpoint POST /api/tools/scrape_url
+  - [ ] Subtask 1.2: Integrate with Playwright browser service for page loading
+  - [ ] Subtask 1.3: Implement JavaScript rendering and wait strategies
+  - [ ] Subtask 1.4: Add error handling for 404, timeouts, blocked sites
+  - [ ] Subtask 1.5: Add performance monitoring for &lt;5s execution time
+- [ ] Task 2: Implement content cleaning and extraction (AC: 7.3.3, 7.3.4, 7.3.6)
+  - [ ] Subtask 2.1: Integrate readability library for content extraction
+  - [ ] Subtask 2.2: Implement HTML cleaning (remove ads, scripts, navigation)
+  - [ ] Subtask 2.3: Convert extracted content to Markdown format
+  - [ ] Subtask 2.4: Extract metadata (title, author, publish_date)
+  - [ ] Subtask 2.5: Implement response formatting with text_content and metadata
+- [ ] Task 3: Browser resource management (AC: 7.3.2, 7.3.5)
+  - [ ] Subtask 3.1: Implement browser instance pooling for efficiency
+  - [ ] Subtask 3.2: Add browser cleanup and memory management
+  - [ ] Subtask 3.3: Implement timeout handling and browser recovery
+- [ ] Task 4: Testing and validation (All ACs)
+  - [ ] Subtask 4.1: Write unit tests for scrape_url endpoint
+  - [ ] Subtask 4.2: Write integration tests with Playwright
+  - [ ] Subtask 4.3: Write performance tests for &lt;5s execution requirement
+  - [ ] Subtask 4.4: Test error scenarios (404, timeouts, blocked sites)
+  - [ ] Subtask 4.5: Test JavaScript-heavy sites for proper rendering
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. AC7.3.1: Agent can invoke scrape_url tool with URL parameter
+2. AC7.3.2: Page loaded and rendered (handles JavaScript)
+3. AC7.3.3: HTML cleaned (remove ads, scripts, navigation) using Readability
+4. AC7.3.4: Main content extracted and converted to Markdown
+5. AC7.3.5: Execution time &lt;5s from navigation to clean content
+6. AC7.3.6: Returns text_content, metadata (title, author, publish_date)
+7. AC7.3.7: Error handling: 404s, timeouts, blocked sites return structured errors
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="/docs/epics/epic-7-tech-spec.md">Epic 7 Technical Specification - Web automation, search, and scraping capabilities</doc>
+      <doc path="/docs/architecture.md">Complete ONYX architecture document with implementation patterns</doc>
+      <doc path="/docs/stories/7-1-playwright-browser-setup-headless-automation.context.xml">Story 7-1 context for browser manager setup</doc>
+      <doc path="/docs/stories/7-2-web-search-tool-serpapi-exa.context.xml">Story 7-2 context for web search integration</doc>
+      <doc path="/onyx-core/services/browser_manager.py">Browser manager service (Playwright automation)</doc>
+      <doc path="/onyx-core/services/content_extractor.py">Content extraction service (Google Workspace)</doc>
+      <doc path="/onyx-core/tests/integration/test_browser_manager.py">Browser manager integration tests</doc>
+    </docs>
+    <code>
+      <codeFile path="/onyx-core/services/browser_manager.py" epic="7" story="7-1">
+        Singleton browser manager for headless Playwright automation.
+        Features: serial execution, memory monitoring, URL validation, screenshot capture,
+        text extraction, resource cleanup, zombie process detection.
+        Performance: page navigation &lt;3s, interaction &lt;1s, memory limit 800MB.
+      </codeFile>
+      <codeFile path="/onyx-core/services/content_extractor.py" epic="6" story="6-4">
+        Content extraction from Google Workspace files (Docs, Sheets, PDFs).
+        Supports multiple export formats, text cleanup, and structured data extraction.
+        Integrates with Google Drive API for secure file access.
+      </codeFile>
+      <codeFile path="/onyx-core/requirements.txt" epic="7">
+        Python dependencies including playwright==1.40.0, psutil==5.9.0,
+        beautifulsoup4==4.12.2, lxml==4.9.3 for web scraping and content processing.
+      </codeFile>
+      <codeFile path="/suna/package.json" epic="2">
+        Next.js 14 frontend with TypeScript, React 18, and Tailwind CSS.
+        Includes testing framework (Jest) and development tooling.
+      </codeFile>
+    </code>
+    <dependencies>
+      <dependency epic="7" story="7-1">
+        BrowserManager singleton service - must be imported and used for all browser operations.
+        Provides serial execution, memory monitoring, and resource cleanup.
+      </dependency>
+      <dependency epic="7" story="7-2">
+        SearchManager - integrates web search providers (SerpAPI, Exa) with browser automation.
+      </dependency>
+      <dependency epic="3" story="3-3">
+        Rate limiting service - ensures web scraping respects rate limits and polite crawling.
+      </dependency>
+      <dependency epic="9" story="9-1">
+        Monitoring integration - browser performance metrics, execution time tracking.
+      </dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint id="C7-1">Single browser instance constraint - enforce serial execution via BrowserManager singleton</constraint>
+    <constraint id="C7-2">Memory limit 800MB per browser instance with auto-restart threshold</constraint>
+    <constraint id="C7-3">Execution time &lt;5s for page navigation to clean content (AC7.3.5)</constraint>
+    <constraint id="C7-4">URL security validation - block localhost, internal IPs, file schemes</constraint>
+    <constraint id="C7-5">JavaScript rendering support for dynamic content (AC7.3.2)</constraint>
+    <constraint id="C7-6">Browser resource cleanup after each operation (AC7.3.7)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="scrape_url" type="REST API" epic="7" story="7-3">
+      <endpoint>POST /api/tools/scrape_url</endpoint>
+      <purpose>Web page scraping with content cleaning and metadata extraction</purpose>
+      <implementation>
+        <step>1. Validate URL parameter (enforce security constraints)</step>
+        <step>2. Launch browser via BrowserManager.get_instance()</step>
+        <step>3. Navigate with wait_until='load' and timeout handling</step>
+        <step>4. Extract content using readability library for cleaning</step>
+        <step>5. Convert HTML to Markdown format</step>
+        <step>6. Extract metadata (title, author, publish_date)</step>
+        <step>7. Format response with text_content and metadata</step>
+        <step>8. Cleanup browser resources</step>
+      </implementation>
+      <request>
+        <field name="url" type="string" required="true">URL to scrape</field>
+      </request>
+      <response>
+        <field name="text_content" type="string">Cleaned markdown content</field>
+        <field name="metadata" type="object">
+          <field name="title" type="string">Page title</field>
+          <field name="author" type="string">Content author if available</field>
+          <field name="publish_date" type="string">Publication date if available</field>
+        </field>
+        <field name="performance" type="object">
+          <field name="execution_time_ms" type="integer">Total execution time</field>
+          <field name="content_length" type="integer">Length of extracted content</field>
+        </field>
+      </response>
+      <errors>
+        <error code="INVALID_URL">Invalid or blocked URL format</error>
+        <error code="NAVIGATION_FAILED">Page navigation failed or timed out</error>
+        <error code="CONTENT_EXTRACTION_FAILED">Failed to extract clean content</error>
+        <error code="BROWSER_ERROR">Browser initialization or execution error</error>
+      </errors>
+    </interface>
+    <interface name="browser_pool" type="Internal" epic="7" story="7-1">
+      <purpose>Browser resource management and execution control</purpose>
+      <methods>
+        <method name="get_instance" type="class">Get singleton BrowserManager</method>
+        <method name="launch" type="async">Launch browser if not running</method>
+        <method name="navigate" type="async">Navigate to URL with validation</method>
+        <method name="extract_text" type="async">Extract visible text content</method>
+        <method name="cleanup" type="async">Release browser resources</method>
+        <method name="check_memory" type="async">Monitor browser memory usage</method>
+      </methods>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard epic="7" story="7-3">Unit tests for scrape_url endpoint with mock browser</standard>
+      <standard epic="7" story="7-3">Integration tests with real Playwright browser</standard>
+      <standard epic="7" story="7-3">Performance tests for &lt;5s execution requirement</standard>
+      <standard epic="7" story="7-3">Error handling tests for blocked URLs and timeouts</standard>
+      <standard epic="7" story="7-3">JavaScript rendering tests with dynamic sites</standard>
+    </standards>
+    <locations>
+      <location path="/onyx-core/tests/unit/test_scrape_url.py" type="unit">Unit tests with mocked BrowserManager</location>
+      <location path="/onyx-core/tests/integration/test_scrape_url.py" type="integration">Integration tests with real browser</location>
+      <location path="/onyx-core/tests/performance/test_scrape_url_performance.py" type="performance">&lt;5s execution time validation</location>
+      <location path="/onyx-core/tests/e2e/test_browser_scraping.py" type="e2e">End-to-end scraping workflow tests</location>
+    </locations>
+    <ideas>
+      <idea epic="7" story="7-3">Cache scraping results for frequently accessed URLs</idea>
+      <idea epic="7" story="7-3">Implement content summarization for long articles</idea>
+      <idea epic="7" story="7-3">Add support for authentication-protected pages</idea>
+      <idea epic="7" story="7-3">Implement rate limiting and politeness policies</idea>
+      <idea epic="7" story="7-3">Add support for multi-page article extraction</idea>
+    </ideas>
+  </tests>
+</story-context>

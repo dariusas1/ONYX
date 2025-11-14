@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from health import router as health_router
 from api.google_drive import router as google_drive_router
+from api.web_scraping import router as web_scraping_router
 from contextlib import asynccontextmanager
 from rag_service import get_rag_service
 from services.sync_scheduler import start_scheduler, stop_scheduler
@@ -81,6 +82,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health_router, tags=["Health"])
 app.include_router(google_drive_router, tags=["Google Drive"])
+app.include_router(web_scraping_router, tags=["Web Scraping"])
 
 
 # Root endpoint
@@ -93,7 +95,12 @@ async def root():
         "version": "1.0.0",
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "startup_time": app_state.get("startup_time"),
-        "endpoints": {"health": "/health", "docs": "/docs", "redoc": "/redoc"},
+        "endpoints": {
+        "health": "/health",
+        "docs": "/docs",
+        "redoc": "/redoc",
+        "scrape_url": "/tools/scrape_url"
+    },
     }
 
 

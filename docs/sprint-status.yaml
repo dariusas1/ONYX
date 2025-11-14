@@ -88,7 +88,7 @@ epics:
 
       - story_id: "7-3-url-scraping-content-extraction"
         title: "URL Scraping & Content Extraction"
-        status: "todo"
+        status: "drafted"
         priority: "P1"
         estimated_points: 8
         assigned_to: "TBD"
@@ -174,8 +174,8 @@ sprint_summary:
 
   story_count:
     total: 5
-    todo: 3
-    drafted: 0
+    todo: 2
+    drafted: 1
     ready: 0
     in_progress: 0
     in_review: 0
