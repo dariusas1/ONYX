@@ -1,0 +1,604 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>3-1-qdrant-vector-database-setup</story-id>
+    <story-title>Qdrant Vector Database Setup</story-title>
+    <epic-id>epic-3</epic-id>
+    <epic-title>Knowledge Retrieval (RAG)</epic-title>
+    <status>ready-for-dev</status>
+    <created>2025-11-13</created>
+    <priority>High</priority>
+    <story-points>5</story-points>
+    <context-generated>2025-11-13</context-generated>
+  </metadata>
+
+  <story-details>
+    <user-story>
+      <as>backend engineer</as>
+      <i-want>Qdrant vector database running and configured</i-want>
+      <so-that>we have fast semantic search for RAG to power strategic decision-making with company knowledge</so-that>
+    </user-story>
+
+    <business-context>
+      The Qdrant vector database is the foundation of Manus Internal's RAG (Retrieval-Augmented Generation) system.
+      It enables semantic search over company documents (Google Drive, Slack, uploads) by storing and querying
+      1536-dimensional embeddings generated from text content.
+
+      This story establishes the vector search infrastructure that will:
+      - Power >95% relevance RAG queries across all company knowledge
+      - Support 10TB+ document corpus with &lt;200ms retrieval latency
+      - Enable hybrid search (semantic + keyword) for grounded strategic advice
+      - Provide the knowledge foundation for all LLM responses in Manus
+    </business-context>
+
+    <acceptance-criteria>
+      <criterion id="AC3.1.1">
+        <title>Qdrant Service Running with Health Check</title>
+        <given>Qdrant container deployed via Docker Compose</given>
+        <when>Health check endpoint called</when>
+        <then>Returns HTTP 200 status</then>
+        <and>Service is accessible on port 6333</and>
+        <and>Container auto-restarts on failure (Docker healthcheck configured)</and>
+      </criterion>
+
+      <criterion id="AC3.1.2">
+        <title>Document Collection Created with Correct Configuration</title>
+        <given>Qdrant service is running</given>
+        <when>Collection "documents" is created via API</when>
+        <then>Collection exists with the following configuration:
+  - Vector size: 1536 dimensions (text-embedding-3-small)
+  - Distance metric: Cosine similarity
+  - On-disk storage: enabled (for large corpus support)
+  - Payload indexing: enabled</then>
+        <and>Collection creation is idempotent (safe to run multiple times)</and>
+      </criterion>
+
+      <criterion id="AC3.1.3">
+        <title>Vector Operations Perform Within Latency Budget</title>
+        <given>Collection "documents" exists</given>
+        <when>Upsert 1000 test vectors with payloads</when>
+        <then>All upserts complete successfully</then>
+        <and>Search query (top-10 results) completes in &lt;100ms (95th percentile)</and>
+        <and>API responds correctly for all CRUD operations</and>
+      </criterion>
+
+      <criterion id="AC3.1.4">
+        <title>Data Persistence Across Container Restarts</title>
+        <given>Qdrant container running with data stored</given>
+        <when>Container is stopped and restarted</when>
+        <then>All previously stored vectors remain accessible</then>
+        <and>Collection configuration persists</and>
+        <and>Docker volume `/qdrant/storage` correctly mounted</and>
+        <and>No data loss or corruption detected</and>
+      </criterion>
+
+      <criterion id="AC3.1.5">
+        <title>API Endpoints Function Correctly</title>
+        <given>Qdrant service operational</given>
+        <when>API operations executed</when>
+        <then>The following endpoints work correctly:
+  - GET /collections - List all collections
+  - PUT /collections/{name} - Create collection
+  - GET /collections/{name} - Get collection info
+  - PUT /collections/{name}/points - Upsert vectors
+  - POST /collections/{name}/points/search - Search vectors
+  - DELETE /collections/{name}/points - Delete vectors</then>
+        <and>All responses return valid JSON with correct status codes</and>
+        <and>Error responses include meaningful error messages</and>
+      </criterion>
+    </acceptance-criteria>
+
+    <dependencies>
+      <prerequisite>
+        <story-id>1-1-project-setup-repository-initialization</story-id>
+        <status>COMPLETED</status>
+        <reason>Docker Compose infrastructure must be in place, Docker network `manus-network` must exist</reason>
+      </prerequisite>
+      <external-dependency>
+        <name>Qdrant Docker Image</name>
+        <version>qdrant/qdrant:v1.7.4 or latest</version>
+        <verification>docker pull qdrant/qdrant:latest</verification>
+      </external-dependency>
+      <blocks>
+        <story-id>3-2-google-drive-connector-auto-sync</story-id>
+        <story-id>3-3-slack-connector-message-indexing</story-id>
+        <story-id>3-4-local-file-upload-parsing</story-id>
+        <story-id>3-5-hybrid-search-semantic-keyword</story-id>
+      </blocks>
+    </dependencies>
+  </story-details>
+
+  <technical-context>
+    <architecture-integration>
+      <description>
+        Qdrant sits in the RAG layer between the Suna frontend and knowledge sources:
+
+        User Query → Suna Frontend → Onyx Core RAG Service
+                                          ↓
+                               Embedding Generation (OpenAI API)
+                                          ↓
+                               Qdrant Vector Search (semantic)
+                                          ↓
+                               Top-K Results → LLM Context
+      </description>
+
+      <service-configuration>
+        <docker-compose-service>
+          <image>qdrant/qdrant:v1.7.4</image>
+          <container-name>manus-qdrant</container-name>
+          <ports>
+            <port>6333:6333</port> <!-- REST API -->
+            <port>6334:6334</port> <!-- gRPC (optional, for performance) -->
+          </ports>
+          <volumes>
+            <volume>qdrant_data:/qdrant/storage</volume>
+          </volumes>
+          <environment>
+            <var name="QDRANT__SERVICE__GRPC_PORT">6334</var>
+            <var name="QDRANT__LOG_LEVEL">INFO</var>
+          </environment>
+          <healthcheck>
+            <test>["CMD", "curl", "-f", "http://localhost:6333/health"]</test>
+            <interval>30s</interval>
+            <timeout>10s</timeout>
+            <retries>3</retries>
+            <start-period>40s</start-period>
+          </healthcheck>
+          <restart>unless-stopped</restart>
+          <network>manus-network</network>
+        </docker-compose-service>
+
+        <volumes>
+          <volume name="qdrant_data">
+            <driver>local</driver>
+          </volume>
+        </volumes>
+      </service-configuration>
+
+      <collection-schema>
+        <collection-name>documents</collection-name>
+        <vectors>
+          <size>1536</size>
+          <distance>Cosine</distance>
+          <on-disk>true</on-disk>
+        </vectors>
+        <optimizers-config>
+          <default-segment-number>2</default-segment-number>
+          <indexing-threshold>20000</indexing-threshold>
+        </optimizers-config>
+        <payload-schema>
+          <field name="doc_id" type="keyword" indexed="true" />
+          <field name="title" type="text" />
+          <field name="source_type" type="keyword" indexed="true" />
+          <field name="source_id" type="keyword" indexed="true" />
+          <field name="chunk_index" type="integer" />
+          <field name="created_at" type="datetime" />
+          <field name="permissions" type="keyword[]" indexed="true" />
+        </payload-schema>
+      </collection-schema>
+
+      <api-integration>
+        <client>Onyx Core RAG Service</client>
+        <library>qdrant-client (Python SDK)</library>
+        <connection>http://qdrant:6333 (internal Docker network)</connection>
+        <key-operations>
+          <operation name="upsert">Insert document embeddings with metadata</operation>
+          <operation name="search">Query similar vectors by embedding</operation>
+          <operation name="filter">Apply payload filters (permissions, source_type, date_range)</operation>
+          <operation name="delete">Remove documents from index</operation>
+        </key-operations>
+      </api-integration>
+    </architecture-integration>
+
+    <performance-requirements>
+      <embedding-generation>
+        <latency>&lt;100ms</latency>
+        <method>OpenAI API call</method>
+      </embedding-generation>
+      <vector-search>
+        <latency>&lt;50ms</latency>
+        <method>Qdrant semantic search</method>
+      </vector-search>
+      <total-search-latency>
+        <target>&lt;200ms</target>
+        <percentile>95th</percentile>
+      </total-search-latency>
+      <indexing-strategy>
+        <on-disk>true</on-disk>
+        <rationale>Support large corpus (10TB+) without excessive RAM</rationale>
+        <trade-off>Slightly higher latency (~20ms) vs in-memory, acceptable for MVP</trade-off>
+      </indexing-strategy>
+      <segment-configuration>
+        <default-segment-number>2</default-segment-number>
+        <indexing-threshold>20000</indexing-threshold>
+        <rationale>Balance between indexing speed and search performance</rationale>
+      </segment-configuration>
+    </performance-requirements>
+
+    <environment-variables>
+      <var name="QDRANT_URL" default="http://qdrant:6333" description="Qdrant service URL (internal Docker network)" />
+      <var name="QDRANT_API_KEY" optional="true" description="Optional API key for production security" />
+    </environment-variables>
+  </technical-context>
+
+  <existing-code>
+    <file path="/home/user/ONYX/docker-compose.yaml">
+      <description>Main Docker Compose configuration - includes existing Qdrant service definition</description>
+      <relevant-section>
+        <![CDATA[
+  # Qdrant vector database
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    env_file:
+      - ${ENV_FILE:-.env.local}
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - manus-network
+    healthcheck:
+      disable: true
+
+volumes:
+  qdrant_data:
+    driver: local
+        ]]>
+      </relevant-section>
+      <modifications-needed>
+        <change>Enable healthcheck with proper curl command to /health endpoint</change>
+        <change>Pin version to v1.7.4 for stability</change>
+        <change>Add restart policy: unless-stopped</change>
+        <change>Configure QDRANT__LOG_LEVEL environment variable</change>
+      </modifications-needed>
+    </file>
+
+    <file path="/home/user/ONYX/onyx-core/requirements.txt">
+      <description>Python dependencies for Onyx Core - includes qdrant-client</description>
+      <relevant-section>
+        <![CDATA[
+# Vector Database
+qdrant-client==1.15.0
+
+# Text Processing & NLP
+sentence-transformers==2.2.2
+        ]]>
+      </relevant-section>
+      <status>Already includes qdrant-client dependency</status>
+    </file>
+
+    <file path="/home/user/ONYX/onyx-core/rag_service.py">
+      <description>Existing RAG service implementation with Qdrant integration</description>
+      <key-components>
+        <class name="RAGService">
+          <method name="_init_clients">Initializes Qdrant client with URL and API key</method>
+          <method name="ensure_collection_exists">Creates collection if it doesn't exist (idempotent)</method>
+          <method name="embed_query">Generates embeddings using sentence-transformers</method>
+          <method name="search">Performs semantic search with filters</method>
+          <method name="add_document">Upserts documents to Qdrant</method>
+          <method name="get_document_count">Returns total documents in collection</method>
+          <method name="health_check">Checks Qdrant connection and collection status</method>
+        </class>
+        <current-config>
+          <collection-name>documents</collection-name>
+          <embedding-model>all-MiniLM-L6-v2</embedding-model>
+          <vector-size>384 dimensions</vector-size>
+          <distance-metric>Cosine</distance-metric>
+        </current-config>
+      </key-components>
+      <modifications-needed>
+        <change priority="high">Update embedding model to OpenAI text-embedding-3-small or maintain sentence-transformers</change>
+        <change priority="high">Update vector size from 384 to 1536 dimensions (for text-embedding-3-small)</change>
+        <change priority="medium">Add on-disk storage configuration to VectorParams</change>
+        <change priority="medium">Add payload schema with indexed fields (doc_id, source_type, permissions)</change>
+        <change priority="low">Add optimizer config (segment_number, indexing_threshold)</change>
+      </modifications-needed>
+    </file>
+
+    <file path="/home/user/ONYX/onyx-core/main.py">
+      <description>FastAPI application with RAG endpoints</description>
+      <relevant-endpoints>
+        <endpoint method="GET" path="/search">Search documents using RAG</endpoint>
+        <endpoint method="POST" path="/documents">Add document to RAG system</endpoint>
+        <endpoint method="GET" path="/documents/count">Get total document count</endpoint>
+        <endpoint method="POST" path="/sync/google-drive">Trigger Google Drive sync (placeholder)</endpoint>
+      </relevant-endpoints>
+      <modifications-needed>
+        <change>Ensure health endpoint integrates with Qdrant health check</change>
+        <change>Add collection info endpoint to verify configuration</change>
+      </modifications-needed>
+    </file>
+  </existing-code>
+
+  <implementation-plan>
+    <step number="1" title="Update Docker Compose Configuration">
+      <action>Edit docker-compose.yaml to update Qdrant service definition</action>
+      <tasks>
+        <task>Pin Qdrant version to v1.7.4</task>
+        <task>Enable healthcheck with curl command: curl -f http://localhost:6333/health</task>
+        <task>Set restart policy to unless-stopped</task>
+        <task>Add QDRANT__LOG_LEVEL=INFO environment variable</task>
+        <task>Verify volume mount for persistence: qdrant_data:/qdrant/storage</task>
+      </tasks>
+      <verification>docker compose up -d qdrant &amp;&amp; docker compose ps qdrant</verification>
+    </step>
+
+    <step number="2" title="Create Qdrant Initialization Script">
+      <action>Create scripts/init-qdrant.py to initialize the documents collection</action>
+      <tasks>
+        <task>Import qdrant-client and create QdrantClient instance</task>
+        <task>Check if "documents" collection exists</task>
+        <task>If not exists, create collection with proper configuration:
+  - Vector size: 1536 dimensions
+  - Distance: Cosine
+  - On-disk: true
+  - Payload schema with indexed fields</task>
+        <task>Make script idempotent (safe to run multiple times)</task>
+        <task>Add logging for success/failure</task>
+      </tasks>
+      <verification>python scripts/init-qdrant.py</verification>
+    </step>
+
+    <step number="3" title="Update RAG Service Configuration">
+      <action>Modify onyx-core/rag_service.py to match collection schema</action>
+      <tasks>
+        <task>Update collection configuration in ensure_collection_exists():
+  - Vector size from 384 to 1536 (or keep sentence-transformers at 384)
+  - Add on_disk=True to VectorParams
+  - Configure optimizers_config (segment_number=2, indexing_threshold=20000)</task>
+        <task>Decision: Keep sentence-transformers (all-MiniLM-L6-v2) OR switch to OpenAI embeddings
+  - If keeping: Verify 384-dimensional vectors work for MVP
+  - If switching: Add OpenAI API integration for embedding generation</task>
+        <task>Add payload schema validation to add_document()</task>
+        <task>Update health_check() to verify collection configuration</task>
+      </tasks>
+      <verification>pytest tests/test_rag_service.py</verification>
+    </step>
+
+    <step number="4" title="Test Qdrant Service Health">
+      <action>Verify Qdrant service is operational and accessible</action>
+      <tasks>
+        <task>Test health endpoint: curl http://localhost:6333/health</task>
+        <task>List collections: curl http://localhost:6333/collections</task>
+        <task>Get collection info: curl http://localhost:6333/collections/documents</task>
+        <task>Verify container logs: docker compose logs qdrant</task>
+        <task>Check volume: docker volume inspect onyx_qdrant_data</task>
+      </tasks>
+      <verification>All endpoints return 200 status with expected JSON responses</verification>
+    </step>
+
+    <step number="5" title="Integration Testing">
+      <action>Run integration tests to validate end-to-end functionality</action>
+      <tasks>
+        <task>Test collection creation (idempotent): Run init-qdrant.py twice</task>
+        <task>Test vector upsert: Insert 1000 test vectors via API</task>
+        <task>Test vector search: Query and verify results returned in &lt;100ms</task>
+        <task>Test data persistence: Restart Qdrant container and verify data remains</task>
+        <task>Test API endpoints: Verify all CRUD operations work correctly</task>
+      </tasks>
+      <verification>bash tests/integration/test-qdrant-setup.sh</verification>
+    </step>
+
+    <step number="6" title="Performance Benchmarking">
+      <action>Measure search latency and verify performance targets</action>
+      <tasks>
+        <task>Upsert 1000 test vectors with realistic payloads</task>
+        <task>Run 100 search queries and measure latency (p50, p95, p99)</task>
+        <task>Verify p95 latency &lt; 100ms for top-10 search</task>
+        <task>Monitor resource usage (CPU, RAM, disk I/O)</task>
+        <task>Document baseline performance metrics</task>
+      </tasks>
+      <verification>python scripts/benchmark-qdrant-search.py</verification>
+    </step>
+
+    <step number="7" title="Documentation and Cleanup">
+      <action>Update documentation and finalize implementation</action>
+      <tasks>
+        <task>Update README.md with Qdrant setup instructions</task>
+        <task>Document environment variables in .env.example</task>
+        <task>Add code comments explaining collection configuration</task>
+        <task>Create manual verification checklist</task>
+        <task>Update sprint status to mark story as ready-for-review</task>
+      </tasks>
+      <verification>Manual review of documentation completeness</verification>
+    </step>
+  </implementation-plan>
+
+  <testing-guidelines>
+    <unit-tests>
+      <test name="test_create_collection_idempotent">
+        <description>Verify collection creation is safe to run multiple times</description>
+        <steps>
+          <step>Create collection using RAG service</step>
+          <step>Verify collection exists with correct vector size (1536)</step>
+          <step>Create collection again (should not fail)</step>
+          <step>Verify collection configuration unchanged</step>
+        </steps>
+      </test>
+
+      <test name="test_upsert_and_search">
+        <description>Verify basic vector operations work correctly</description>
+        <steps>
+          <step>Create test vectors with dummy embeddings [0.1] * 1536</step>
+          <step>Upsert test vectors with payloads (doc_id, title, source)</step>
+          <step>Search with same query vector [0.1] * 1536</step>
+          <step>Verify results returned with correct payload data</step>
+          <step>Assert top result matches expected doc_id</step>
+        </steps>
+      </test>
+
+      <test name="test_data_persistence">
+        <description>Verify data persists across container restarts</description>
+        <steps>
+          <step>Upsert test documents to Qdrant</step>
+          <step>Record document count before restart</step>
+          <step>Stop Qdrant container: docker compose stop qdrant</step>
+          <step>Start Qdrant container: docker compose start qdrant</step>
+          <step>Verify document count matches pre-restart count</step>
+          <step>Verify search still returns expected results</step>
+        </steps>
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test name="test_docker_compose_deployment">
+        <description>Test complete Docker Compose setup</description>
+        <script>
+          <![CDATA[
+#!/bin/bash
+# tests/integration/test-qdrant-setup.sh
+
+echo "Testing Qdrant Docker Compose setup..."
+
+# Start services
+docker compose up -d qdrant
+
+# Wait for health check
+sleep 10
+
+# Test health endpoint
+HEALTH=$(curl -s http://localhost:6333/health | jq -r '.status')
+if [ "$HEALTH" != "ok" ]; then
+    echo "❌ Health check failed"
+    exit 1
+fi
+echo "✅ Health check passed"
+
+# Test collection creation
+python scripts/init-qdrant.py
+
+# Verify collection exists
+COLLECTIONS=$(curl -s http://localhost:6333/collections | jq -r '.result.collections[].name')
+if ! echo "$COLLECTIONS" | grep -q "documents"; then
+    echo "❌ Collection creation failed"
+    exit 1
+fi
+echo "✅ Collection created successfully"
+          ]]>
+        </script>
+      </test>
+
+      <test name="test_search_latency_benchmark">
+        <description>Measure search latency with various dataset sizes</description>
+        <requirements>
+          <requirement>Upsert 1000 test vectors</requirement>
+          <requirement>Run 100 search queries</requirement>
+          <requirement>Measure p95 latency</requirement>
+          <requirement>Assert p95 &lt; 100ms</requirement>
+        </requirements>
+      </test>
+    </integration-tests>
+
+    <manual-verification-checklist>
+      <item>Qdrant container starts successfully via docker compose up</item>
+      <item>Health endpoint returns 200: curl http://localhost:6333/health</item>
+      <item>Collection "documents" created: curl http://localhost:6333/collections/documents</item>
+      <item>Can upsert test vectors via Python client</item>
+      <item>Can search and retrieve results</item>
+      <item>Data persists after container restart: docker compose restart qdrant</item>
+      <item>Volume mounted correctly: docker volume inspect onyx_qdrant_data</item>
+      <item>Logs show no errors: docker compose logs qdrant</item>
+    </manual-verification-checklist>
+  </testing-guidelines>
+
+  <definition-of-done>
+    <criteria>
+      <item checked="false">Qdrant service running via Docker Compose with health check passing</item>
+      <item checked="false">Collection "documents" created with 1536-dimensional vectors, Cosine distance</item>
+      <item checked="false">All acceptance criteria verified (AC3.1.1 - AC3.1.5)</item>
+      <item checked="false">Unit tests pass for collection creation and vector operations</item>
+      <item checked="false">Integration tests pass for Docker deployment</item>
+      <item checked="false">Performance benchmark confirms search latency &lt;100ms (p95)</item>
+      <item checked="false">Data persistence verified across container restarts</item>
+      <item checked="false">Documentation updated:
+  - README.md updated with Qdrant setup instructions
+  - Environment variables documented in .env.example
+  - API usage examples in code comments</item>
+      <item checked="false">Code reviewed and merged to main branch</item>
+      <item checked="false">Manual verification checklist completed</item>
+      <item checked="false">Sprint status updated to "done"</item>
+    </criteria>
+  </definition-of-done>
+
+  <risks-and-mitigations>
+    <risk severity="medium">
+      <description>Qdrant performance degradation at scale</description>
+      <mitigation>Enable on-disk vectors, monitor latency, use scalar quantization if needed</mitigation>
+    </risk>
+    <risk severity="low">
+      <description>Docker volume corruption</description>
+      <mitigation>Daily backups, test restore procedure, use named volumes</mitigation>
+    </risk>
+    <risk severity="medium">
+      <description>Memory usage exceeds VPS limits</description>
+      <mitigation>Configure on-disk storage, monitor RAM, set resource limits</mitigation>
+    </risk>
+    <risk severity="low">
+      <description>Port conflicts with other services</description>
+      <mitigation>Use standard port 6333, document in README, check for conflicts</mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <references>
+    <document type="epic" path="/home/user/ONYX/docs/epics/epic-3-tech-spec.md">
+      Epic 3 Technical Specification - Complete RAG architecture and Qdrant configuration
+    </document>
+    <document type="architecture" path="/home/user/ONYX/docs/architecture.md">
+      Architecture Document - Vector database patterns, data models, deployment architecture
+    </document>
+    <document type="prd" path="/home/user/ONYX/docs/PRD.md">
+      Product Requirements Document - RAG functionality requirements, success criteria
+    </document>
+    <external-link url="https://qdrant.tech/documentation/">Qdrant Official Documentation</external-link>
+    <external-link url="https://github.com/qdrant/qdrant-client">Qdrant Python Client Documentation</external-link>
+  </references>
+
+  <related-files>
+    <file path="/home/user/ONYX/docker-compose.yaml" type="infrastructure">Qdrant service definition</file>
+    <file path="/home/user/ONYX/onyx-core/rag_service.py" type="code">RAG service implementation</file>
+    <file path="/home/user/ONYX/onyx-core/main.py" type="code">FastAPI endpoints</file>
+    <file path="/home/user/ONYX/onyx-core/requirements.txt" type="dependency">Python dependencies</file>
+    <file path="/home/user/ONYX/.env.example" type="config">Environment variable template</file>
+    <file path="/home/user/ONYX/scripts/init-qdrant.py" type="script" status="to-be-created">Collection initialization script</file>
+  </related-files>
+
+  <notes>
+    <note type="architecture-decision">
+      Decision Point: Embedding Model Selection
+      - Option 1: Keep sentence-transformers (all-MiniLM-L6-v2) with 384-dimensional vectors
+        - Pros: Self-hosted, no API costs, already implemented
+        - Cons: Lower semantic quality than OpenAI embeddings
+      - Option 2: Switch to OpenAI text-embedding-3-small with 1536-dimensional vectors
+        - Pros: Higher quality embeddings, industry standard
+        - Cons: API costs (~$0.02/1M tokens), external dependency
+      - Recommendation for Story 3.1: Keep sentence-transformers for MVP simplicity. Can upgrade to OpenAI in future story.
+    </note>
+
+    <note type="implementation">
+      Current RAG service uses sentence-transformers (all-MiniLM-L6-v2) which produces 384-dimensional vectors.
+      For this story, maintain compatibility by either:
+      1. Keeping 384 dimensions and updating collection schema accordingly, OR
+      2. Switching to 1536 dimensions by integrating OpenAI embedding API
+
+      Recommend Option 1 for MVP to minimize dependencies and costs.
+    </note>
+
+    <note type="testing">
+      Performance benchmarking should be done with realistic document sizes (500-2000 tokens) and varied query types
+      to ensure latency targets are met under real-world conditions.
+    </note>
+
+    <note type="future-enhancement">
+      Post-MVP enhancements (out of scope for this story):
+      - Qdrant cluster mode for high availability
+      - Advanced indexing: HNSW parameter tuning
+      - Scalar quantization to reduce memory footprint
+      - gRPC API for lower latency
+      - Multi-collection support (separate collections for memories, etc.)
+    </note>
+  </notes>
+</story-context>

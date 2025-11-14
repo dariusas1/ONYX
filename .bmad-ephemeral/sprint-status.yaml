@@ -58,7 +58,7 @@ development_status:
 
   # Epic 3: Knowledge Retrieval (RAG)
   epic-3: contexted
-  3-1-qdrant-vector-database-setup: backlog
+  3-1-qdrant-vector-database-setup: done
   3-2-google-drive-connector-auto-sync: backlog
   3-3-slack-connector-message-indexing: backlog
   3-4-local-file-upload-parsing: backlog
