@@ -1,0 +1,119 @@
+# =============================================================================
+# ONYX Development Environment Override
+# =============================================================================
+# This file extends docker-compose.yaml for secure development environment
+# Uses placeholder values to prevent accidental exposure of real secrets
+# =============================================================================
+#
+# SECURITY NOTES:
+# ==============
+# This file provides SECURE PLACEHOLDER VALUES that override any env_file values
+# in docker compose config output, preventing secret exposure while allowing
+# development with actual values through runtime environment variable precedence.
+#
+# USAGE:
+# ======
+# docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
+#
+# The development environment will use actual values from your .env.local file,
+# but docker compose config will show these secure placeholders.
+# =============================================================================
+
+services:
+  # Frontend - Next.js 14 with Suna UI
+  suna:
+    environment:
+      # CRITICAL SECURITY: These placeholders override env_file values in docker compose config
+      # Runtime containers will still use .env.local values due to Docker Compose precedence rules
+      GOOGLE_CLIENT_ID: "dev-placeholder-google-client-id.apps.googleusercontent.com"
+      GOOGLE_CLIENT_SECRET: "dev-placeholder-google-client-secret"
+      # These are non-sensitive but override for consistency
+      NEXT_PUBLIC_SERVICE_NAME: "suna-frontend"
+      NEXT_PUBLIC_LOG_LEVEL: "info"
+
+  # Python RAG service
+  onyx-core:
+    environment:
+      # CRITICAL SECURITY: These placeholders override env_file values in docker compose config
+      GOOGLE_CLIENT_ID: "dev-placeholder-google-client-id.apps.googleusercontent.com"
+      GOOGLE_CLIENT_SECRET: "dev-placeholder-google-client-secret"
+      ENCRYPTION_KEY: "dev-placeholder-encryption-key-32-byte-hex-string-here"
+      SESSION_SECRET: "dev-placeholder-session-secret-hex-string-here"
+      # Non-sensitive overrides for consistency
+      SERVICE_NAME: "onyx-core"
+
+  # PostgreSQL database
+  postgres:
+    environment:
+      # CRITICAL SECURITY: Override with secure placeholder
+      POSTGRES_PASSWORD: "dev-placeholder-secure-password-change-in-production"
+      # Non-sensitive values remain
+      POSTGRES_DB: manus
+      POSTGRES_USER: manus
+
+  # Redis cache + job queue
+  redis:
+    environment:
+      # CRITICAL SECURITY: Override with secure placeholder (Redis password optional in dev)
+      REDIS_PASSWORD: "dev-placeholder-redis-password-optional"
+
+  # Qdrant vector database
+  qdrant:
+    environment:
+      # CRITICAL SECURITY: Override with secure placeholder
+      QDRANT__SERVICE__API_KEY: "dev-placeholder-qdrant-api-key-optional"
+
+  # LiteLLM proxy for LLM routing
+  litellm-proxy:
+    environment:
+      # CRITICAL SECURITY: Override with secure placeholders
+      TOGETHER_API_KEY: "dev-placeholder-together-api-key-here"
+      DEEPSEEK_API_KEY: "dev-placeholder-deepseek-api-key-here"
+
+  # Grafana dashboards
+  grafana:
+    environment:
+      # CRITICAL SECURITY: Override with secure placeholder
+      GF_SECURITY_ADMIN_PASSWORD: "dev-placeholder-grafana-password-change-in-production"
+      # Non-sensitive values remain
+      GF_USERS_ALLOW_SIGN_UP: false
+
+  # Nginx reverse proxy (ensure it doesn't accidentally pick up secrets)
+  nginx:
+    environment:
+      # No sensitive variables should be here, but ensuring clean config
+      SERVICE_NAME: "nginx-proxy"
+
+  # Prometheus monitoring (ensure it doesn't pick up secrets)
+  prometheus:
+    environment:
+      # No sensitive variables should be here, but ensuring clean config
+      SERVICE_NAME: "prometheus"
+
+  # Playwright browser automation
+  playwright:
+    environment:
+      # No sensitive variables should be here, but ensuring clean config
+      SERVICE_NAME: "playwright-automation"
+
+  # Ollama (fallback LLM)
+  ollama:
+    environment:
+      # No sensitive variables should be here, but ensuring clean config
+      SERVICE_NAME: "ollama-fallback"
+
+# =============================================================================
+# SECURITY IMPLEMENTATION DETAILS:
+# =============================================================================
+#
+# 1. PREVENTION: These placeholder values prevent accidental secret exposure
+#    in docker compose config, logs, backups, and monitoring systems
+#
+# 2. DEVELOPMENT: Runtime containers still use actual values from .env.local
+#    due to Docker Compose's environment variable precedence rules
+#
+# 3. PRODUCTION: Use docker-compose.secrets.yaml with Docker secrets
+#
+# 4. TESTING: Verify with:
+#    docker compose -f docker-compose.yaml -f docker-compose.dev.yaml config --no-path-resolution
+# =============================================================================

@@ -1,0 +1,164 @@
+# =============================================================================
+# ONYX Production Environment Override
+# =============================================================================
+# This file extends docker-compose.yaml for PRODUCTION deployment
+# REMOVES all sensitive environment variables to prevent exposure
+# Uses Docker secrets for production credential management
+# =============================================================================
+#
+# SECURITY IMPLEMENTATION:
+# =======================
+# 1. All sensitive environment variables are REMOVED from docker compose config
+# 2. Docker secrets provide secure credential management at runtime
+# 3. Environment variables are only available inside containers via /run/secrets/
+# 4. NO secret values appear in docker compose config, logs, or monitoring
+#
+# USAGE:
+# ======
+# docker secret create postgres_password - < secure_password.txt
+# docker secret create google_client_secret - < google_client_secret.txt
+# docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
+#
+# TESTING:
+# ========
+# docker compose -f docker-compose.yaml -f docker-compose.prod.yaml config --no-path-resolution | grep -v "password\|key\|secret"
+# =============================================================================
+
+services:
+  # Frontend - Next.js 14 with Suna UI
+  suna:
+    environment:
+      # PRODUCTION VALUES ONLY - NO SECRETS HERE
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE: "/"
+      REDIS_URL: "redis://redis:6379"
+      QDRANT_URL: "http://qdrant:6333"
+      LITELLM_URL: "http://litellm-proxy:4000"
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      NEXT_PUBLIC_LOG_LEVEL: info
+      NEXT_PUBLIC_SERVICE_NAME: suna-frontend
+      NEXT_PUBLIC_ENABLE_REMOTE_LOGGING: "true"
+    secrets:
+      # Load secrets from Docker secrets instead of environment variables
+      - google_client_id
+      - google_client_secret
+      - session_secret
+
+  # Python RAG service
+  onyx-core:
+    environment:
+      # PRODUCTION VALUES ONLY - NO SECRETS HERE
+      PYTHONPATH: /app
+      QDRANT_URL: "http://qdrant:6333"
+      REDIS_URL: "redis://redis:6379"
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      SERVICE_NAME: onyx-core
+      PYTHON_ENV: production
+    secrets:
+      # Load secrets from Docker secrets instead of environment variables
+      - google_client_id
+      - google_client_secret
+      - encryption_key
+      - session_secret
+      - qdrant_api_key
+      - postgres_password
+
+  # PostgreSQL database
+  postgres:
+    environment:
+      # PRODUCTION VALUES ONLY - SECRETS LOADED VIA Docker SECRETS
+      POSTGRES_DB: manus
+      POSTGRES_USER: manus
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+      # Use Docker secrets for sensitive values
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+
+  # Redis cache + job queue
+  redis:
+    # Use Docker secrets for Redis password (optional in development)
+    command: redis-server --appendonly yes --requirepass-file /run/secrets/redis_password
+    secrets:
+      - redis_password
+
+  # Qdrant vector database
+  qdrant:
+    environment:
+      # PRODUCTION VALUES ONLY - SECRETS LOADED VIA Docker SECRETS
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+      QDRANT__LOG_LEVEL: INFO
+      # Use Docker secrets for API key
+      QDRANT__SERVICE__API_KEY_FILE: /run/secrets/qdrant_api_key
+    secrets:
+      - qdrant_api_key
+
+  # LiteLLM proxy for LLM routing
+  litellm-proxy:
+    environment:
+      # PRODUCTION VALUES ONLY - NO API KEYS HERE
+      LITELLM_PORT: 4000
+      LITELLM_MODEL_LIST: |
+        model_list:
+          - model_name: "deepseek-main"
+            litellm_params:
+              model: "together/deepseek-chat"
+          - model_name: "ollama-fallback"
+            litellm_params:
+              model: "ollama/mistral:latest"
+              api_base: "http://ollama:11434"
+    secrets:
+      # Load API keys from Docker secrets instead of environment variables
+      - together_api_key
+      - deepseek_api_key
+
+  # Grafana dashboards
+  grafana:
+    environment:
+      # PRODUCTION VALUES ONLY - SECRETS LOADED VIA Docker SECRETS
+      GF_USERS_ALLOW_SIGN_UP: false
+      # Use Docker secrets for admin password
+      GF_SECURITY_ADMIN_PASSWORD_FILE: /run/secrets/grafana_password
+    secrets:
+      - grafana_password
+
+# =============================================================================
+# Docker Secrets Configuration
+# =============================================================================
+# External secrets must be created before deployment:
+#
+# Create secrets from files:
+#   echo "your-secure-password" | docker secret create postgres_password -
+#   echo "your-google-client-secret" | docker secret create google_client_secret -
+#
+# Or create from files:
+#   docker secret create postgres_password ./secrets/postgres_password.txt
+#
+# Secrets are mounted as read-only files in /run/secrets/ inside containers
+# =============================================================================
+
+secrets:
+  # External secrets - must be created with 'docker secret create' before deployment
+  postgres_password:
+    external: true
+  redis_password:
+    external: true
+  google_client_id:
+    external: true
+  google_client_secret:
+    external: true
+  session_secret:
+    external: true
+  encryption_key:
+    external: true
+  qdrant_api_key:
+    external: true
+  together_api_key:
+    external: true
+  deepseek_api_key:
+    external: true
+  grafana_password:
+    external: true
