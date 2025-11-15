@@ -166,14 +166,16 @@ class RAGService:
         user_permissions: Optional[List[str]] = None,
     ) -> List[SearchResult]:
         """
-        Search for documents using semantic similarity with permission filtering
+        Search for documents using hybrid, semantic, or keyword search with permission filtering
 
         Args:
             query: Search query string
             top_k: Number of top results to return
             source_filter: Optional filter for document source
-            score_threshold: Minimum similarity score threshold
+            score_threshold: Minimum similarity score threshold (for semantic search)
             user_email: User email for permission filtering (REQUIRED for secure search)
+            search_type: Type of search to perform ("auto", "hybrid", "semantic", "keyword")
+            user_permissions: List of user permissions/email addresses for keyword search
 
         Returns:
             List of search results filtered by user permissions
@@ -182,6 +184,19 @@ class RAGService:
             # Ensure collection exists
             await self.ensure_collection_exists()
 
+            # Use hybrid search if enabled and requested
+            if (self.enable_hybrid_search and
+                HYBRID_SEARCH_AVAILABLE and
+                search_type in ["auto", "hybrid"]):
+                return await self._search_with_hybrid(
+                    query, top_k, source_filter, user_email, user_permissions
+                )
+            elif search_type == "keyword" and HYBRID_SEARCH_AVAILABLE:
+                return await self._search_with_keyword_only(
+                    query, top_k, source_filter, user_email, user_permissions
+                )
+
+            # Fallback to semantic search
             # Embed the query
             query_embedding = self.embed_query(query)
 
@@ -348,6 +363,196 @@ class RAGService:
         except Exception as e:
             logger.error(f"Health check failed: {e}")
             return {"status": "unhealthy", "error": str(e)}
+
+    async def _get_hybrid_search_service(self) -> HybridSearchService:
+        """Get or create hybrid search service instance"""
+        if self.hybrid_search_service is None:
+            from .services.hybrid_search_service import get_hybrid_search_service
+            self.hybrid_search_service = await get_hybrid_search_service()
+        return self.hybrid_search_service
+
+    async def _search_with_hybrid(
+        self,
+        query: str,
+        top_k: int,
+        source_filter: Optional[str],
+        user_email: Optional[str],
+        user_permissions: Optional[List[str]]
+    ) -> List[SearchResult]:
+        """Execute hybrid search combining semantic and keyword approaches"""
+        try:
+            # Convert user_email to user_permissions format
+            if user_permissions is None:
+                user_permissions = [user_email] if user_email else ['*']
+
+            # Get hybrid search service
+            hybrid_service = await self._get_hybrid_search_service()
+
+            # Execute hybrid search
+            hybrid_results = await hybrid_service.search(
+                query=query,
+                user_permissions=user_permissions,
+                source_filter=source_filter,
+                limit=top_k,
+                include_recency_boost=True,
+                query_type="hybrid"
+            )
+
+            # Convert HybridSearchResult to SearchResult format
+            search_results = []
+            for result in hybrid_results:
+                search_result = SearchResult(
+                    doc_id=result.doc_id,
+                    score=result.combined_score,
+                    text=result.content,
+                    title=result.title,
+                    source=result.source_type,
+                    metadata={
+                        **result.metadata,
+                        'source_id': result.source_id,
+                        'permissions': result.permissions,
+                        'created_at': result.created_at,
+                        'updated_at': result.updated_at,
+                        'semantic_score': result.semantic_score,
+                        'keyword_score': result.keyword_score,
+                        'combined_score': result.combined_score,
+                        'rank': result.rank
+                    }
+                )
+                search_results.append(search_result)
+
+            logger.info(f"Hybrid search returned {len(search_results)} results for query: '{query}'")
+            return search_results
+
+        except Exception as e:
+            logger.error(f"Hybrid search failed, falling back to semantic: {e}")
+            # Fallback to semantic search
+            return await self._search_with_semantic_only(query, top_k, source_filter, user_email)
+
+    async def _search_with_keyword_only(
+        self,
+        query: str,
+        top_k: int,
+        source_filter: Optional[str],
+        user_email: Optional[str],
+        user_permissions: Optional[List[str]]
+    ) -> List[SearchResult]:
+        """Execute keyword search only"""
+        try:
+            # Convert user_email to user_permissions format
+            if user_permissions is None:
+                user_permissions = [user_email] if user_email else ['*']
+
+            # Get keyword search service
+            from .services.keyword_search_service import get_keyword_search_service
+            keyword_service = await get_keyword_search_service()
+
+            # Execute keyword search
+            keyword_results = await keyword_service.search(
+                query=query,
+                user_permissions=user_permissions,
+                source_filter=source_filter,
+                limit=top_k,
+                include_recency_boost=True
+            )
+
+            # Convert KeywordSearchResult to SearchResult format
+            search_results = []
+            for result in keyword_results:
+                search_result = SearchResult(
+                    doc_id=result.doc_id,
+                    score=result.bm25_score,
+                    text=result.content,
+                    title=result.title,
+                    source=result.source_type,
+                    metadata={
+                        **result.metadata,
+                        'source_id': result.source_id,
+                        'permissions': result.permissions,
+                        'created_at': result.created_at,
+                        'updated_at': result.updated_at,
+                        'bm25_score': result.bm25_score,
+                        'search_type': 'keyword'
+                    }
+                )
+                search_results.append(search_result)
+
+            logger.info(f"Keyword search returned {len(search_results)} results for query: '{query}'")
+            return search_results
+
+        except Exception as e:
+            logger.error(f"Keyword search failed, falling back to semantic: {e}")
+            # Fallback to semantic search
+            return await self._search_with_semantic_only(query, top_k, source_filter, user_email)
+
+    async def _search_with_semantic_only(
+        self,
+        query: str,
+        top_k: int,
+        source_filter: Optional[str],
+        user_email: Optional[str],
+        score_threshold: float = 0.3
+    ) -> List[SearchResult]:
+        """Execute semantic search only with enhanced filtering"""
+        # Embed the query
+        query_embedding = self.embed_query(query)
+
+        # Build filter conditions
+        filter_conditions = []
+
+        # Add source filter if provided
+        if source_filter:
+            filter_conditions.append(
+                FieldCondition(
+                    key="source", match=MatchValue(value=source_filter)
+                )
+            )
+
+        # Add permission filter if user_email is provided
+        if user_email:
+            filter_conditions.append(
+                FieldCondition(
+                    key="metadata.permissions",
+                    match=MatchAny(any=[user_email, "*"])
+                )
+            )
+            logger.debug(f"Applying permission filter for user: {user_email}")
+        else:
+            logger.warning("Search performed without permission filtering")
+
+        # Build final filter
+        search_filter = None
+        if filter_conditions:
+            search_filter = Filter(must=filter_conditions)
+
+        # Search in Qdrant
+        search_result = self.qdrant_client.search(
+            collection_name=self.collection_name,
+            query_vector=query_embedding,
+            query_filter=search_filter,
+            limit=top_k,
+            score_threshold=score_threshold,
+        )
+
+        # Convert to SearchResult objects
+        results = []
+        for hit in search_result:
+            if hasattr(hit, "payload") and hit.payload:
+                result = SearchResult(
+                    doc_id=hit.id,
+                    score=hit.score,
+                    text=hit.payload.get("text", ""),
+                    title=hit.payload.get("title", ""),
+                    source=hit.payload.get("source", "unknown"),
+                    metadata={
+                        **hit.payload.get("metadata", {}),
+                        'semantic_score': hit.score,
+                        'search_type': 'semantic'
+                    }
+                )
+                results.append(result)
+
+        return results
 
 
 # Global RAG service instance
