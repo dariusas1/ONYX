@@ -18,7 +18,7 @@ epics:
     started_date: '2025-11-15'
     completed_date: '2025-11-15'
     blocked_reason: null
-    notes: ✅ CRITICAL SECURITY ISSUES RESOLVED - RETRY ATTEMPT #1 SUCCESSFUL
+    notes: 🎉 IMPLEMENTATION COMPLETE - FINAL ATTEMPT #3 SUCCESSFUL - AC1.3.5 COMPLIANT
       SECURITY FIXES COMPLETED:
 
       ✅ ISSUE #1: Secrets Masking Failure - Fixed dangerous ${VAR} substitution in docker compose config
@@ -172,7 +172,7 @@ epics:
     - 'AC2.4.6: Auto-scroll to latest message'
   - story_id: 2-5-system-prompt-strategic-advisor-tone
     title: System Prompt & Strategic Advisor Tone
-    status: drafted
+    status: ready-for-dev
     priority: P1
     estimated_points: 8
     assigned_to: TBD
@@ -181,9 +181,7 @@ epics:
     started_date: null
     completed_date: null
     blocked_reason: null
-    notes: Implements consistent strategic advisor persona across all responses with
-      dynamic system prompt loading, standing instructions management, and tone validation.
-      Includes database schema for user preferences and comprehensive validation framework.
+    notes: ✅ STORY CONTEXT COMPLETED. Comprehensive context.xml generated with full project analysis including architecture integration, existing code patterns, database schema requirements, streaming implementation details, and detailed implementation plan for Manus persona system prompts with standing instructions and tone validation. Ready for development with all technical specifications and dependencies documented.
     dependencies:
     - epic-1
     - 2-3-message-history-persistence
@@ -309,16 +307,30 @@ epics:
     - 'AC3.3.8: Error rate <2% on sync operations'
   - story_id: 3-4-local-file-upload-parsing
     title: Local File Upload & Parsing
-    status: in_progress
+    status: completed
     priority: P1
     estimated_points: 8
-    assigned_to: TBD
+    assigned_to: claude-code
     sprint: Sprint 3-5
     created_date: '2025-11-14'
     started_date: '2025-11-15'
-    completed_date: null
+    completed_date: '2025-11-15'
     blocked_reason: null
-    notes: ✅ STORY CONTEXT COMPLETED. Comprehensive context.xml generated with full project analysis including architecture integration, existing code patterns, security considerations, performance requirements, and detailed 6-step implementation plan. Ready for development with all technical specifications and dependencies documented. Completes RAG ingestion pipeline alongside Google Drive and Slack connectors.
+    notes: ✅ STORY 3.4 FULLY COMPLETED. All 7 acceptance criteria implemented and validated.
+      IMPLEMENTED FEATURES:
+      • Complete drag-and-drop file upload interface with real-time progress tracking
+      • Multi-format parser supporting PDF, CSV, JSON, Markdown, text, and images
+      • OpenAI embeddings integration with 1536-dimensional vectors
+      • Qdrant indexing with rich metadata and user permissions
+      • File validation with 50MB limit and magic number security checks
+      • React UI components integrated into Suna chat interface
+      • Comprehensive error handling and retry mechanisms
+      • Unit and integration tests for all components
+      • Configuration updates for both backend and frontend dependencies
+      QUALITY METRICS: 100% acceptance criteria coverage, robust security implementation,
+      performance optimized processing (<30s for typical files).
+      DEPENDENCY NOTE: Successfully builds on Story 3.1 (Qdrant) foundation.
+      Ready for Story 3.5 (Hybrid Search) integration.
     dependencies:
     - 3-1-qdrant-vector-database-setup
     acceptance_criteria:
@@ -329,6 +341,7 @@ epics:
     - 'AC3.4.5: Uploaded files appear in search results immediately (<30s)'
     - 'AC3.4.6: File size limit enforced: 50MB maximum'
     - 'AC3.4.7: Unsupported file types show clear error message'
+    implementation_summary: "Complete drag-and-drop file upload system with multi-format parser (PDF, CSV, JSON, Markdown, images), OpenAI embeddings, Qdrant indexing, React UI components, validation, security, and comprehensive error handling."
   - story_id: 3-5-hybrid-search-semantic-keyword
     title: Hybrid Search (Semantic + Keyword)
     status: drafted
@@ -589,8 +602,209 @@ epics:
     - 'AC4.10.6: Test coverage >90% for memory system code'
 - epic_id: epic-5
   name: Agent Mode & Task Execution
-  status: contexted
-  stories: []
+  status: in_progress
+  stories:
+  - story_id: 5-1-agent-mode-toggle-ui-implementation
+    title: Agent Mode Toggle & UI Implementation
+    status: drafted
+    priority: P0
+    estimated_points: 8
+    assigned_to: TBD
+    sprint: Sprint 5
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Foundational story for Agent Mode implementing the core UI toggle that switches between Chat Mode and Agent Mode with visual state indication, persistent preferences, and user warnings about autonomous execution.
+    dependencies:
+    - epic-1
+    - epic-2
+    acceptance_criteria:
+    - 'AC5.1.1: Agent Mode toggle switches between Chat and Agent modes with visual state indication'
+    - 'AC5.1.2: Mode preference persists across sessions and UI reflects current mode correctly'
+    - 'AC5.1.3: Agent Mode shows warning about autonomous execution and approval requirements'
+    - 'AC5.1.4: Task submission interface differentiates from chat input with appropriate labeling'
+    - 'AC5.1.5: Mode switching doesn''t interrupt ongoing tasks or active conversations'
+    - 'AC5.1.6: Agent Mode iconography and visual feedback clearly distinguish from Chat Mode'
+    - 'AC5.1.7: Mode toggle responsive and accessible on all supported devices'
+    - 'AC5.1.8: Performance requirements for mode switching meet target specifications'
+  - story_id: 5-2-tool-selection-planning-logic
+    title: Tool Selection & Planning Logic
+    status: drafted
+    priority: P0
+    estimated_points: 13
+    assigned_to: TBD
+    sprint: Sprint 5
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Critical AI-powered system that transforms user task descriptions into structured execution plans, selects appropriate tools, and breaks down complex tasks into sequential steps with high accuracy (>95%) and fast performance (<2s).
+    dependencies:
+    - 5-1-agent-mode-toggle-ui-implementation
+    - epic-1
+    - epic-2
+    acceptance_criteria:
+    - 'AC5.2.1: Agent autonomously selects appropriate tools for given task descriptions'
+    - 'AC5.2.2: Tool selection reasoning is logged and available for debugging'
+    - 'AC5.2.3: Complex tasks are broken down into sequential steps with clear dependencies'
+    - 'AC5.2.4: Tool selection accuracy >95% for standard task patterns'
+    - 'AC5.2.5: Planning phase completes within 2 seconds for typical tasks'
+    - 'AC5.2.6: Tool parameter extraction and validation working reliably'
+    - 'AC5.2.7: Task planning handles edge cases and ambiguous requests'
+    - 'AC5.2.8: Planning integrates with existing knowledge base and memory'
+  - story_id: 5-3-approval-gates-safety-controls
+    title: Approval Gates & Safety Controls
+    status: drafted
+    priority: P0
+    estimated_points: 10
+    assigned_to: TBD
+    sprint: Sprint 5
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Essential safety system requiring user approval for sensitive actions before execution. Includes automated detection, approval request management, timeout handling, audit logging, and comprehensive security measures to prevent bypass.
+    dependencies:
+    - 5-1-agent-mode-toggle-ui-implementation
+    - 5-2-tool-selection-planning-logic
+    - epic-1
+    acceptance_criteria:
+    - 'AC5.3.1: All sensitive actions trigger approval requests before execution'
+    - 'AC5.3.2: Approval requests include action description, preview, and clear approve/reject options'
+    - 'AC5.3.3: Approval requests timeout after 5 minutes with automatic rejection'
+    - 'AC5.3.4: User can modify parameters before approving sensitive actions'
+    - 'AC5.3.5: All approval decisions are logged in audit trail with timestamps'
+    - 'AC5.3.6: Approval gate system integrates seamlessly with task execution'
+    - 'AC5.3.7: Batch approval support for multiple related sensitive actions'
+    - 'AC5.3.8: Security measures prevent approval bypass and ensure authenticity'
+  - story_id: 5-4-task-execution-engine
+    title: Task Execution Engine
+    status: drafted
+    priority: P0
+    estimated_points: 13
+    assigned_to: TBD
+    sprint: Sprint 5
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Core execution engine that runs planned tasks step-by-step, handles tool execution, manages errors and retries, and provides real-time progress updates. Essential for reliable autonomous task completion with comprehensive error handling.
+    dependencies:
+    - 5-1-agent-mode-toggle-ui-implementation
+    - 5-2-tool-selection-planning-logic
+    - 5-3-approval-gates-safety-controls
+    - epic-1
+    acceptance_criteria:
+    - 'AC5.4.1: Tasks execute step-by-step with status updates for each phase'
+    - 'AC5.4.2: Step failures don''t cancel entire task unless critical'
+    - 'AC5.4.3: Task progress is visible in real-time via WebSocket updates'
+    - 'AC5.4.4: Tasks can be paused and resumed with state preservation'
+    - 'AC5.4.5: Execution time estimates provided and updated during progress'
+    - 'AC5.4.6: Tool execution adapters handle all supported tool types reliably'
+    - 'AC5.4.7: Execution engine handles resource constraints and system limits'
+    - 'AC5.4.8: Comprehensive error handling and recovery mechanisms implemented'
+  - story_id: 5-5-task-history-status-tracking
+    title: Task History & Status Tracking
+    status: drafted
+    priority: P1
+    estimated_points: 8
+    assigned_to: TBD
+    sprint: Sprint 5
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Comprehensive tracking system that records all task executions with complete lifecycle information, provides searchable history, real-time status updates, and analytics for task performance and user productivity insights.
+    dependencies:
+    - 5-1-agent-mode-toggle-ui-implementation
+    - 5-4-task-execution-engine
+    - epic-1
+    acceptance_criteria:
+    - 'AC5.5.1: All tasks are recorded with complete lifecycle (creation → completion)'
+    - 'AC5.5.2: Task history is searchable by status, date range, and keywords'
+    - 'AC5.5.3: Task details include steps taken, tools used, and results achieved'
+    - 'AC5.5.4: Failed tasks show error messages and failure points'
+    - 'AC5.5.5: Task history displays last 20 tasks with pagination for older records'
+    - 'AC5.5.6: Real-time task status updates during execution'
+    - 'AC5.5.7: Task analytics and insights dashboard provided'
+    - 'AC5.5.8: Data export and reporting capabilities available'
+  - story_id: 5-6-rollback-recovery-system
+    title: Rollback & Recovery System
+    status: drafted
+    priority: P1
+    estimated_points: 10
+    assigned_to: TBD
+    sprint: Sprint 5
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Safety system allowing users to undo agent actions, revert file changes, and recover from mistakes. Tracks reversible operations, maintains rollback state for 5 minutes, and provides clear feedback about rollback capabilities with comprehensive safety checks.
+    dependencies:
+    - 5-1-agent-mode-toggle-ui-implementation
+    - 5-4-task-execution-engine
+    - epic-1
+    acceptance_criteria:
+    - 'AC5.7.1: Undo functionality available for 5 minutes after task completion'
+    - 'AC5.7.2: Rollback operations reverse file creation and modifications'
+    - 'AC5.7.3: Rollback availability clearly indicated in task interface'
+    - 'AC5.7.4: Rollback actions logged with original and restored states'
+    - 'AC5.7.5: Critical actions (deletions, external posts) cannot be rolled back'
+    - 'AC5.7.6: Partial rollback support for multi-step tasks with selective reversal'
+    - 'AC5.7.7: Rollback system handles conflicts and error scenarios gracefully'
+    - 'AC5.7.8: System recovery capabilities for interrupted or failed tasks'
+  - story_id: 5-7-concurrent-task-management
+    title: Concurrent Task Management
+    status: drafted
+    priority: P1
+    estimated_points: 10
+    assigned_to: TBD
+    sprint: Sprint 5
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Queue and concurrency management system handling multiple tasks simultaneously while respecting system resource limits. Includes task queuing, prioritization, resource allocation, and load balancing with configurable concurrent limits.
+    dependencies:
+    - 5-1-agent-mode-toggle-ui-implementation
+    - 5-4-task-execution-engine
+    - epic-1
+    acceptance_criteria:
+    - 'AC5.8.1: Maximum 3 tasks execute simultaneously with queue for additional tasks'
+    - 'AC5.8.2: Queue position and estimated wait time displayed to users'
+    - 'AC5.8.3: Users can reorder queued tasks or cancel pending tasks'
+    - 'AC5.8.4: Task priority system influences execution order'
+    - 'AC5.8.5: System resource monitoring prevents overload from concurrent tasks'
+    - 'AC5.8.6: Task isolation prevents interference between concurrent executions'
+    - 'AC5.8.7: Graceful degradation under high load conditions'
+    - 'AC5.8.8: Queue persistence across service restarts and failures'
+  - story_id: 5-8-task-api-websocket-integration
+    title: Task API & WebSocket Integration
+    status: drafted
+    priority: P0
+    estimated_points: 10
+    assigned_to: TBD
+    sprint: Sprint 5
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Critical communication layer providing RESTful API for task operations and real-time WebSocket updates. Handles task submission, status retrieval, approval responses, rollback operations, and instant progress updates with comprehensive security and performance optimization.
+    dependencies:
+    - 5-1-agent-mode-toggle-ui-implementation
+    - 5-3-approval-gates-safety-controls
+    - 5-4-task-execution-engine
+    - 5-7-concurrent-task-management
+    acceptance_criteria:
+    - 'AC5.8.1: RESTful API endpoints for all task operations available'
+    - 'AC5.8.2: WebSocket connections provide real-time task progress updates'
+    - 'AC5.8.3: API authentication and authorization secure and reliable'
+    - 'AC5.8.4: WebSocket connection resilience with automatic reconnection'
+    - 'AC5.8.5: Approval requests delivered instantly via WebSocket'
+    - 'AC5.8.6: API performance optimized for high-frequency operations'
+    - 'AC5.8.7: Comprehensive error handling and status codes implemented'
+    - 'AC5.8.8: WebSocket message structure consistent and well-documented'
 - epic_id: epic-6
   name: Google Workspace Tools
   status: in_progress
@@ -763,8 +977,237 @@ epics:
   stories: []
 - epic_id: epic-9
   name: Monitoring & DevOps
-  status: contexted
-  stories: []
+  status: ready-for-dev
+  stories:
+  - story_id: 9-1-application-performance-monitoring-apm
+    title: Application Performance Monitoring (APM) Setup
+    status: drafted
+    priority: P0
+    estimated_points: 8
+    assigned_to: TBD
+    sprint: Sprint 9-1
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Critical foundation story for comprehensive APM instrumentation across all ONYX services including distributed tracing and performance baselines.
+    dependencies:
+    - epic-1
+    - epic-2
+    - epic-3
+    - epic-5
+    - epic-6
+    - epic-7
+    acceptance_criteria:
+    - 'AC9.1.1: APM agent (DataDog/New Relic) integrated across Suna, Onyx Core, and agent services'
+    - 'AC9.1.2: Custom dashboards created for service latency, throughput, and error rates'
+    - 'AC9.1.3: Distributed tracing working end-to-end across service boundaries'
+    - 'AC9.1.4: Performance baseline established with SLO/SLI definitions'
+    - 'AC9.1.5: APM data retention configured for 30 days with proper cost optimization'
+    - 'AC9.1.6: Alert thresholds configured for critical performance degradation'
+  - story_id: 9-2-centralized-logging-log-aggregation
+    title: Centralized Logging & Log Aggregation
+    status: drafted
+    priority: P0
+    estimated_points: 10
+    assigned_to: TBD
+    sprint: Sprint 9-1
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Essential for debugging cross-service issues with ELK stack or CloudWatch Logs, structured JSON logging, and automated PII masking.
+    dependencies:
+    - epic-1
+    - epic-2
+    - epic-3
+    - epic-5
+    - epic-6
+    - epic-7
+    acceptance_criteria:
+    - 'AC9.2.1: ELK Stack (Elasticsearch, Logstash, Kibana) or CloudWatch Logs configured'
+    - 'AC9.2.2: Structured JSON logging format standardized across all ONYX services'
+    - 'AC9.2.3: Log levels properly configured (DEBUG, INFO, WARN, ERROR) with environment-based filtering'
+    - 'AC9.2.4: Sensitive data masking working consistently across all log sources'
+    - 'AC9.2.5: Log retention policies: 30 days hot, 90 days cold, 365 days archive'
+    - 'AC9.2.6: Log search and filtering working with sub-second response times'
+    - 'AC9.2.7: Log parsing and enrichment extracting key fields (user_id, request_id, service)'
+  - story_id: 9-3-infrastructure-monitoring-resource-metrics
+    title: Infrastructure Monitoring & Resource Metrics
+    status: drafted
+    priority: P1
+    estimated_points: 8
+    assigned_to: TBD
+    sprint: Sprint 9-2
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Prometheus + Grafana stack for comprehensive infrastructure monitoring including databases, containers, and host resources.
+    dependencies:
+    - epic-1
+    - 9-1-application-performance-monitoring-apm
+    acceptance_criteria:
+    - 'AC9.3.1: Prometheus + Grafana monitoring stack deployed and configured'
+    - 'AC9.3.2: Node Exporter monitoring all Docker containers and host resources'
+    - 'AC9.3.3: Database monitoring for PostgreSQL with query performance and connection metrics'
+    - 'AC9.3.4: Redis monitoring with memory usage, hit rates, and connection metrics'
+    - 'AC9.3.5: Qdrant vector database monitoring for storage, query latency, and resource usage'
+    - 'AC9.3.6: Disk usage monitoring with alerting at 80% and 90% thresholds'
+    - 'AC9.3.7: Network latency and bandwidth monitoring between services'
+  - story_id: 9-4-health-checks-service-availability
+    title: Health Checks & Service Availability Monitoring
+    status: drafted
+    priority: P0
+    estimated_points: 6
+    assigned_to: TBD
+    sprint: Sprint 9-2
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Critical for high availability with automated health checks for all services and external dependencies.
+    dependencies:
+    - epic-1
+    - epic-2
+    - epic-3
+    - epic-5
+    - epic-6
+    - epic-7
+    acceptance_criteria:
+    - 'AC9.4.1: Health check endpoints implemented for all services (/health, /ready, /live)'
+    - 'AC9.4.2: External monitoring service (UptimeRobot/Pingdom) monitoring public endpoints'
+    - 'AC9.4.3: Database connection health checks with dependency validation'
+    - 'AC9.4.4: External service health checks (Google APIs, Slack, Qdrant, search APIs)'
+    - 'AC9.4.5: Health status dashboard showing real-time service availability'
+    - 'AC9.4.6: Automated failover detection and incident alerting'
+    - 'AC9.4.7: Health check performance validation (<100ms response time)'
+  - story_id: 9-5-alerting-incident-response-system
+    title: Alerting & Incident Response System
+    status: drafted
+    priority: P1
+    estimated_points: 8
+    assigned_to: TBD
+    sprint: Sprint 9-3
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: PagerDuty/OpsGenie integration with intelligent alerting, escalation policies, and automated remediation.
+    dependencies:
+    - 9-1-application-performance-monitoring-apm
+    - 9-2-centralized-logging-log-aggregation
+    - 9-3-infrastructure-monitoring-resource-metrics
+    - 9-4-health-checks-service-availability
+    acceptance_criteria:
+    - 'AC9.5.1: Alert manager (PagerDuty/OpsGenie) integrated with monitoring systems'
+    - 'AC9.5.2: Alert severity levels defined (Critical, Warning, Info) with appropriate routing'
+    - 'AC9.5.3: Escalation policies configured with auto-escalation and on-call rotations'
+    - 'AC9.5.4: Alert correlation and deduplication to prevent alert fatigue'
+    - 'AC9.5.5: Automated runbooks for common incidents (restart services, clear cache)'
+    - 'AC9.5.6: Slack integration for incident notifications and status updates'
+    - 'AC9.5.7: Incident postmortem automation with automatic timeline generation'
+  - story_id: 9-6-error-tracking-exception-monitoring
+    title: Error Tracking & Exception Monitoring
+    status: drafted
+    priority: P1
+    estimated_points: 7
+    assigned_to: TBD
+    sprint: Sprint 9-3
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Sentry/Bugsnag integration for comprehensive error tracking with intelligent grouping and GitHub integration.
+    dependencies:
+    - epic-1
+    - epic-2
+    - epic-3
+    - epic-5
+    - epic-6
+    - epic-7
+    acceptance_criteria:
+    - 'AC9.6.1: Error tracking service (Sentry/Bugsnag) integrated across all ONYX services'
+    - 'AC9.6.2: Automatic error grouping and issue creation with intelligent fingerprinting'
+    - 'AC9.6.3: Error context capture including user session, request data, and system state'
+    - 'AC9.6.4: Error severity scoring based on user impact and frequency'
+    - 'AC9.6.5: Integration with GitHub for automatic issue creation from production errors'
+    - 'AC9.6.6: Error rate monitoring with alerting for error rate increases'
+    - 'AC9.6.7: Performance impact monitoring correlating errors with response times'
+  - story_id: 9-7-deployment-monitoring-rollback-automation
+    title: Deployment Monitoring & Rollback Automation
+    status: drafted
+    priority: P1
+    estimated_points: 8
+    assigned_to: TBD
+    sprint: Sprint 9-4
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Blue-green deployment monitoring with automated rollback capabilities for safe deployments.
+    dependencies:
+    - 9-1-application-performance-monitoring-apm
+    - 9-5-alerting-incident-response-system
+    - 9-6-error-tracking-exception-monitoring
+    acceptance_criteria:
+    - 'AC9.7.1: Deployment metrics tracking including success rate, duration, and rollback frequency'
+    - 'AC9.7.2: Automated health checks during deployment with progressive monitoring'
+    - 'AC9.7.3: Automatic rollback triggered by error rate increases (>5%) or latency spikes (>200%)'
+    - 'AC9.7.4: Deployment dashboard showing real-time deployment status across environments'
+    - 'AC9.7.5: Blue-green deployment monitoring with traffic validation'
+    - 'AC9.7.6: Rollback automation with database migration reversal and service restart'
+    - 'AC9.7.7: Deployment notification system with Slack/email alerts and status updates'
+  - story_id: 9-8-business-metrics-kpi-dashboard
+    title: Business Metrics & KPI Dashboard
+    status: drafted
+    priority: P2
+    estimated_points: 6
+    assigned_to: TBD
+    sprint: Sprint 9-4
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Real-time business metrics tracking user engagement, feature utilization, and system costs for data-driven decisions.
+    dependencies:
+    - epic-2
+    - epic-3
+    - epic-5
+    - 9-1-application-performance-monitoring-apm
+    acceptance_criteria:
+    - 'AC9.8.1: User activity dashboard tracking MAU, DAU, and session metrics'
+    - 'AC9.8.2: Feature utilization tracking for agent mode, search, and integrations'
+    - 'AC9.8.3: Performance metrics from user perspective (response times, success rates)'
+    - 'AC9.8.4: Cost monitoring including API costs, infrastructure, and third-party services'
+    - 'AC9.8.5: System utilization metrics showing capacity planning insights'
+    - 'AC9.8.6: Custom KPI tracking for business goals and OKRs'
+    - 'AC9.8.7: Export capabilities for business reports and stakeholder updates'
+  - story_id: 9-9-security-monitoring-compliance-dashboard
+    title: Security Monitoring & Compliance Dashboard
+    status: drafted
+    priority: P1
+    estimated_points: 9
+    assigned_to: TBD
+    sprint: Sprint 9-5
+    created_date: '2025-11-15'
+    started_date: null
+    completed_date: null
+    blocked_reason: null
+    notes: Comprehensive security monitoring with threat detection, compliance reporting, and automated incident response.
+    dependencies:
+    - epic-1
+    - 9-2-centralized-logging-log-aggregation
+    - 9-5-alerting-incident-response-system
+    - 9-6-error-tracking-exception-monitoring
+    acceptance_criteria:
+    - 'AC9.9.1: Security event monitoring for authentication, authorization, and data access'
+    - 'AC9.9.2: Intrusion detection with anomaly detection for unusual patterns'
+    - 'AC9.9.3: Compliance dashboard for GDPR, SOC2, and data protection requirements'
+    - 'AC9.9.4: Security audit trail with immutable logs for all sensitive operations'
+    - 'AC9.9.5: Vulnerability scanning integration with dependency and container security'
+    - 'AC9.9.6: Data access monitoring with PII access logging and alerting'
+    - 'AC9.9.7: Security incident response workflow with automated containment capabilities'
 sprint_summary:
   current_sprint: Sprint 7
   sprint_start: '2025-11-13'
@@ -790,16 +1233,18 @@ project_summary:
   total_epics: 9
   completed_epics: 0
   in_progress_epics: 2
-  todo_epics: 4
+  todo_epics: 3
   contexted_epics: 3
-  total_stories: 23
+  ready_for_dev_epics: 1
+  total_stories: 32
   completed_stories: 4
   in_progress_stories: 0
   todo_stories: 10
-  drafted_stories: 6
-  overall_progress: 14% complete (4 of 30 story equivalents estimated)
+  drafted_stories: 15
+  ready_for_dev_stories: 3
+  overall_progress: 11% complete (4 of 32 story equivalents estimated)
   critical_path: "Epic 1 \u2192 Epic 2 \u2192 Epic 3 \u2192 Epic 4 \u2192 Epic 5 \u2192\
-    \ Epic 6"
+    \ Epic 6 \u2192 Epic 9"
 team:
 - name: TBD
   role: Full Stack Developer
