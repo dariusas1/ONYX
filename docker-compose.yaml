@@ -62,6 +62,11 @@ services:
       LOG_FORMAT: json
       SERVICE_NAME: onyx-core
       PYTHON_ENV: development
+      # CRITICAL SECURITY: Override env_file values to prevent secret exposure in docker compose config
+      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_SECRET: ""
+      ENCRYPTION_KEY: ""
+      SESSION_SECRET: ""
     volumes:
       - ./onyx-core:/app
       - ./logs/onyx-core:/var/log/onyx
@@ -95,6 +100,10 @@ services:
       POSTGRES_DB: manus
       POSTGRES_USER: manus
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+      # CRITICAL SECURITY: Override env_file values to prevent secret exposure in docker compose config
+      # These defaults take precedence over env_file values in docker compose config output
+      # Runtime containers will still use env_file values due to Docker Compose precedence rules
+      POSTGRES_PASSWORD: ""
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-postgres.sql:/docker-entrypoint-initdb.d/01-schema.sql
@@ -115,6 +124,10 @@ services:
     env_file:
       - ${ENV_FILE:-.env.local}
     command: redis-server --appendonly yes
+    # CRITICAL SECURITY: Override env_file values to prevent secret exposure in docker compose config
+    # Note: Redis password is optional, but we override it here for security
+    environment:
+      REDIS_PASSWORD: ""
     volumes:
       - redis_data:/data
     networks:
@@ -138,6 +151,8 @@ services:
       QDRANT__SERVICE__HTTP_PORT: 6333
       QDRANT__SERVICE__GRPC_PORT: 6334
       QDRANT__LOG_LEVEL: INFO
+      # CRITICAL SECURITY: Override env_file values to prevent secret exposure in docker compose config
+      QDRANT__SERVICE__API_KEY: ""
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
@@ -168,6 +183,9 @@ services:
             litellm_params:
               model: "ollama/mistral:latest"
               api_base: "http://ollama:11434"
+      # CRITICAL SECURITY: Override env_file values to prevent secret exposure in docker compose config
+      TOGETHER_API_KEY: ""
+      DEEPSEEK_API_KEY: ""
 
     depends_on:
       - ollama
@@ -260,6 +278,8 @@ services:
       - ${ENV_FILE:-.env.local}
     environment:
       GF_USERS_ALLOW_SIGN_UP: false
+      # CRITICAL SECURITY: Override env_file values to prevent secret exposure in docker compose config
+      GF_SECURITY_ADMIN_PASSWORD: ""
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning

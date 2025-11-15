@@ -12,6 +12,7 @@ import logging
 
 from services.web_content_extractor import WebContentExtractor
 from services.browser_manager import BrowserManager
+from services.form_manager import FormManager, FormFillRequest, FormFillResult
 from utils.auth import require_authenticated_user
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,34 @@ class ScrapeUrlResponse(BaseModel):
     extraction_time_ms: Optional[float] = None
     quality_score: Optional[float] = None
     extracted_at: Optional[str] = None
+
+
+class FillFormRequest(BaseModel):
+    """Request model for form filling"""
+
+    url: HttpUrl
+    fields: Dict[str, Any]
+    submit: bool = False
+    selector_strategy: str = "label"
+    timeout: int = 30
+    screenshots: bool = True
+
+
+class FillFormResponse(BaseModel):
+    """Response model for form filling"""
+
+    success: bool
+    url: str
+    total_fields: int
+    successful_fields: int
+    failed_fields: int
+    field_results: List[Dict[str, Any]] = []
+    screenshots: Optional[Dict[str, str]] = None
+    submit_result: Optional[Dict[str, Any]] = None
+    execution_time_ms: float
+    error: Optional[str] = None
+    captcha_detected: bool = False
+    executed_at: str
 
 
 # =============================================================================
@@ -259,6 +288,340 @@ async def cleanup_browser(current_user: dict = Depends(require_authenticated_use
         raise HTTPException(
             status_code=500,
             detail="Browser cleanup failed"
+        )
+
+
+# =============================================================================
+# Form Automation Endpoints
+# =============================================================================
+
+@router.post("/fill_form", response_model=FillFormResponse)
+async def fill_form(
+    request: FillFormRequest,
+    current_user: dict = Depends(require_authenticated_user)
+):
+    """
+    Fill a web form with provided field values.
+
+    This endpoint provides intelligent form filling with support for multiple field types,
+    automatic field detection, screenshot capture for audit trails, and form submission.
+
+    Args:
+        request: Form fill request with URL and field values
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        Comprehensive form fill result with field-level details and audit information
+    """
+    try:
+        logger.info(f"User {current_user.get('email')} filling form at: {request.url}")
+
+        # Create form manager
+        form_manager = FormManager()
+        await form_manager.get_instance()
+
+        # Convert request to internal format
+        form_request = FormFillRequest(
+            url=str(request.url),
+            fields=request.fields,
+            submit=request.submit,
+            selector_strategy=request.selector_strategy,
+            timeout=request.timeout,
+            screenshots=request.screenshots
+        )
+
+        # Fill form
+        result = await form_manager.fill_form(form_request)
+
+        # Convert result to response format
+        field_results = []
+        for field_result in result.field_results:
+            field_data = {
+                "field_name": field_result.field_name,
+                "success": field_result.success,
+                "value": field_result.value,
+                "error": field_result.error,
+                "execution_time_ms": field_result.execution_time_ms
+            }
+            if field_result.field_info:
+                field_data["field_info"] = {
+                    "field_type": field_result.field_info.field_type,
+                    "selector": field_result.field_info.selector,
+                    "selector_strategy": field_result.field_info.selector_strategy,
+                    "name": field_result.field_info.name,
+                    "id": field_result.field_info.id,
+                    "label_text": field_result.field_info.label_text
+                }
+            field_results.append(field_data)
+
+        if result.success:
+            logger.info(f"Form fill successful: {result.successful_fields}/{result.total_fields} fields "
+                       f"in {result.execution_time_ms:.0f}ms")
+        else:
+            logger.warning(f"Form fill failed: {result.error}")
+
+        return FillFormResponse(
+            success=result.success,
+            url=result.url,
+            total_fields=result.total_fields,
+            successful_fields=result.successful_fields,
+            failed_fields=result.failed_fields,
+            field_results=field_results,
+            screenshots=result.screenshots,
+            submit_result=result.submit_result,
+            execution_time_ms=result.execution_time_ms,
+            error=result.error,
+            captcha_detected=result.captcha_detected,
+            executed_at=result.executed_at
+        )
+
+    except Exception as e:
+        logger.error(f"Unexpected error during form filling: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Form filling service temporarily unavailable"
+        )
+
+
+@router.get("/fill_form", response_model=FillFormResponse)
+async def fill_form_get(
+    url: HttpUrl = Query(..., description="URL of the page containing the form"),
+    fields: str = Query(..., description="JSON-encoded field values (e.g., '{\"name\":\"John\",\"email\":\"john@example.com\"}')"),
+    submit: bool = Query(False, description="Whether to submit the form after filling"),
+    selector_strategy: str = Query("label", description="Field matching strategy"),
+    timeout: int = Query(30, description="Timeout in seconds"),
+    screenshots: bool = Query(True, description="Capture before/after screenshots"),
+    current_user: dict = Depends(require_authenticated_user)
+):
+    """
+    Fill a web form with provided field values (GET method).
+
+    This endpoint provides the same functionality as POST /fill_form but using
+    query parameters for convenience in testing and simple integrations.
+
+    Args:
+        url: URL of the page containing the form
+        fields: JSON-encoded field values
+        submit: Whether to submit the form after filling
+        selector_strategy: Field matching strategy
+        timeout: Timeout in seconds
+        screenshots: Capture before/after screenshots
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        Comprehensive form fill result with field-level details and audit information
+    """
+    try:
+        import json
+
+        logger.info(f"User {current_user.get('email')} filling form via GET: {url}")
+
+        # Parse fields from JSON string
+        try:
+            fields_data = json.loads(fields)
+            if not isinstance(fields_data, dict):
+                raise ValueError("Fields must be a JSON object")
+        except json.JSONDecodeError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid JSON format for fields parameter"
+            )
+
+        # Create form manager
+        form_manager = FormManager()
+        await form_manager.get_instance()
+
+        # Convert request to internal format
+        form_request = FormFillRequest(
+            url=str(url),
+            fields=fields_data,
+            submit=submit,
+            selector_strategy=selector_strategy,
+            timeout=timeout,
+            screenshots=screenshots
+        )
+
+        # Fill form
+        result = await form_manager.fill_form(form_request)
+
+        # Convert result to response format
+        field_results = []
+        for field_result in result.field_results:
+            field_data = {
+                "field_name": field_result.field_name,
+                "success": field_result.success,
+                "value": field_result.value,
+                "error": field_result.error,
+                "execution_time_ms": field_result.execution_time_ms
+            }
+            if field_result.field_info:
+                field_data["field_info"] = {
+                    "field_type": field_result.field_info.field_type,
+                    "selector": field_result.field_info.selector,
+                    "selector_strategy": field_result.field_info.selector_strategy,
+                    "name": field_result.field_info.name,
+                    "id": field_result.field_info.id,
+                    "label_text": field_result.field_info.label_text
+                }
+            field_results.append(field_data)
+
+        if result.success:
+            logger.info(f"Form fill successful: {result.successful_fields}/{result.total_fields} fields "
+                       f"in {result.execution_time_ms:.0f}ms")
+        else:
+            logger.warning(f"Form fill failed: {result.error}")
+
+        return FillFormResponse(
+            success=result.success,
+            url=result.url,
+            total_fields=result.total_fields,
+            successful_fields=result.successful_fields,
+            failed_fields=result.failed_fields,
+            field_results=field_results,
+            screenshots=result.screenshots,
+            submit_result=result.submit_result,
+            execution_time_ms=result.execution_time_ms,
+            error=result.error,
+            captcha_detected=result.captcha_detected,
+            executed_at=result.executed_at
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during form filling: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Form filling service temporarily unavailable"
+        )
+
+
+@router.get("/form-field-types")
+async def get_supported_field_types(
+    current_user: dict = Depends(require_authenticated_user)
+):
+    """
+    Get list of supported form field types for form filling.
+
+    Args:
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        List of supported field types with descriptions and examples
+    """
+    try:
+        field_types = {
+            "text": {
+                "name": "Text Input",
+                "description": "Standard text input fields",
+                "examples": ["name", "address", "company", "phone", "search"],
+                "html_tags": ["<input type='text'>", "<input type='search'>", "<input type='tel'>", "<input type='url'>"],
+                "validation": "Basic string validation, XSS prevention"
+            },
+            "email": {
+                "name": "Email Input",
+                "description": "Email address input fields",
+                "examples": ["email", "email_address", "contact_email"],
+                "html_tags": ["<input type='email'>"],
+                "validation": "Email format validation"
+            },
+            "password": {
+                "name": "Password Input",
+                "description": "Password input fields",
+                "examples": ["password", "pass", "pwd"],
+                "html_tags": ["<input type='password'>"],
+                "validation": "Standard password field handling"
+            },
+            "textarea": {
+                "name": "Text Area",
+                "description": "Multi-line text input fields",
+                "examples": ["message", "comments", "description", "feedback"],
+                "html_tags": ["<textarea>"],
+                "validation": "Multi-line text support"
+            },
+            "select": {
+                "name": "Select Dropdown",
+                "description": "Dropdown selection fields",
+                "examples": ["country", "state", "category", "language"],
+                "html_tags": ["<select>"],
+                "validation": "Option matching by text or value"
+            },
+            "checkbox": {
+                "name": "Checkbox",
+                "description": "Checkbox fields for boolean values",
+                "examples": ["agree", "subscribe", "remember_me", "terms"],
+                "html_tags": ["<input type='checkbox'>"],
+                "validation": "Boolean value handling"
+            },
+            "radio": {
+                "name": "Radio Button",
+                "description": "Radio button groups for single selection",
+                "examples": ["gender", "payment_method", "plan"],
+                "html_tags": ["<input type='radio'>"],
+                "validation": "Single option selection"
+            }
+        }
+
+        selector_strategies = {
+            "name": {
+                "name": "Name Attribute",
+                "description": "Match by the field's name attribute (most reliable)",
+                "example": "name='first_name' matches field with name='first_name'"
+            },
+            "id": {
+                "name": "ID Attribute",
+                "description": "Match by the field's id attribute (very reliable)",
+                "example": "id='email-input' matches field with id='email-input'"
+            },
+            "label": {
+                "name": "Label Text",
+                "description": "Match by associated label text (good for accessibility)",
+                "example": "label 'Email Address:' matches field with that label"
+            },
+            "placeholder": {
+                "name": "Placeholder Text",
+                "description": "Match by placeholder text (moderate reliability)",
+                "example": "placeholder='Enter your email' matches field with that placeholder"
+            },
+            "css_class": {
+                "name": "CSS Class",
+                "description": "Match by CSS class names (fallback for styled forms)",
+                "example": "class='form-control' matches field with that class"
+            },
+            "aria_label": {
+                "name": "ARIA Label",
+                "description": "Match by ARIA label attributes (accessibility fallback)",
+                "example": "aria-label='Search query' matches field with that ARIA label"
+            }
+        }
+
+        return {
+            "success": True,
+            "data": {
+                "field_types": field_types,
+                "selector_strategies": selector_strategies,
+                "performance_targets": {
+                    "form_fill_time": "<5 seconds for typical forms (5-10 fields)",
+                    "screenshot_capture": "<1 second for before/after images",
+                    "field_detection": "<500ms for form analysis",
+                    "browser_navigation": "<3 seconds page load time"
+                },
+                "security_features": [
+                    "Input sanitization for XSS prevention",
+                    "CAPTCHA detection and manual intervention",
+                    "URL validation against blocked domains",
+                    "Audit trail with screenshot documentation",
+                    "Rate limiting to prevent abuse"
+                ]
+            },
+            "message": "Form field types information retrieved successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting field types: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to retrieve field types information"
         )
 
 
