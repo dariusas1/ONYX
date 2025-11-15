@@ -6,7 +6,7 @@ and sentence transformers for embedding generation.
 """
 
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from dataclasses import dataclass
 import logging
 
@@ -22,6 +22,16 @@ from qdrant_client.models import ( # pyright: ignore[reportMissingImports]
     OptimizersConfigDiff,
 )
 from openai import OpenAI
+
+# Import hybrid search components
+try:
+    from .services.hybrid_search_service import HybridSearchService, HybridSearchResult
+    from .services.keyword_search_service import KeywordSearchService
+    HYBRID_SEARCH_AVAILABLE = True
+except ImportError:
+    HYBRID_SEARCH_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning("Hybrid search components not available - falling back to semantic search only")
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +54,7 @@ class SearchResult:
 
 
 class RAGService:
-    """RAG Service for document search and retrieval"""
+    """RAG Service for document search and retrieval with hybrid search capabilities"""
 
     def __init__(self):
         """Initialize RAG service with Qdrant and OpenAI embeddings"""
@@ -53,8 +63,13 @@ class RAGService:
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.collection_name = COLLECTION_NAME
 
+        # Hybrid search configuration
+        self.enable_hybrid_search = os.getenv("ENABLE_HYBRID_SEARCH", "true").lower() == "true"
+        self.hybrid_search_service = None
+
         # Initialize clients
         self._init_clients()
+        self._init_hybrid_search()
 
     def _init_clients(self):
         """Initialize Qdrant client and OpenAI client"""
@@ -75,6 +90,25 @@ class RAGService:
         except Exception as e:
             logger.error(f"Failed to initialize RAG service: {e}")
             raise
+
+    def _init_hybrid_search(self):
+        """Initialize hybrid search service if enabled"""
+        if not self.enable_hybrid_search:
+            logger.info("Hybrid search disabled - using semantic search only")
+            return
+
+        if not HYBRID_SEARCH_AVAILABLE:
+            logger.warning("Hybrid search requested but components not available")
+            self.enable_hybrid_search = False
+            return
+
+        try:
+            # Note: Hybrid search service is initialized lazily when needed
+            # to avoid circular import issues
+            logger.info("Hybrid search enabled - will initialize on first search")
+        except Exception as e:
+            logger.error(f"Failed to initialize hybrid search: {e}")
+            self.enable_hybrid_search = False
 
     async def ensure_collection_exists(self):
         """Ensure the Qdrant collection exists"""
@@ -128,6 +162,8 @@ class RAGService:
         source_filter: Optional[str] = None,
         score_threshold: float = 0.5,
         user_email: Optional[str] = None,
+        search_type: str = "auto",  # auto, hybrid, semantic, keyword
+        user_permissions: Optional[List[str]] = None,
     ) -> List[SearchResult]:
         """
         Search for documents using semantic similarity with permission filtering
