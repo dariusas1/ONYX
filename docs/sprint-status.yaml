@@ -17,13 +17,97 @@ epics:
 
   - epic_id: "epic-2"
     name: "Chat Interface & Conversation Management"
-    status: "done"
-    stories: []
+    status: "in_progress"
+    stories:
+      - story_id: "2-3-message-history-persistence"
+        title: "Message History & Persistence"
+        status: "in-progress"
+        priority: "P1"
+        estimated_points: 5
+        assigned_to: "TBD"
+        sprint: "Sprint 2"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Core chat functionality for conversation persistence and search across sessions. Story context generated and ready for development with comprehensive technical specifications, database schema, API endpoints, and implementation patterns documented."
+        dependencies: ["1-1-project-setup-repository-initialization", "2-1-suna-ui-deployment-manus-theme", "1-3-environment-configuration-secrets-management"]
+        acceptance_criteria:
+          - "AC2.3.1: Message saved to Supabase with timestamp, user_id, session_id"
+          - "AC2.3.2: User can load last 100 messages in current session"
+          - "AC2.3.3: Infinite scroll loads older messages (paginated)"
+          - "AC2.3.4: Search across all messages by keyword works"
+          - "AC2.3.5: Old messages don't slow down current chat (pagination)"
+          - "AC2.3.6: Soft-delete messages (don't hard delete) for audit trail"
 
   - epic_id: "epic-3"
     name: "RAG Integration & Knowledge Retrieval"
-    status: "done"
-    stories: []
+    status: "in_progress"
+    stories:
+      - story_id: "3-1-qdrant-vector-database-setup"
+        title: "Qdrant Vector Database Setup"
+        status: "ready-for-dev"
+        priority: "P0"
+        estimated_points: 5
+        assigned_to: "TBD"
+        sprint: "Sprint 3"
+        created_date: "2025-11-13"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Foundation vector database for semantic search and RAG functionality"
+        dependencies: ["1-1-project-setup-repository-initialization"]
+        acceptance_criteria:
+          - "AC3.1.1: Qdrant service running on port 6333 with health check returning 200"
+          - "AC3.1.2: Collection 'documents' created with 1536-dimensional vectors"
+          - "AC3.1.3: Can upsert vectors and search with <100ms latency"
+          - "AC3.1.4: Data persists across container restarts (volume mounted)"
+          - "AC3.1.5: API endpoints respond correctly for create, upsert, search operations"
+
+      - story_id: "3-2-google-drive-connector-auto-sync"
+        title: "Google Drive Connector & Auto-Sync"
+        status: "ready-for-dev"
+        priority: "P1"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 3"
+        created_date: "2025-11-14"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Automated Google Drive document indexing and sync for RAG system"
+        dependencies: ["1-1-project-setup-repository-initialization", "1-3-environment-configuration-secrets-management", "3-1-qdrant-vector-database-setup"]
+        acceptance_criteria:
+          - "AC3.2.1: User authenticates with Google OAuth and grants Drive access"
+          - "AC3.2.2: Sync job runs every 10 minutes automatically"
+          - "AC3.2.3: All accessible Drive files listed and new/modified files detected"
+          - "AC3.2.4: File metadata stored: name, id, modified_at, owner, sharing_status"
+          - "AC3.2.5: Respects file permissions (only indexes accessible files)"
+          - "AC3.2.6: Sync status visible on dashboard ('Last sync: X min ago')"
+          - "AC3.2.7: Error rate <2% on sync jobs (retry logic handles transient failures)"
+
+      - story_id: "3-3-slack-connector-message-indexing"
+        title: "Slack Connector & Message Indexing"
+        status: "ready-for-dev"
+        priority: "P1"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 3"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Slack message and thread indexing for team conversation context in RAG system. Comprehensive story context generated with technical specifications, API design, database schema, and integration patterns."
+        dependencies: ["1-1-project-setup-repository-initialization", "1-3-environment-configuration-secrets-management", "3-1-qdrant-vector-database-setup", "3-2-google-drive-connector-auto-sync"]
+        acceptance_criteria:
+          - "AC3.3.1: Slack API token configured and authenticated"
+          - "AC3.3.2: Sync job retrieves messages from last 10 minutes every 10 minutes"
+          - "AC3.3.3: Messages from all accessible channels retrieved"
+          - "AC3.3.4: Thread replies included (full conversation context)"
+          - "AC3.3.5: Files shared in messages extracted and indexed"
+          - "AC3.3.6: Respects channel privacy (no private channel indexing without access)"
+          - "AC3.3.7: Metadata stored: channel_id, user_id, timestamp, text, thread_id"
+          - "AC3.3.8: Error rate <2% on sync operations"
 
   - epic_id: "epic-4"
     name: "Persistent Memory & Learning"
@@ -32,13 +116,215 @@ epics:
 
   - epic_id: "epic-5"
     name: "Agent Mode & Task Execution"
-    status: "done"
-    stories: []
+    status: "contexted"
+    stories:
+      - story_id: "5-1-agent-mode-toggle-ui"
+        title: "Agent Mode Toggle & UI"
+        status: "ready"
+        priority: "P1"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 5"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "UI component for switching between Chat and Agent modes with visual indicators, persistence, warnings, and audit logging. Ready for implementation with comprehensive technical specifications and security requirements."
+        dependencies: ["1-1-project-setup-repository-initialization", "2-3-message-history-persistence"]
+        acceptance_criteria:
+          - "AC5.1.1: Agent Mode toggle switches between Chat and Agent modes with visual state indication"
+          - "AC5.1.2: Mode preference persists across sessions and UI reflects current mode correctly"
+          - "AC5.1.3: Agent Mode shows warning about autonomous execution and approval requirements"
+          - "AC5.1.4: Task submission interface differentiates from chat input with appropriate labeling"
+          - "AC5.1.5: Mode switching doesn't interrupt ongoing tasks or active conversations"
+          - "AC5.1.6: Toggle is accessible with keyboard navigation and screen reader support"
+          - "AC5.1.7: Mode changes are logged in audit trail with timestamps and user context"
+
+      - story_id: "5-2-tool-selection-planning"
+        title: "Tool Selection & Planning"
+        status: "ready"
+        priority: "P0"
+        estimated_points: 13
+        assigned_to: "TBD"
+        sprint: "Sprint 5"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "AI-powered tool selection and task planning engine with autonomous tool selection, complex task decomposition, and real-time logging. Integration with MCP and native tools with performance optimization."
+        dependencies: ["1-1-project-setup-repository-initialization", "5-1-agent-mode-toggle-ui"]
+        acceptance_criteria:
+          - "AC5.2.1: Agent autonomously selects appropriate tools for given task descriptions"
+          - "AC5.2.2: Tool selection reasoning is logged and available for debugging"
+          - "AC5.2.3: Complex tasks are broken down into sequential steps with clear dependencies"
+          - "AC5.2.4: Tool selection accuracy >95% for standard task patterns"
+          - "AC5.2.5: Planning phase completes within 2 seconds for typical tasks"
+          - "AC5.2.6: Tool selection supports MCP tools and native Claude Code tools"
+          - "AC5.2.7: Planning results include execution order and estimated completion time"
+          - "AC5.2.8: Tool selection handles edge cases and unknown tool requirements gracefully"
+
+      - story_id: "5-3-approval-gates-system"
+        title: "Approval Gates System"
+        status: "ready"
+        priority: "P0"
+        estimated_points: 10
+        assigned_to: "TBD"
+        sprint: "Sprint 5"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Security framework for agent approval requests with sensitivity classification, parameter modification, batch approval, and emergency bypass. Comprehensive audit logging and compliance features."
+        dependencies: ["1-1-project-setup-repository-initialization", "5-1-agent-mode-toggle-ui", "5-2-tool-selection-planning"]
+        acceptance_criteria:
+          - "AC5.3.1: All sensitive actions trigger approval requests before execution"
+          - "AC5.3.2: Approval requests include action description, preview, and clear approve/reject options"
+          - "AC5.3.3: Approval requests timeout after 5 minutes with automatic rejection"
+          - "AC5.3.4: User can modify parameters before approving sensitive actions"
+          - "AC5.3.5: All approval decisions are logged in audit trail with timestamps"
+          - "AC5.3.6: Approval system supports different sensitivity levels (P0, P1, P2)"
+          - "AC5.3.7: Batch approval available for related sensitive actions"
+          - "AC5.3.8: Emergency bypass mechanism for critical situations with proper authorization"
+
+      - story_id: "5-4-task-execution-engine"
+        title: "Task Execution Engine"
+        status: "ready"
+        priority: "P0"
+        estimated_points: 13
+        assigned_to: "TBD"
+        sprint: "Sprint 5"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Step-by-step task execution engine with real-time progress tracking, pause/resume capabilities, resource monitoring, and rollback support. Advanced features include parallel execution and performance analytics."
+        dependencies: ["1-1-project-setup-repository-initialization", "5-2-tool-selection-planning", "5-3-approval-gates-system"]
+        acceptance_criteria:
+          - "AC5.4.1: Tasks execute step-by-step with status updates for each phase"
+          - "AC5.4.2: Step failures don't cancel entire task unless critical"
+          - "AC5.4.3: Task progress is visible in real-time via WebSocket updates"
+          - "AC5.4.4: Tasks can be paused and resumed with state preservation"
+          - "AC5.4.5: Execution time estimates provided and updated during progress"
+          - "AC5.4.6: Resource usage monitoring prevents system overload during execution"
+          - "AC5.4.7: Task execution supports rollback to previous states for failed steps"
+          - "AC5.4.8: Concurrent step execution when dependencies allow for parallel processing"
+
+      - story_id: "5-5-task-history-tracking"
+        title: "Task History & Tracking"
+        status: "ready"
+        priority: "P1"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 5"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Comprehensive task lifecycle tracking with searchable history, detailed information display, execution metrics, and export functionality. Advanced analytics dashboard with trend analysis."
+        dependencies: ["1-1-project-setup-repository-initialization", "5-4-task-execution-engine"]
+        acceptance_criteria:
+          - "AC5.5.1: All tasks are recorded with complete lifecycle (creation → completion)"
+          - "AC5.5.2: Task history is searchable by status, date range, and keywords"
+          - "AC5.5.3: Task details include steps taken, tools used, and results achieved"
+          - "AC5.5.4: Failed tasks show error messages and failure points"
+          - "AC5.5.5: Task history displays last 20 tasks with pagination for older records"
+          - "AC5.5.6: Task history includes execution metrics (duration, resource usage, success rate)"
+          - "AC5.5.7: Users can export task history for compliance and analysis"
+          - "AC5.5.8: Task history supports filtering by agent mode, sensitivity level, and user"
+
+      - story_id: "5-6-rollback-recovery"
+        title: "Rollback & Recovery"
+        status: "ready"
+        priority: "P1"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 5"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Comprehensive rollback system with 5-minute window, state tracking, multi-step rollback, and emergency rollback capabilities. Advanced safety framework with risk assessment and validation."
+        dependencies: ["1-1-project-setup-repository-initialization", "5-4-task-execution-engine", "5-5-task-history-tracking"]
+        acceptance_criteria:
+          - "AC5.6.1: Undo functionality available for 5 minutes after task completion"
+          - "AC5.6.2: Rollback operations reverse file creation and modifications"
+          - "AC5.6.3: Rollback availability clearly indicated in task interface"
+          - "AC5.6.4: Rollback actions logged with original and restored states"
+          - "AC5.6.5: Critical actions (deletions, external posts) cannot be rolled back"
+          - "AC5.6.6: Rollback supports multi-step tasks with partial rollback options"
+          - "AC5.6.7: Rollback system validates state integrity before and after operations"
+          - "AC5.6.8: Emergency rollback available for system administrators with extended time window"
+
+      - story_id: "5-7-concurrent-task-management"
+        title: "Concurrent Task Management"
+        status: "ready"
+        priority: "P1"
+        estimated_points: 10
+        assigned_to: "TBD"
+        sprint: "Sprint 5"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Advanced concurrent task management with maximum 3 concurrent tasks, priority-based scheduling, resource monitoring, and task coordination. Comprehensive queue management with performance optimization."
+        dependencies: ["1-1-project-setup-repository-initialization", "5-4-task-execution-engine"]
+        acceptance_criteria:
+          - "AC5.7.1: Maximum 3 tasks execute simultaneously with queue for additional tasks"
+          - "AC5.7.2: Queue position and estimated wait time displayed to users"
+          - "AC5.7.3: Users can reorder queued tasks or cancel pending tasks"
+          - "AC5.7.4: Task priority system influences execution order"
+          - "AC5.7.5: System resource monitoring prevents overload from concurrent tasks"
+          - "AC5.7.6: Queue management supports different priority levels and user preferences"
+          - "AC5.7.7: Concurrent task coordination prevents resource conflicts"
+          - "AC5.7.8: Performance monitoring tracks concurrent execution efficiency"
+
+      - story_id: "5-8-database-schema-apis"
+        title: "Database Schema & APIs"
+        status: "ready"
+        priority: "P0"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 5"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Comprehensive database schema and API endpoints for all Epic 5 functionality with proper relationships, performance optimization, security, and documentation. Migration framework with rollback support."
+        dependencies: ["1-1-project-setup-repository-initialization"]
+        acceptance_criteria:
+          - "AC5.8.1: Complete database schema for all Epic 5 data models with proper relationships"
+          - "AC5.8.2: RESTful API endpoints for all agent mode operations with proper validation"
+          - "AC5.8.3: Database indexes optimized for query performance and scalability"
+          - "AC5.8.4: API documentation with OpenAPI/Swagger specifications"
+          - "AC5.8.5: Database migrations with rollback support and version control"
+          - "AC5.8.6: API authentication and authorization integrated with existing system"
+          - "AC5.8.7: Comprehensive error handling and response formatting"
+          - "AC5.8.8: Performance monitoring and API analytics implementation"
 
   - epic_id: "epic-6"
     name: "Google Workspace Tools"
-    status: "done"
-    stories: []
+    status: "in_progress"
+    stories:
+      - story_id: "6-1-google-oauth2-setup-token-management"
+        title: "Google OAuth2 Setup & Token Management"
+        status: "drafted"
+        priority: "P0"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 6"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Critical foundation story for Google Workspace integration. Implements secure OAuth2 authentication with encrypted token storage and automatic refresh mechanism."
+        dependencies: ["epic-1"]
+        acceptance_criteria:
+          - "AC6.1.1: User redirected to Google login (OAuth2 flow) on first Google tools use"
+          - "AC6.1.2: User grants Manus permission to access Drive, Docs, Sheets"
+          - "AC6.1.3: Token stored encrypted in Supabase (AES-256)"
+          - "AC6.1.4: Refresh token auto-refreshed before expiry (<1s overhead)"
+          - "AC6.1.5: No credentials visible in logs or error messages"
+          - "AC6.1.6: Proper scope validation for Drive, Docs, Sheets access"
 
   - epic_id: "epic-7"
     name: "Web Automation & Search"
@@ -173,19 +459,19 @@ sprint_summary:
     - "Integrate browser automation, web search, content extraction"
 
   story_count:
-    total: 5
+    total: 15
     todo: 3
-    drafted: 0
-    ready: 0
+    drafted: 1
+    ready: 9
     in_progress: 0
     in_review: 0
     done: 2
     blocked: 0
 
   velocity:
-    planned_points: 34
+    planned_points: 106
     completed_points: 13
-    remaining_points: 21
+    remaining_points: 93
 
 # Team
 team:
