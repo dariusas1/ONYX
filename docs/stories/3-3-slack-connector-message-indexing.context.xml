@@ -1,0 +1,526 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>3-3-slack-connector-message-indexing</story-id>
+    <story-title>Slack Connector &amp; Message Indexing</story-title>
+    <epic-id>epic-3</epic-id>
+    <epic-title>Knowledge Retrieval (RAG)</epic-title>
+    <status>ready-for-dev</status>
+    <created>2025-11-15</created>
+    <context-generated>2025-11-15</context-generated>
+    <story-points>8</story-points>
+    <priority>High</priority>
+  </metadata>
+
+  <story-details>
+    <user-story>
+      <as-a>user</as-a>
+      <i-want>all Slack messages and threads automatically indexed every 10 minutes</i-want>
+      <so-that>Manus always has current knowledge from team discussions and can provide grounded strategic advice based on company conversations</so-that>
+    </user-story>
+
+    <business-context>
+      <description>
+        The Slack connector is a critical data source for Manus Internal's RAG system. It provides automated access to the primary repository of team knowledge including strategic discussions, decision-making threads, project updates, technical solutions, and informal knowledge sharing that happens in Slack conversations.
+      </description>
+      <business-impact>
+        - Real-time strategic advice based on latest team discussions
+        - Reduces founder cognitive load by automating knowledge synchronization
+        - Ensures RAG responses are backed by current, verifiable conversation sources
+        - Provides foundation for citation-based strategic recommendations from Slack threads
+        - Captures tacit knowledge and decision rationale from team communications
+      </business-impact>
+    </business-context>
+  </story-details>
+
+  <dependencies>
+    <prerequisite status="completed">
+      <story-id>1-1-project-setup-repository-initialization</story-id>
+      <description>Docker Compose infrastructure in place</description>
+    </prerequisite>
+    <prerequisite status="completed">
+      <story-id>1-3-environment-configuration-secrets-management</story-id>
+      <description>.env.local setup for OAuth credentials and encryption</description>
+    </prerequisite>
+    <prerequisite status="completed">
+      <story-id>3-1-qdrant-vector-database-setup</story-id>
+      <description>Qdrant collection "documents" created with 1536-dim vectors, vector upsert and search operations working</description>
+      <notes>
+        - Qdrant client configured in Onyx Core
+        - Collection uses OpenAI text-embedding-3-small (1536 dimensions)
+        - Cosine distance metric configured
+        - On-disk storage enabled for large corpus support
+        - API endpoints: GET /collections, PUT /collections/{name}/points, POST /collections/{name}/points/search
+      </notes>
+    </prerequisite>
+    <prerequisite status="completed">
+      <story-id>3-2-google-drive-connector-auto-sync</story-id>
+      <description>Sync job patterns and authentication flow established</description>
+      <notes>
+        - Sync scheduler infrastructure in place (APScheduler)
+        - OAuth token management and encryption patterns
+        - Incremental sync logic with change detection
+        - Error handling and retry mechanisms
+        - PostgreSQL metadata schema for documents
+      </notes>
+    </prerequisite>
+    <blocks>
+      <story-id>3-5-hybrid-search-semantic-keyword</story-id>
+      <reason>Needs Slack data source for search functionality</reason>
+    </blocks>
+    <blocks>
+      <story-id>3-6-citation-source-link-generation</story-id>
+      <reason>Needs Slack metadata for citation generation</reason>
+    </blocks>
+  </dependencies>
+
+  <technical-context>
+    <architecture-integration>
+      <description>
+        Slack connector integrates with the RAG pipeline as a data source alongside Google Drive.
+        It authenticates via Slack Bot Token OAuth, auto-syncs every 10 minutes, respects channel privacy,
+        supports thread reconstruction, and enables >95% RAG relevance with conversation context.
+      </description>
+
+      <data-flow>
+        <step>Slack Bot Token OAuth Authentication</step>
+        <step>Sync Job (APScheduler - every 10 min)</step>
+        <step>Channel Discovery (conversations.list API)</step>
+        <step>Message Retrieval (conversations.history with pagination)</step>
+        <step>Thread Reconstruction (thread replies linked to parent)</step>
+        <step>File Attachment Processing (files.info + download)</step>
+        <step>Content Extraction (text + file content)</step>
+        <step>Chunking (500 tokens per chunk, 50 token overlap)</step>
+        <step>Embedding Generation (OpenAI text-embedding-3-small)</step>
+        <step>Qdrant Vector Storage (1536-dim vectors)</step>
+        <step>PostgreSQL Metadata Storage (documents + slack_documents tables)</step>
+      </data-flow>
+
+      <service-integration>
+        <onyx-core-service>
+          <base-url>http://onyx-core:8080</base-url>
+          <endpoints>
+            <endpoint method="POST">/api/slack/auth</endpoint>
+            <endpoint method="GET">/api/slack/channels</endpoint>
+            <endpoint method="POST">/api/slack/sync</endpoint>
+            <endpoint method="GET">/api/slack/status</endpoint>
+            <endpoint method="GET">/api/slack/health</endpoint>
+          </endpoints>
+        </onyx-core-service>
+
+        <qdrant-integration>
+          <collection>documents</collection>
+          <client>qdrant-client==1.15.0</client>
+          <connection>http://qdrant:6333</connection>
+          <payload-fields>
+            <field name="doc_id" type="keyword" indexed="true" />
+            <field name="title" type="text" />
+            <field name="source_type" type="keyword" indexed="true" value="slack" />
+            <field name="source_id" type="keyword" indexed="true" />
+            <field name="chunk_index" type="integer" />
+            <field name="created_at" type="datetime" />
+            <field name="permissions" type="keyword[]" indexed="true" />
+            <field name="channel_id" type="keyword" indexed="true" />
+            <field name="user_id" type="keyword" indexed="true" />
+            <field name="thread_id" type="keyword" indexed="true" />
+          </payload-fields>
+        </qdrant-integration>
+
+        <postgres-integration>
+          <connection-url>${DATABASE_URL}</connection-url>
+          <orm>SQLAlchemy 2.0 with async support</orm>
+          <tables>
+            <table name="documents">Shared document metadata (source_type='slack')</table>
+            <table name="slack_documents">Slack-specific message metadata</table>
+            <table name="sync_jobs">Sync job status tracking</table>
+          </tables>
+        </postgres-integration>
+      </service-integration>
+    </architecture-integration>
+
+    <database-schema>
+      <postgresql-schema>
+        <table name="slack_documents">
+          <columns>
+            <column name="id" type="UUID PRIMARY KEY DEFAULT gen_random_uuid()" />
+            <column name="source_id" type="TEXT UNIQUE NOT NULL" description="Slack message timestamp (ts)" />
+            <column name="channel_id" type="TEXT NOT NULL" />
+            <column name="channel_name" type="TEXT" />
+            <column name="user_id" type="TEXT NOT NULL" />
+            <column name="user_name" type="TEXT" />
+            <column name="timestamp" type="TIMESTAMP NOT NULL" />
+            <column name="text" type="TEXT NOT NULL" />
+            <column name="thread_id" type="TEXT" description="Parent message timestamp if in thread" />
+            <column name="message_type" type="TEXT NOT NULL" description="message, thread_parent, thread_reply" />
+            <column name="reactions" type="JSONB" description="emoji reactions and user counts" />
+            <column name="mentions" type="JSONB" description="user and channel mentions" />
+            <column name="file_attachments" type="JSONB" description="array of file metadata" />
+            <column name="indexed_at" type="TIMESTAMP DEFAULT NOW()" />
+            <column name="created_at" type="TIMESTAMP DEFAULT NOW()" />
+          </columns>
+          <indexes>
+            <index columns="source_id" unique="true" />
+            <index columns="channel_id" />
+            <index columns="user_id" />
+            <index columns="timestamp" />
+            <index columns="thread_id" />
+          </indexes>
+        </table>
+
+        <table name="sync_jobs">
+          <columns>
+            <column name="id" type="UUID PRIMARY KEY DEFAULT gen_random_uuid()" />
+            <column name="source_type" type="TEXT NOT NULL" />
+            <column name="status" type="TEXT NOT NULL" description="running, success, failed" />
+            <column name="started_at" type="TIMESTAMP DEFAULT NOW()" />
+            <column name="completed_at" type="TIMESTAMP" />
+            <column name="documents_synced" type="INTEGER DEFAULT 0" />
+            <column name="documents_failed" type="INTEGER DEFAULT 0" />
+            <column name="error_message" type="TEXT" />
+          </columns>
+          <indexes>
+            <index columns="source_type, status" />
+          </indexes>
+        </table>
+      </postgresql-schema>
+    </database-schema>
+
+    <api-implementation>
+      <slack-authentication>
+        <oauth-flow>
+          <step>Bot Token Generation in Slack App</step>
+          <step>Required Scopes: channels:history, channels:read, files:read, users:read</step>
+          <step>Token Storage: Encrypted in PostgreSQL (AES-256)</step>
+          <step>Token Validation: auth.test API call on startup</step>
+        </oauth-flow>
+        <endpoints>
+          <endpoint method="POST" path="/api/slack/auth">
+            <description>Store Slack bot token</description>
+            <request-body>
+              <field name="bot_token" type="string" required="true" />
+            </request-body>
+            <response>
+              <field name="status" type="string" />
+              <field name="workspace_name" type="string" />
+            </response>
+          </endpoint>
+        </endpoints>
+      </slack-authentication>
+
+      <sync-endpoints>
+        <endpoint method="POST" path="/api/slack/sync">
+          <description>Trigger manual sync job</description>
+          <request-body>
+            <field name="channel_ids" type="array" optional="true" />
+            <field name="full_sync" type="boolean" default="false" />
+          </request-body>
+          <response>
+            <field name="job_id" type="string" />
+            <field name="status" type="string" />
+            <field name="started_at" type="datetime" />
+          </response>
+        </endpoint>
+
+        <endpoint method="GET" path="/api/slack/status">
+          <description>Get sync status and statistics</description>
+          <response>
+            <field name="last_sync" type="datetime" />
+            <field name="messages_indexed" type="integer" />
+            <field name="channels_count" type="integer" />
+            <field name="sync_status" type="string" />
+            <field name="error_rate" type="float" />
+          </response>
+        </endpoint>
+      </sync-endpoints>
+    </api-implementation>
+
+    <slack-integration>
+      <client-library>
+        <name>slack-sdk</name>
+        <version>3.0.0+</version>
+        <python-package>slack-sdk==3.23.0</python-package>
+      </client-library>
+
+      <api-operations>
+        <operation name="auth.test" description="Validate bot token and get workspace info" />
+        <operation name="conversations.list" description="List accessible channels" />
+        <operation name="conversations.history" description="Get channel messages with pagination" />
+        <operation name="conversations.replies" description="Get thread replies" />
+        <operation name="files.info" description="Get file metadata" />
+        <operation name="files.download" description="Download file content" />
+        <operation name="users.info" description="Get user information" />
+      </api-operations>
+
+      <rate-limits>
+        <tier>Tier 4: ~50 requests/minute per workspace</tier>
+        <strategy>Exponential backoff: 1s, 5s, 30s between retries</strategy>
+        <batching>Batch requests where possible to reduce API calls</batching>
+      </rate-limits>
+
+      <error-handling>
+        <error code="rate_limited" action="Exponential backoff retry" />
+        <error code="not_authed" action="Re-authenticate user" />
+        <error code="not_in_channel" action="Skip channel, log permission error" />
+        <error code="file_not_found" action="Log and continue with other files" />
+        <error code="too_large" action="Skip file, log size limit exceeded" />
+      </error-handling>
+    </slack-integration>
+
+    <message-processing>
+      <message-extraction>
+        <fields>
+          <field name="ts" source="message.timestamp" type="string" description="Unique message identifier" />
+          <field name="text" source="message.text" type="text" description="Message content" />
+          <field name="user" source="message.user" type="string" description="Author user ID" />
+          <field name="channel" source="message.channel" type="string" description="Channel ID" />
+          <field name="thread_ts" source="message.thread_ts" type="string" description="Thread parent timestamp" />
+          <field name="reactions" source="message.reactions" type="array" description="Emoji reactions" />
+          <field name="files" source="message.files" type="array" description="File attachments" />
+          <field name="edited" source="message.edited" type="object" description="Edit information" />
+        </fields>
+      </message-extraction>
+
+      <thread-reconstruction>
+        <strategy>Link replies to parent via thread_ts</strategy>
+        <max-depth>100 replies per thread to prevent memory issues</max-depth>
+        <hierarchy>Store thread_parent and thread_reply message types</hierarchy>
+        <context>Include parent message text in reply embeddings for context</context>
+      </thread-reconstruction>
+
+      <file-processing>
+        <supported-types>
+          <type mime="text/plain">Direct text extraction</type>
+          <type mime="application/pdf">PyPDF2 text extraction</type>
+          <type mime="image/*">Image metadata only (OCR deferred)</type>
+          <type mime="application/json">JSON parsing and text extraction</type>
+          <type mime="text/markdown">Direct markdown parsing</type>
+        </supported-types>
+        <size-limit>50MB per file</size-limit>
+        <extraction-strategy>Download temporary file, extract content, cleanup</extraction-strategy>
+        <chunking>File content chunked alongside message text</chunking>
+      </file-processing>
+    </message-processing>
+
+    <embedding-generation>
+      <provider>OpenAI</provider>
+      <model>text-embedding-3-small</model>
+      <dimensions>1536</dimensions>
+      <batch-size>100 messages per request</batch-size>
+      <retry-strategy>3 attempts with exponential backoff</retry-strategy>
+      <caching>Cache embeddings by content_hash to avoid duplicate API calls</caching>
+      <cost-tracking>Log token usage for monthly cost monitoring</cost-tracking>
+    </embedding-generation>
+
+    <sync-scheduler>
+      <framework>APScheduler (AsyncIOScheduler)</framework>
+      <schedule>interval: 10 minutes (cron: */10 * * * *)</schedule>
+      <job-overlap-prevention>Check if previous job completed before starting new job</job-overlap-prevention>
+      <job-tracking>Record job status in sync_jobs table</job-tracking>
+      <error-monitoring>Alert if error rate > 2% for 3 consecutive jobs</error-monitoring>
+      <performance-monitoring>Track sync duration, messages processed, API usage</performance-monitoring>
+    </sync-scheduler>
+
+    <permissions-security>
+      <channel-access-control>
+        <verification>Check bot membership via conversations.members API</verification>
+        <public-channels>Auto-include all public channels</public-channels>
+        <private-channels>Only include if bot is explicitly added as member</private-channels>
+        <audit-logging>Log all channel access attempts and permission checks</audit-logging>
+      </channel-access-control>
+
+      <search-filtering>
+        <user-permissions>Filter search results by current_user.email in permissions array</user-permissions>
+        <channel-membership>Only return messages from channels user has access to</channel-membership>
+        <payload-filtering>Use Qdrant payload filter: permissions CONTAINS user.email</payload-filtering>
+      </search-filtering>
+
+      <token-encryption>
+        <algorithm>AES-256-GCM</algorithm>
+        <key-source>ENCRYPTION_KEY environment variable</key-source>
+        <storage>Encrypted tokens stored in PostgreSQL</storage>
+        <rotation>Support token rotation and re-authentication</rotation>
+      </token-encryption>
+    </permissions-security>
+
+    <monitoring-observability>
+      <metrics>
+        <metric name="slack_sync_duration_seconds" type="histogram" />
+        <metric name="slack_messages_synced_total" type="counter" />
+        <metric name="slack_sync_errors_total" type="counter" />
+        <metric name="slack_api_requests_total" type="counter" />
+        <metric name="slack_channels_indexed" type="gauge" />
+        <metric name="slack_files_processed_total" type="counter" />
+      </metrics>
+
+      <logging>
+        <level>INFO for normal operations, ERROR for failures</level>
+        <format>JSON structured logging</format>
+        <context>Include job_id, channel_id, message_count, error_details</context>
+        <retention>30 days for logs, 90 days for audit trails</retention>
+      </logging>
+
+      <health-checks>
+        <check name="slack_token_valid" description="Verify Slack bot token is valid" />
+        <check name="slack_api_accessible" description="Test Slack API connectivity" />
+        <check name="sync_job_healthy" description="Check last sync job success" />
+        <check name="qdrant_connection" description="Verify Qdrant vector storage accessible" />
+      </health-checks>
+    </monitoring-observability>
+
+    <performance-requirements>
+      <sync-performance>
+        <incremental-sync>&lt;1 minute for 10,000 messages</incremental-sync>
+        <initial-sync>&lt;15 minutes for 100,000 messages</initial-sync>
+        <file-processing>&lt;30 seconds per 100 files</file-processing>
+        <embedding-generation>&lt;100ms per 100 messages (batch)</embedding-generation>
+        <vector-storage>&lt;50ms for 1000 upserts</vector-storage>
+      </sync-performance>
+
+      <resource-limits>
+        <memory>&lt;2GB during sync processing</memory>
+        <api-rate>&lt;50 requests/minute (respect Slack limits)</api-rate>
+        <storage>&lt;1GB for 100,000 messages metadata</storage>
+        <network>&lt;500MB/min during file downloads</network>
+      </resource-limits>
+
+      <error-recovery>
+        <retry-attempts>Maximum 3 retries per operation</retry-attempts>
+        <backoff-strategy>Exponential: 1s, 5s, 30s</backoff-strategy>
+        <partial-success>Continue processing other channels/messages if one fails</partial-success>
+        <job-resumption>Resume from last successful sync point on retry</job-resumption>
+      </error-recovery>
+    </performance-requirements>
+
+    <testing-strategy>
+      <unit-tests>
+        <component>Slack API client methods</component>
+        <component>Message parsing and thread reconstruction</component>
+        <component>File content extraction</component>
+        <component>Permission validation logic</component>
+        <coverage>Target >80% code coverage</coverage>
+      </unit-tests>
+
+      <integration-tests>
+        <test name="slack-oauth-flow">
+          <description>Test Slack token authentication and validation</description>
+          <setup>Use Slack test workspace and test bot token</setup>
+        </test>
+        <test name="message-sync-flow">
+          <description>Test complete message sync from API to Qdrant</description>
+          <setup>Mock Slack API with sample channel data</setup>
+        </test>
+        <test name="permission-filtering">
+          <description>Verify search results respect user permissions</description>
+          <setup>Create test channels with different access levels</setup>
+        </test>
+        <test name="file-attachment-processing">
+          <description>Test file download and content extraction</description>
+          <setup>Sample Slack messages with various file types</setup>
+        </test>
+      </integration-tests>
+
+      <performance-tests>
+        <test name="sync-latency-benchmark">
+          <description>Measure sync performance with varying message volumes</description>
+          <targets>1000, 10000, 50000 messages</targets>
+        </test>
+        <test name="concurrent-sync-test">
+          <description>Verify sync job overlap prevention</description>
+          <scenario>Start multiple sync jobs simultaneously</scenario>
+        </test>
+      </performance-tests>
+
+      <security-tests>
+        <test name="token-encryption">
+          <description>Verify Slack tokens are encrypted at rest</description>
+        </test>
+        <test name="permission-bypass">
+          <description>Attempt to access private channels without membership</description>
+          <expected>Access denied with proper error handling</expected>
+        </test>
+      </security-tests>
+    </testing-strategy>
+  </technical-context>
+
+  <implementation-notes>
+    <existing-patterns>
+      <pattern name="oauth-token-management">
+        <source>Story 3-2 Google Drive Connector</source>
+        <description>Use existing OAuth token encryption and refresh patterns</description>
+        <files>services/oauth_manager.py, utils/encryption.py</files>
+      </pattern>
+      <pattern name="sync-job-infrastructure">
+        <source>Story 3-2 Google Drive Connector</source>
+        <description>Reuse APScheduler setup and job tracking</description>
+        <files>services/sync_scheduler.py, models/sync_job.py</files>
+      </pattern>
+      <pattern name="vector-storage">
+        <source>Story 3-1 Qdrant Setup</source>
+        <description>Use existing Qdrant client and collection configuration</description>
+        <files>services/qdrant_client.py, rag_service.py</files>
+      </pattern>
+    </existing-patterns>
+
+    <new-components-required>
+      <component name="slack-client">
+        <description>Slack API client with rate limiting and error handling</description>
+        <file>services/slack_client.py</file>
+      </component>
+      <component name="message-processor">
+        <description>Message parsing, thread reconstruction, file extraction</description>
+        <file>services/message_processor.py</file>
+      </component>
+      <component name="slack-sync-service">
+        <description>Orchestrates Slack sync workflow</description>
+        <file>services/slack_sync_service.py</file>
+      </component>
+      <component name="slack-models">
+        <description>SQLAlchemy models for Slack-specific data</description>
+        <file>models/slack_documents.py</file>
+      </component>
+    </new-components-required>
+
+    <dependencies-to-add>
+      <python-package>slack-sdk==3.23.0</python-package>
+      <python-package>aiofiles==23.2.0 (for file processing)</python-package>
+    </dependencies-to-add>
+
+    <environment-variables>
+      <var name="SLACK_BOT_TOKEN" required="true" description="Slack Bot Token (xoxb-...)" />
+      <var name="SLACK_SIGNING_SECRET" required="false" description="For future webhook support" />
+      <var name="ENABLE_SLACK" default="true" description="Feature flag for Slack integration" />
+    </environment-variables>
+  </implementation-notes>
+
+  <success-criteria>
+    <functional>
+      <criterion>Slack workspace connected and bot authenticated</criterion>
+      <criterion>Auto-sync runs every 10 minutes with <2% error rate</criterion>
+      <criterion>All accessible channels indexed with thread context preserved</criterion>
+      <criterion>File attachments extracted and indexed</criterion>
+      <criterion>Channel privacy respected with proper access control</criterion>
+      <criterion>Complete message metadata stored for search and citations</criterion>
+    </functional>
+
+    <performance>
+      <criterion>Incremental sync <1 minute for 10,000 messages</criterion>
+      <criterion>Search latency <200ms with Slack data included</criterion>
+      <criterion>Memory usage <2GB during sync processing</criterion>
+      <criterion>API rate limits respected with proper backoff</criterion>
+    </performance>
+
+    <security>
+      <criterion>Slack tokens encrypted at rest (AES-256)</criterion>
+      <criterion>Permission filtering prevents unauthorized access</criterion>
+      <criterion>Audit logging for all access and sync operations</criterion>
+      <criterion>Zero permission leakage in search results</criterion>
+    </security>
+
+    <reliability>
+      <criterion>Error handling with exponential backoff retries</criterion>
+      <criterion>Sync job overlap prevention</criterion>
+      <criterion>Health checks and monitoring dashboard</criterion>
+      <criterion>Graceful degradation when Slack API unavailable</criterion>
+    </reliability>
+  </success-criteria>
+</story-context>
