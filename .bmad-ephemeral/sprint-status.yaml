@@ -104,7 +104,7 @@ development_status:
   7-2-web-search-tool-serpapi-exa: done
   7-3-url-scraping-content-extraction: ready-for-dev
   7-4-form-filling-web-interaction: ready-for-dev
-  7-5-screenshot-page-capture: backlog
+  7-5-screenshot-page-capture: ready-for-dev
   epic-7-retrospective: optional
 
   # Epic 8: Live Workspace (noVNC)

@@ -13,6 +13,8 @@ import logging
 from services.web_content_extractor import WebContentExtractor
 from services.browser_manager import BrowserManager
 from services.form_manager import FormManager, FormFillRequest, FormFillResult
+from services.screenshot_service import ScreenshotService, ScreenshotOptions, ScreenshotResult
+from services.google_drive_sync import GoogleDriveService
 from utils.auth import require_authenticated_user
 
 logger = logging.getLogger(__name__)
@@ -70,6 +72,34 @@ class FillFormResponse(BaseModel):
     error: Optional[str] = None
     captcha_detected: bool = False
     executed_at: str
+
+
+class ScreenshotPageRequest(BaseModel):
+    """Request model for screenshot capture"""
+
+    url: HttpUrl
+    format: Optional[Literal["png", "jpeg"]] = "png"
+    quality: Optional[int] = 85
+    width: Optional[int] = 1920
+    height: Optional[int] = 1080
+    device_preset: Optional[Literal["desktop", "laptop", "tablet", "mobile", "mobile_large"]] = None
+    full_page: Optional[bool] = True
+    store_in_drive: Optional[bool] = False
+    drive_folder: Optional[str] = "Screenshots"
+    timeout: Optional[int] = 30
+
+
+class ScreenshotPageResponse(BaseModel):
+    """Response model for screenshot capture"""
+
+    success: bool
+    url: str
+    image_data: Optional[str] = None  # Base64 encoded image
+    drive_url: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    execution_time_ms: Optional[float] = None
+    captured_at: Optional[str] = None
 
 
 # =============================================================================
@@ -622,6 +652,230 @@ async def get_supported_field_types(
         raise HTTPException(
             status_code=500,
             detail="Unable to retrieve field types information"
+        )
+
+
+# =============================================================================
+# Screenshot Capture Endpoints
+# =============================================================================
+
+@router.post("/screenshot_page", response_model=ScreenshotPageResponse)
+async def screenshot_page(
+    request: ScreenshotPageRequest,
+    current_user: dict = Depends(require_authenticated_user)
+):
+    """
+    Capture a full-page screenshot of a web page.
+
+    This endpoint provides high-quality screenshot capture with support for
+    multiple image formats, configurable resolutions, and optional Google Drive storage.
+
+    Args:
+        request: Screenshot request with URL and options
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        Screenshot capture result with image data and metadata
+    """
+    try:
+        logger.info(f"User {current_user.get('email')} capturing screenshot of: {request.url}")
+
+        # Initialize Google Drive service if needed
+        drive_service = None
+        if request.store_in_drive:
+            try:
+                drive_service = GoogleDriveService()
+                logger.info("Google Drive service initialized for screenshot storage")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Google Drive service: {e}")
+                # Continue without Drive storage
+
+        # Create screenshot service
+        screenshot_service = ScreenshotService(drive_service)
+
+        # Create screenshot options
+        options = ScreenshotOptions(
+            url=str(request.url),
+            format=request.format or "png",
+            quality=request.quality or 85,
+            width=request.width,
+            height=request.height,
+            device_preset=request.device_preset,
+            full_page=request.full_page,
+            store_in_drive=request.store_in_drive,
+            drive_folder=request.drive_folder,
+            timeout=request.timeout * 1000  # Convert to milliseconds
+        )
+
+        # Capture screenshot
+        result = await screenshot_service.capture_screenshot(options)
+
+        if not result.success:
+            logger.warning(f"Screenshot capture failed: {result.error}")
+            return ScreenshotPageResponse(
+                success=False,
+                url=str(request.url),
+                error=result.error,
+                execution_time_ms=result.execution_time_ms,
+                captured_at=result.captured_at
+            )
+
+        logger.info(f"Screenshot captured successfully in {result.execution_time_ms:.0f}ms, "
+                   f"format: {result.metadata.get('format', 'unknown')}, "
+                   f"size: {result.metadata.get('file_size', 0)} bytes")
+
+        return ScreenshotPageResponse(
+            success=True,
+            url=str(request.url),
+            image_data=result.base64_data,
+            drive_url=result.drive_url,
+            metadata=result.metadata,
+            execution_time_ms=result.execution_time_ms,
+            captured_at=result.captured_at
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during screenshot capture: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Screenshot capture service temporarily unavailable"
+        )
+
+
+@router.get("/screenshot_page", response_model=ScreenshotPageResponse)
+async def screenshot_page_get(
+    url: HttpUrl = Query(..., description="URL to capture screenshot from"),
+    format: Optional[Literal["png", "jpeg"]] = Query("png", description="Image format (png or jpeg)"),
+    quality: Optional[int] = Query(85, description="JPEG quality (1-100, for JPEG only)"),
+    width: Optional[int] = Query(1920, description="Viewport width in pixels"),
+    height: Optional[int] = Query(1080, description="Viewport height in pixels"),
+    device_preset: Optional[Literal["desktop", "laptop", "tablet", "mobile", "mobile_large"]] = Query(
+        None, description="Device preset for viewport (overrides width/height)"
+    ),
+    full_page: Optional[bool] = Query(True, description="Capture full page or just viewport"),
+    store_in_drive: Optional[bool] = Query(False, description="Store screenshot in Google Drive"),
+    drive_folder: Optional[str] = Query("Screenshots", description="Drive folder for screenshots"),
+    timeout: Optional[int] = Query(30, description="Capture timeout in seconds"),
+    current_user: dict = Depends(require_authenticated_user)
+):
+    """
+    Capture a full-page screenshot of a web page (GET method).
+
+    This endpoint provides the same functionality as POST /screenshot_page but using
+    query parameters for convenience in testing and simple integrations.
+
+    Args:
+        url: URL to capture screenshot from
+        format: Image format (png or jpeg)
+        quality: JPEG quality (1-100, for JPEG only)
+        width: Viewport width in pixels
+        height: Viewport height in pixels
+        device_preset: Device preset for viewport (overrides width/height)
+        full_page: Capture full page or just viewport
+        store_in_drive: Store screenshot in Google Drive
+        drive_folder: Drive folder for screenshots
+        timeout: Capture timeout in seconds
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        Screenshot capture result with image data and metadata
+    """
+    try:
+        logger.info(f"User {current_user.get('email')} capturing screenshot via GET: {url}")
+
+        # Initialize Google Drive service if needed
+        drive_service = None
+        if store_in_drive:
+            try:
+                drive_service = GoogleDriveService()
+                logger.info("Google Drive service initialized for screenshot storage")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Google Drive service: {e}")
+                # Continue without Drive storage
+
+        # Create screenshot service
+        screenshot_service = ScreenshotService(drive_service)
+
+        # Create screenshot options
+        options = ScreenshotOptions(
+            url=str(url),
+            format=format or "png",
+            quality=quality or 85,
+            width=width,
+            height=height,
+            device_preset=device_preset,
+            full_page=full_page,
+            store_in_drive=store_in_drive,
+            drive_folder=drive_folder,
+            timeout=timeout * 1000  # Convert to milliseconds
+        )
+
+        # Capture screenshot
+        result = await screenshot_service.capture_screenshot(options)
+
+        if not result.success:
+            logger.warning(f"Screenshot capture failed: {result.error}")
+            return ScreenshotPageResponse(
+                success=False,
+                url=str(url),
+                error=result.error,
+                execution_time_ms=result.execution_time_ms,
+                captured_at=result.captured_at
+            )
+
+        logger.info(f"Screenshot captured successfully in {result.execution_time_ms:.0f}ms, "
+                   f"format: {result.metadata.get('format', 'unknown')}, "
+                   f"size: {result.metadata.get('file_size', 0)} bytes")
+
+        return ScreenshotPageResponse(
+            success=True,
+            url=str(url),
+            image_data=result.base64_data,
+            drive_url=result.drive_url,
+            metadata=result.metadata,
+            execution_time_ms=result.execution_time_ms,
+            captured_at=result.captured_at
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during screenshot capture: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Screenshot capture service temporarily unavailable"
+        )
+
+
+@router.get("/screenshot/presets")
+async def get_screenshot_presets(
+    current_user: dict = Depends(require_authenticated_user)
+):
+    """
+    Get available device presets for screenshot capture.
+
+    Args:
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        List of available device presets with their dimensions
+    """
+    try:
+        presets = ScreenshotOptions.DEVICE_PRESETS
+
+        return {
+            "success": True,
+            "data": presets,
+            "message": "Screenshot device presets retrieved successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting screenshot presets: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to retrieve screenshot presets"
         )
 
 

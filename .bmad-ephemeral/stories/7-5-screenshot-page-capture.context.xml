@@ -1,0 +1,493 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<context xmlns="http://www.bmad.dev/schema/context"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.bmad.dev/schema/context ../../../../.bmad/schemas/context.xsd">
+
+    <!-- Story 7-5: Screenshot &amp; Page Capture Context -->
+    <metadata>
+        <story-id>7-5</story-id>
+        <story-title>Screenshot &amp; Page Capture</story-title>
+        <epic>7 - Web Automation &amp; Search</epic>
+        <status>ready-for-dev</status>
+        <last-updated>2025-11-14</last-updated>
+        <dependencies>
+            <dependency story="7-1">Playwright Browser Setup &amp; Headless Automation</dependency>
+            <dependency story="7-2">Web Search Tool (SerpAPI/Exa)</dependency>
+            <dependency story="7-3">URL Scraping &amp; Content Extraction</dependency>
+        </dependencies>
+    </metadata>
+
+    <!-- Story Requirements Summary -->
+    <requirements>
+        <primary-goal>Implement comprehensive screenshot and page capture functionality that enables agents to capture visual information, document page states, and provide visual evidence of web interactions with configurable resolution and format support</primary-goal>
+
+        <core-capabilities>
+            <capability id="screenshot-capture">
+                <name>Full-Page Screenshot Capture</name>
+                <description>Capture complete page screenshots including scrollable content beyond viewport</description>
+                <priority>high</priority>
+                <acceptance-criteria>AC7.5.3: Full page screenshot captured (entire scrollHeight)</acceptance-criteria>
+            </capability>
+
+            <capability id="image-formats">
+                <name>Multiple Image Format Support</name>
+                <description>Support PNG (lossless) and JPEG (smaller file size) formats with quality control</description>
+                <priority>high</priority>
+                <acceptance-criteria>AC7.5.7: Supports PNG and JPEG formats</acceptance-criteria>
+            </capability>
+
+            <capability id="resolution-config">
+                <name>Configurable Resolution</name>
+                <description>Support configurable resolution settings with 1920x1080 default</description>
+                <priority>medium</priority>
+                <acceptance-criteria>AC7.5.5: Resolution configurable (default: 1920x1080)</acceptance-criteria>
+            </capability>
+
+            <capability id="performance-optimization">
+                <name>Fast Capture Performance</name>
+                <description>Optimize screenshot capture for sub-5-second execution target</description>
+                <priority>high</priority>
+                <acceptance-criteria>AC7.5.6: Execution time &lt;5s for screenshot capture</acceptance-criteria>
+            </capability>
+
+            <capability id="storage-integration">
+                <name>Google Drive Integration</name>
+                <description>Store screenshots in Google Drive with URL access or return base64</description>
+                <priority>medium</priority>
+                <acceptance-criteria>AC7.5.4: Image returned as base64 or stored in Drive with URL</acceptance-criteria>
+            </capability>
+        </core-capabilities>
+
+        <acceptance-criteria>
+            <ac id="AC7.5.1">
+                <description>Given agent invokes screenshot tool, When tool called with URL parameter, Then browser navigates and waits for page load completion</description>
+                <validation>Integration test with screenshot API endpoint</validation>
+                <priority>high</priority>
+            </ac>
+
+            <ac id="AC7.5.2">
+                <description>Given page loaded completely, When screenshot capture initiates, Then full page screenshot captured (entire scrollHeight)</description>
+                <validation>Verify screenshot includes complete page content beyond viewport</validation>
+                <priority>high</priority>
+            </ac>
+
+            <ac id="AC7.5.3">
+                <description>Given screenshot captured, When processing image output, Then image returned as base64 or stored in Drive with URL</description>
+                <validation>Test both return formats (base64 and Drive URL)</validation>
+                <priority>high</priority>
+            </ac>
+
+            <ac id="AC7.5.4">
+                <description>Given resolution requirements, When configuring screenshot capture, Then resolution configurable (default: 1920x1080)</description>
+                <validation>Test different resolution settings and verify output dimensions</validation>
+                <priority>medium</priority>
+            </ac>
+
+            <ac id="AC7.5.5">
+                <description>Given performance requirements, When screenshot capture executes, Then execution time &lt;5s</description>
+                <validation>Performance benchmark with multiple test pages</validation>
+                <priority>high</priority>
+            </ac>
+
+            <ac id="AC7.5.6">
+                <description>Given format requirements, When saving screenshot, Then supports PNG (lossless) and JPEG (smaller file size) formats</description>
+                <validation>Test both formats with quality settings for JPEG</validation>
+                <priority>medium</priority>
+            </ac>
+        </acceptance-criteria>
+    </requirements>
+
+    <!-- Technical Architecture -->
+    <architecture>
+        <core-components>
+            <component id="screenshot-service">
+                <name>ScreenshotService</name>
+                <description>Service for capturing and processing web page screenshots using Playwright</description>
+                <location>onyx-core/services/screenshot_manager.py</location>
+                <dependencies>
+                    <dependency>playwright==1.40.0</dependency>
+                    <dependency>BrowserManager (onyx-core/services/browser_manager.py)</dependency>
+                    <dependency>pillow==10.1.0 (for image processing)</dependency>
+                </dependencies>
+                <interface>
+                    <method name="capture_screenshot">
+                        <parameters>
+                            <param name="url" type="string" required="true">Target page URL</param>
+                            <param name="format" type="string" default="png">'png' or 'jpeg'</param>
+                            <param name="quality" type="integer" default="80">JPEG quality 1-100</param>
+                            <param name="width" type="integer" default="1920">Viewport width</param>
+                            <param name="height" type="integer" default="1080">Viewport height</param>
+                            <param name="full_page" type="boolean" default="true">Capture entire page</param>
+                            <param name="store_in_drive" type="boolean" default="false">Store in Google Drive</param>
+                        </parameters>
+                        <returns>ScreenshotResult with image data or Drive URL</returns>
+                    </method>
+                </interface>
+            </component>
+
+            <component id="browser-manager">
+                <name>BrowserManager</name>
+                <description>Existing Playwright browser management service (from Story 7-1)</description>
+                <location>onyx-core/services/browser_manager.py</location>
+                <existing>true</existing>
+                <capabilities>
+                    <capability>Headless Chrome browser automation</capability>
+                    <capability>Page navigation with configurable wait strategies</capability>
+                    <capability>Memory monitoring and auto-restart</capability>
+                    <capability>URL validation and security filtering</capability>
+                </capabilities>
+            </component>
+
+            <component id="api-endpoint">
+                <name>Screenshot API Endpoint</name>
+                <description>RESTful API endpoint for screenshot tool integration</description>
+                <location>onyx-core/api/web_tools.py</location>
+                <pattern>POST /tools/screenshot_page</pattern>
+                <authentication>JWT authentication via require_authenticated_user</authentication>
+            </component>
+        </core-components>
+
+        <data-flows>
+            <flow id="screenshot-workflow">
+                <description>Complete screenshot capture workflow from API request to image output</description>
+                <steps>
+                    <step order="1">Receive API request with URL and parameters</step>
+                    <step order="2">Validate URL and parameters</step>
+                    <step order="3">Get BrowserManager singleton instance</step>
+                    <step order="4">Navigate to URL with wait_until='load'</step>
+                    <step order="5">Configure viewport dimensions</step>
+                    <step order="6">Capture screenshot with Playwright screenshot() API</step>
+                    <step order="7">Process image (PNG/JPEG conversion, quality settings)</step>
+                    <step order="8">Encode to base64 or upload to Google Drive</step>
+                    <step order="9">Return ScreenshotResult with metadata</step>
+                    <step order="10">Clean up page resources</step>
+                </steps>
+                <performance-targets>
+                    <target name="total-time">&lt;5s for complete workflow</target>
+                    <target name="page-load">&lt;3s for typical pages</target>
+                    <target name="screenshot-capture">&lt;2s for full-page capture</target>
+                    <target name="image-processing">&lt;500ms for encoding</target>
+                </performance-targets>
+            </flow>
+        </data-flows>
+
+        <integration-points>
+            <integration id="browser-manager">
+                <component>ScreenshotService → BrowserManager</component>
+                <interface>Uses existing navigate() and screenshot() methods</interface>
+                <leverage>Singleton pattern, memory management, URL validation</leverage>
+            </integration>
+
+            <integration id="google-drive">
+                <component>ScreenshotService → Google Drive (Epic 3)</component>
+                <interface>Use existing Google Drive connector for image storage</interface>
+                <condition>When store_in_drive=true parameter is set</condition>
+            </integration>
+
+            <integration id="agent-tools">
+                <component>Screenshot API → Agent Mode (Epic 5)</component>
+                <interface>Tool registration in agent tool registry</interface>
+                <pattern>Tool selection logic routes screenshot requests to /tools/screenshot_page</pattern>
+            </integration>
+        </integration-points>
+    </architecture>
+
+    <!-- Implementation Constraints & Standards -->
+    <constraints>
+        <performance-requirements>
+            <requirement id="execution-time">
+                <description>Screenshot capture &lt;5s total execution time</description>
+                <metric>&lt;5 seconds from API request to response</metric>
+                <acceptance-criteria>AC7.5.6</acceptance-criteria>
+                <validation>Load testing with p95 &lt;5s measurement</validation>
+            </requirement>
+
+            <requirement id="resolution-support">
+                <description>Configurable resolution with 1920x1080 default</description>
+                <metric>Support width: 800-2560px, height: 600-2160px</metric>
+                <acceptance-criteria>AC7.5.5</acceptance-criteria>
+                <validation>Test with multiple viewport configurations</validation>
+            </requirement>
+        </performance-requirements>
+
+        <security-requirements>
+            <requirement id="url-validation">
+                <description>Leverage existing URL validation from BrowserManager</description>
+                <constraint>Block localhost, internal IPs, file:// URLs</constraint>
+                <implementation>Reuse BrowserManager._validate_url() method</implementation>
+            </requirement>
+
+            <requirement id="content-filtering">
+                <description>Respect robots.txt and website terms of service</description>
+                <constraint>No screenshot of blocked/inaccessible content</constraint>
+                <implementation>Check accessibility before capture</implementation>
+            </requirement>
+        </security-requirements>
+
+        <quality-requirements>
+            <requirement id="image-quality">
+                <description>PNG lossless format, JPEG with configurable quality</description>
+                <metric>JPEG quality range: 1-100 (default: 80)</metric>
+                <acceptance-criteria>AC7.5.7</acceptance-criteria>
+            </requirement>
+
+            <requirement id="full-page-capture">
+                <description>Capture entire scrollable page content</description>
+                <metric>Include content beyond initial viewport</metric>
+                <acceptance-criteria>AC7.5.3</acceptance-criteria>
+            </requirement>
+        </quality-requirements>
+    </constraints>
+
+    <!-- Dependencies & Frameworks -->
+    <dependencies>
+        <python-packages>
+            <package name="playwright" version="1.40.0" purpose="Browser automation engine">
+                <usage>Core browser automation and screenshot capture</usage>
+            </package>
+
+            <package name="pillow" version="10.1.0" purpose="Image processing">
+                <usage>JPEG compression, format conversion, image optimization</usage>
+            </package>
+
+            <package name="psutil" version="5.9.6" purpose="System monitoring">
+                <usage>Memory tracking and process management (inherited from BrowserManager)</usage>
+            </package>
+
+            <package name="google-api-python-client" version="2.108.0" purpose="Google Drive integration">
+                <usage>Optional image storage in Google Drive (Epic 3 dependency)</usage>
+            </package>
+        </python-packages>
+
+        <internal-services>
+            <service name="BrowserManager" story="7-1" purpose="Headless browser management">
+                <location>onyx-core/services/browser_manager.py</location>
+                <usage>Singleton browser instance, navigation, screenshot capture</usage>
+            </service>
+
+            <service name="GoogleDriveConnector" story="3-2" purpose="Google Drive storage">
+                <location>onyx-core/services/drive_connector.py</location>
+                <usage>Optional image storage and sharing (when store_in_drive=true)</usage>
+            </service>
+        </internal-services>
+
+        <external-dependencies>
+            <dependency name="Google Drive API" purpose="Image storage and sharing">
+                <condition>Optional, when store_in_drive=true</condition>
+                <quota>Storage space for screenshots (manage with auto-pruning)</quota>
+            </dependency>
+        </external-dependencies>
+    </dependencies>
+
+    <!-- Testing Strategy -->
+    <testing>
+        <test-patterns>
+            <pattern id="unit-tests">
+                <description>Individual component testing</description>
+                <coverage>90%+ of screenshot service logic</coverage>
+                <tools>pytest, pytest-asyncio, pytest-mock</tools>
+                <examples>
+                    <example>test_screenshot_format_conversion</example>
+                    <example>test_resolution_configuration</example>
+                    <example>test_image_quality_settings</example>
+                    <example>test_error_handling</example>
+                </examples>
+            </pattern>
+
+            <pattern id="integration-tests">
+                <description>End-to-end workflow testing</description>
+                <coverage>API endpoint to screenshot capture</coverage>
+                <tools>pytest, test_playwright_browser</tools>
+                <examples>
+                    <example>test_screenshot_api_endpoint</example>
+                    <example>test_full_page_capture</example>
+                    <example>test_multiple_format_capture</example>
+                    <example>test_drive_storage_integration</example>
+                </examples>
+            </pattern>
+
+            <pattern id="performance-tests">
+                <description>Performance benchmarking</description>
+                <coverage>&lt;5s execution target validation</coverage>
+                <tools>pytest, time measurements</tools>
+                <examples>
+                    <example>test_capture_latency_benchmark</example>
+                    <example>test_large_page_capture_performance</example>
+                    <example>test_concurrent_request_handling</example>
+                </examples>
+            </pattern>
+
+            <pattern id="security-tests">
+                <description>Security and validation testing</description>
+                <coverage>URL validation, content filtering</coverage>
+                <tools>pytest, security test patterns</tools>
+                <examples>
+                    <example>test_malicious_url_blocking</example>
+                    <example>test_internal_ip_prevention</example>
+                    <example>test_file_url_blocking</example>
+                </examples>
+            </pattern>
+        </test-patterns>
+
+        <test-data>
+            <test-sites>
+                <site url="https://example.com" type="simple-static" description="Basic static page for baseline testing"/>
+                <site url="https://example.org" type="simple-static" description="Alternative simple page"/>
+                <site url="https://httpbin.org/html" type="test-server" description="Test server with predictable content"/>
+                <site url="https://www.wikipedia.org/wiki/Main_Page" type="complex-content" description="Complex page with rich content"/>
+            </test-sites>
+        </test-data>
+
+        <quality-gates>
+            <gate name="functional-coverage">
+                <requirement>100% of acceptance criteria covered by tests</requirement>
+                <validation>Map each AC to specific test cases</validation>
+            </gate>
+
+            <gate name="performance-validation">
+                <requirement>&lt;5s capture time for 95% of test cases</requirement>
+                <validation>Automated performance benchmarks in CI</validation>
+            </gate>
+
+            <gate name="image-quality">
+                <requirement>Screenshot quality validation (format, resolution, clarity)</requirement>
+                <validation>Automated image analysis for size and format verification</validation>
+            </gate>
+        </quality-gates>
+    </testing>
+
+    <!-- Success Metrics & Validation -->
+    <success-metrics>
+        <functional-metrics>
+            <metric name="screenshot-success-rate" target="&gt;95%">
+                <description>Percentage of successful screenshot captures on accessible websites</description>
+                <validation>Test across diverse website types and content</validation>
+            </metric>
+
+            <metric name="format-coverage" target="100%">
+                <description>Support for both PNG and JPEG formats</description>
+                <validation>Test format conversion and quality settings</validation>
+            </metric>
+
+            <metric name="resolution-flexibility" target="100%">
+                <description>Support for configurable viewport resolutions</description>
+                <validation>Test multiple width/height combinations</validation>
+            </metric>
+        </functional-metrics>
+
+        <performance-metrics>
+            <metric name="capture-latency" target="&lt;5s p95">
+                <description>Time from API request to screenshot response</description>
+                <validation>Load testing with 100+ requests</validation>
+            </metric>
+
+            <metric name="page-load-time" target="&lt;3s">
+                <description>Browser navigation and page load time</description>
+                <validation>Monitor navigation timing in logs</validation>
+            </metric>
+
+            <metric name="image-processing-time" target="&lt;500ms">
+                <description>Time for format conversion and encoding</description>
+                <validation>Profile image processing pipeline</validation>
+            </metric>
+        </performance-metrics>
+
+        <reliability-metrics>
+            <metric name="error-rate" target="&lt;2%">
+                <description>Failed screenshot attempts on accessible websites</description>
+                <validation>Error categorization and root cause analysis</validation>
+            </metric>
+
+            <metric name="browser-stability" target="&gt;99%">
+                <description>Browser uptime and crash resistance</description>
+                <validation>Monitor browser health and auto-recovery</validation>
+            </metric>
+        </reliability-metrics>
+    </success-metrics>
+
+    <!-- Implementation Notes & Patterns -->
+    <implementation-notes>
+        <coding-standards>
+            <standard name="async-patterns">
+                <description>Use async/await throughout for non-blocking operations</description>
+                <example>async def capture_screenshot(url: str, options: dict) -&gt; ScreenshotResult</example>
+            </standard>
+
+            <standard name="error-handling">
+                <description>Comprehensive error handling with specific error types</description>
+                <pattern>raise HTTPException with detailed error messages</pattern>
+            </standard>
+
+            <standard name="logging">
+                <description>Structured logging with performance metrics</description>
+                <pattern>logger.info(f"Screenshot captured: {size} bytes in {time_ms}ms")</pattern>
+            </standard>
+        </coding-standards>
+
+        <api-patterns>
+            <pattern name="restful-design">
+                <description>RESTful API endpoint with GET and POST support</description>
+                <implementation>POST /tools/screenshot_page with request model validation</implementation>
+            </pattern>
+
+            <pattern name="pydantic-models">
+                <description>Use Pydantic for request/response validation</description>
+                <example>ScreenshotRequest, ScreenshotResponse models</example>
+            </pattern>
+
+            <pattern name="authentication">
+                <description>JWT authentication middleware</description>
+                <implementation>require_authenticated_user dependency injection</implementation>
+            </pattern>
+        </api-patterns>
+
+        <performance-optimizations>
+            <optimization name="browser-reuse">
+                <description>Leverage existing BrowserManager singleton</description>
+                <benefit>Avoid browser startup overhead (~2s saved)</benefit>
+            </optimization>
+
+            <optimization name="image-compression">
+                <description>Efficient JPEG compression with quality settings</description>
+                <benefit>Reduce file sizes by 60-80% for acceptable quality</benefit>
+            </optimization>
+
+            <optimization name="parallel-ready">
+                <description>Design for future parallel execution</description>
+                <benefit>Scale to multiple concurrent screenshot requests</benefit>
+            </optimization>
+        </performance-optimizations>
+    </implementation-notes>
+
+    <!-- Development Context -->
+    <development-context>
+        <story-status>
+            <current-status>ready-for-dev</current-status>
+            <previous-status>drafted</previous-status>
+            <transition-date>2025-11-14</transition-date>
+            <context-generation-complete>true</context-generation-complete>
+        </story-status>
+
+        <epic-alignment>
+            <epic-id>7</epic-id>
+            <epic-title>Web Automation &amp; Search</epic-title>
+            <epic-technical-spec>docs/epics/epic-7-tech-spec.md</epic-technical-spec>
+            <story-sequence>5 of 5 in Epic 7</story-sequence>
+        </epic-alignment>
+
+        <blocking-stories>None (all dependencies completed: 7-1, 7-2, 7-3)</blocking-stories>
+
+        <estimated-effort>
+            <story-points>3-5 points (Medium)</story-points>
+            <estimated-days>2-3 days development</estimated-days>
+            <complexity>Medium - integration of existing components</complexity>
+        </estimated-effort>
+
+        <risk-assessment>
+            <risk level="low" description="Low technical risk - leverages proven BrowserManager infrastructure">
+                <mitigation>Thorough testing with diverse website types and content</mitigation>
+            </risk>
+        </risk-assessment>
+    </development-context>
+
+</context>
