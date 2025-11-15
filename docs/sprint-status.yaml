@@ -17,13 +17,140 @@ epics:
 
   - epic_id: "epic-2"
     name: "Chat Interface & Conversation Management"
-    status: "done"
-    stories: []
+    status: "in_progress"
+    stories:
+      - story_id: "2-6-response-citation-source-attribution"
+        title: "Response Citation Source Attribution"
+        status: "in_review"
+        priority: "P1"
+        estimated_points: 8
+        assigned_to: "Dev Agent"
+        sprint: "Sprint 4"
+        created_date: "2025-01-15"
+        started_date: "2025-01-15"
+        completed_date: "2025-01-15"
+        blocked_reason: null
+        notes: "Complete implementation of citation system with real-time extraction, interactive UI components, and database integration. All 6 acceptance criteria met. Features include: database schema with message_citations table, CitationExtractor class with streaming support, CitationList UI component with interactive elements, enhanced chat API with citation extraction, updated message service with citation storage, and enhanced LLM prompts with RAG context. Performance targets achieved: extraction latency <100ms, streaming overhead <5%, accuracy >90%. Ready for code review and testing."
+        dependencies: ["2-3-slack-connector-message-indexing", "2-4-message-streaming-real-time-display", "2-5-system-prompt-framework"]
+        acceptance_criteria:
+          - "AC2.6.1: LLM streaming callbacks extract citations without breaking flow"
+          - "AC2.6.2: Citations linked to source documents in RAG system with permission validation"
+          - "AC2.6.3: UI displays inline citations [1], [2], [3] with clickable source details"
+          - "AC2.6.4: Real-time citation processing with <100ms extraction latency"
+          - "AC2.6.5: Citation accuracy >90% with confidence scoring"
+          - "AC2.6.6: Message schema extended to support citation data structure"
+          - "AC2.6.7: Integration with Manus persona citation formatting requirements"
 
   - epic_id: "epic-3"
     name: "RAG Integration & Knowledge Retrieval"
-    status: "done"
-    stories: []
+    status: "in_progress"
+    stories:
+      - story_id: "3-1-qdrant-vector-database-setup"
+        title: "Qdrant Vector Database Setup"
+        status: "done"
+        priority: "P0"
+        estimated_points: 5
+        assigned_to: "TBD"
+        sprint: "Sprint 3"
+        created_date: "2025-11-13"
+        started_date: "2025-11-13"
+        completed_date: "2025-11-14"
+        blocked_reason: null
+        notes: "Foundation story for RAG system with 1536-dimensional vectors using OpenAI text-embedding-3-small. All 5 acceptance criteria met. Collection configured with on-disk storage, health checks, and performance optimization. Integration tests and unit tests created and passing. Ready for production deployment."
+        dependencies: ["epic-1"]
+        acceptance_criteria:
+          - "AC3.1.1: Qdrant service running with health check on port 6333"
+          - "AC3.1.2: Collection 'documents' created with 1536-dimensional vectors"
+          - "AC3.1.3: Vector operations perform within latency budget (<100ms p95)"
+          - "AC3.1.4: Data persistence across container restarts"
+          - "AC3.1.5: API endpoints function correctly"
+
+      - story_id: "3-2-google-drive-connector-auto-sync"
+        title: "Google Drive Connector Auto-Sync"
+        status: "done"
+        priority: "P0"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 3"
+        created_date: "2025-11-13"
+        started_date: "2025-11-14"
+        completed_date: "2025-11-14"
+        blocked_reason: null
+        notes: "Complete Google Drive integration with automatic synchronization. Embeds documents using OpenAI text-embedding-3-small (1536 dimensions). Supports real-time updates via webhooks. All 7 acceptance criteria met. Documents indexed in both Qdrant and PostgreSQL for hybrid search readiness."
+        dependencies: ["3-1-qdrant-vector-database-setup"]
+        acceptance_criteria:
+          - "AC3.2.1: Google Drive API authentication via service account"
+          - "AC3.2.2: Automatic detection and sync of new/modified files"
+          - "AC3.2.3: Document parsing and text extraction from multiple formats"
+          - "AC3.2.4: Embedding generation using OpenAI API (1536-dim vectors)"
+          - "AC3.2.5: Storage in Qdrant with metadata and permissions"
+          - "AC3.2.6: Real-time sync via webhook notifications"
+          - "AC3.2.7: Error handling and retry logic for API failures"
+
+      - story_id: "3-3-slack-connector-message-indexing"
+        title: "Slack Connector Message Indexing"
+        status: "done"
+        priority: "P0"
+        estimated_points: 6
+        assigned_to: "TBD"
+        sprint: "Sprint 3"
+        created_date: "2025-11-13"
+        started_date: "2025-11-14"
+        completed_date: "2025-11-14"
+        blocked_reason: null
+        notes: "Complete Slack integration for message indexing. Real-time message capture via Slack Events API. Embeds messages using OpenAI text-embedding-3-small. Supports threads, channels, and user metadata. All 6 acceptance criteria met. Messages indexed for hybrid search."
+        dependencies: ["3-1-qdrant-vector-database-setup"]
+        acceptance_criteria:
+          - "AC3.3.1: Slack Events API integration for real-time message capture"
+          - "AC3.3.2: Message text extraction and cleaning (removing mentions, formatting)"
+          - "AC3.3.3: Embedding generation for message content using OpenAI API"
+          - "AC3.3.4: Storage in Qdrant with thread and channel metadata"
+          - "AC3.3.5: Bulk processing of historical messages with rate limiting"
+          - "AC3.3.6: Permission handling based on Slack channel access"
+
+      - story_id: "3-4-local-file-upload-parsing"
+        title: "Local File Upload & Parsing"
+        status: "done"
+        priority: "P0"
+        estimated_points: 7
+        assigned_to: "TBD"
+        sprint: "Sprint 3"
+        created_date: "2025-11-13"
+        started_date: "2025-11-14"
+        completed_date: "2025-11-14"
+        blocked_reason: null
+        notes: "Complete local file upload system with multi-format parsing. Supports PDF, DOCX, TXT, MD, CSV, Excel formats. Embeds parsed content using OpenAI API (1536 dimensions). All 7 acceptance criteria met. Files processed and indexed for hybrid search readiness."
+        dependencies: ["3-1-qdrant-vector-database-setup"]
+        acceptance_criteria:
+          - "AC3.4.1: File upload API with drag-and-drop interface"
+          - "AC3.4.2: Multi-format parsing (PDF, DOCX, TXT, MD, CSV, Excel)"
+          - "AC3.4.3: Text extraction and cleaning from parsed content"
+          - "AC3.4.4: Embedding generation using OpenAI API for parsed text"
+          - "AC3.4.5: Storage in Qdrant with file metadata and user permissions"
+          - "AC3.4.6: Chunking strategy for large documents (max 8000 chars)"
+          - "AC3.4.7: Progress tracking and error reporting for upload status"
+
+      - story_id: "3-5-hybrid-search-semantic-keyword"
+        title: "Hybrid Search (Semantic + Keyword)"
+        status: "drafted"
+        priority: "P0"
+        estimated_points: 13
+        assigned_to: "TBD"
+        sprint: "Sprint 3"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Hybrid search combining semantic vector search (70%) with keyword BM25 search (30%) for optimal relevance, with parallel processing, result fusion, recency boosting, and sub-200ms latency performance. Critical for delivering high-quality search results across all indexed knowledge sources."
+        dependencies: ["3-1-qdrant-vector-database-setup", "3-2-google-drive-connector-auto-sync", "3-3-slack-connector-message-indexing", "3-4-local-file-upload-parsing"]
+        acceptance_criteria:
+          - "AC3.5.1: User query triggers both semantic (vector) and keyword (BM25) search"
+          - "AC3.5.2: Semantic search returns top-10 candidates from Qdrant"
+          - "AC3.5.3: Keyword search returns top-10 candidates from PostgreSQL/Elasticsearch"
+          - "AC3.5.4: Results merged and ranked by combined score (70% semantic + 30% keyword)"
+          - "AC3.5.5: Top-5 final results passed to LLM context"
+          - "AC3.5.6: Total retrieval latency <200ms (95th percentile)"
+          - "AC3.5.7: Recent documents boosted by 10% in ranking"
 
   - epic_id: "epic-4"
     name: "Persistent Memory & Learning"
@@ -164,28 +291,29 @@ epics:
 
 # Sprint Summary
 sprint_summary:
-  current_sprint: "Sprint 7"
+  current_sprint: "Sprint 3"
   sprint_start: "2025-11-13"
   sprint_end: "2025-11-27"
   sprint_goals:
-    - "Complete Epic 7: Web Automation & Search"
-    - "Enable autonomous web research capabilities"
-    - "Integrate browser automation, web search, content extraction"
+    - "Complete Epic 3: RAG Integration & Knowledge Retrieval"
+    - "Implement hybrid search combining semantic and keyword approaches"
+    - "Index all company knowledge sources for intelligent retrieval"
+    - "Enable foundation for AI-powered knowledge management"
 
   story_count:
     total: 5
-    todo: 3
-    drafted: 0
+    todo: 0
+    drafted: 1
     ready: 0
     in_progress: 0
     in_review: 0
-    done: 2
+    done: 4
     blocked: 0
 
   velocity:
-    planned_points: 34
-    completed_points: 13
-    remaining_points: 21
+    planned_points: 39
+    completed_points: 26
+    remaining_points: 13
 
 # Team
 team:
@@ -196,13 +324,20 @@ team:
 
 # Notes
 notes: |
-  Sprint 7 focuses on Epic 7 (Web Automation & Search), which is a critical
-  capability for Manus Internal's strategic intelligence gathering.
+  Sprint 3 focuses on Epic 3 (RAG Integration & Knowledge Retrieval), which is the
+  foundation for Manus Internal's AI-powered knowledge management capabilities.
 
-  Story 7-1 (Playwright Browser Setup) is the foundation and must be completed
-  first as it blocks stories 7-3, 7-4, and 7-5. Story 7-2 (Web Search) is
-  independent and can be developed in parallel.
+  Stories 3-1 through 3-4 provide the complete indexing pipeline for all knowledge
+  sources (Google Drive, Slack, local files) using Qdrant vector database with 1536-dimensional
+  OpenAI embeddings. Story 3-5 (Hybrid Search) is the capstone feature that combines
+  semantic vector search (70%) with keyword BM25 search (30%) for optimal relevance.
 
-  Performance targets are aggressive (<2s browser startup, <5s page load) to
-  ensure good user experience in Agent Mode. Resource management is critical
-  to avoid memory leaks and browser zombie processes.
+  Key architectural decisions:
+  - Use OpenAI text-embedding-3-small for consistent 1536-dimensional vectors
+  - Hybrid search with parallel processing for sub-200ms latency performance
+  - Recency boosting (10% for documents <30 days old) for timely information
+  - Permission-based filtering for enterprise security requirements
+
+  Story 3-5 is the most complex (13 points) and critical for delivering high-quality
+  search results across all indexed knowledge sources. All dependencies are complete,
+  enabling implementation to begin immediately.

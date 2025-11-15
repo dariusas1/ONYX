@@ -53,7 +53,7 @@ development_status:
   2-3-message-history-persistence: backlog
   2-4-message-streaming-real-time-response-display: backlog
   2-5-system-prompt-strategic-advisor-tone: backlog
-  2-6-response-citation-source-attribution: backlog
+  2-6-response-citation-source-attribution: drafted
   epic-2-retrospective: optional
 
   # Epic 3: Knowledge Retrieval (RAG)

@@ -1,0 +1,96 @@
+# =============================================================================
+# ONYX Development Environment Configuration
+# =============================================================================
+# Development environment - safe for local use
+# Do NOT use this file for production deployment
+# =============================================================================
+
+# Google OAuth2 Configuration
+# NOTE: Replace with your actual development OAuth credentials
+GOOGLE_CLIENT_ID=your-dev-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-dev-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/callback/google
+
+# LLM API Keys
+# NOTE: Replace with your actual API keys for development
+TOGETHER_API_KEY=your-dev-together-api-key
+DEEPSEEK_API_KEY=your-dev-deepseek-api-key
+DEEPSEEK_MODEL=together/deepseek-chat
+
+# Database Configuration
+POSTGRES_PASSWORD=dev-secure-password-12345
+POSTGRES_DB=manus
+POSTGRES_USER=manus
+DATABASE_URL=postgresql://manus:dev-secure-password-12345@postgres:5432/manus
+
+# Redis Configuration
+REDIS_URL=redis://redis:6379
+REDIS_PASSWORD=dev-redis-password-123
+
+# Qdrant Vector Database
+QDRANT_URL=http://qdrant:6333
+QDRANT_API_KEY=dev-qdrant-api-key
+
+# Encryption
+ENCRYPTION_KEY=1234567890abcdef1234567890abcdef
+SESSION_SECRET=dev-session-secret-1234567890
+
+# Monitoring
+GRAFANA_PASSWORD=dev-grafana-password-123
+
+# Feature Flags
+ENABLE_WORKSPACE=true
+ENABLE_CODE_EXECUTION=true
+ENABLE_GOOGLE_DRIVE=true
+ENABLE_SLACK=true
+
+# Development Settings
+NODE_ENV=development
+PYTHONPATH=/app
+
+# SSL Configuration
+SSL_CERT_PATH=./nginx/ssl/cert.pem
+SSL_KEY_PATH=./nginx/ssl/key.pem
+
+# Backup Configuration
+BACKUP_SCHEDULE=0 2 * * *
+BACKUP_RETENTION_DAYS=90
+
+# Logging Configuration
+LOG_LEVEL=info
+LOG_FORMAT=json
+
+# Rate Limiting
+RATE_LIMIT_REQUESTS_PER_MINUTE=100
+RATE_LIMIT_WINDOW_MS=60000
+
+# Session Management
+SESSION_TIMEOUT_MS=1800000
+
+# API Configuration
+API_TIMEOUT_MS=30000
+API_RETRY_ATTEMPTS=3
+API_RETRY_DELAY_MS=1000
+
+# File Upload Limits
+MAX_FILE_SIZE_MB=10
+ALLOWED_FILE_TYPES=pdf,doc,docx,txt,md
+
+# Background Jobs
+BULLMQ_CONCURRENCY=2
+SYNC_INTERVAL_MINUTES=30
+
+# Docker Configuration
+COMPOSE_PROJECT_NAME=onyx-development
+COMPOSE_FILE=docker-compose.yaml
+
+# =============================================================================
+# Development Environment Notes:
+# =============================================================================
+# - Development passwords are simple but should be changed for security
+# - INFO level logging for development visibility
+# - Higher rate limits for development testing
+# - Larger file upload limits for development
+# - Shorter backup retention for development
+# - Increased background job concurrency for development
+# =============================================================================

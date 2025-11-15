@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<context xmlns="http://bmad.dev/schema/context" version="1.0">
+  <metadata>
+    <story-id>2-6</story-id>
+    <story-title>Response Citation Source Attribution</story-title>
+    <generated>2025-01-15T10:30:00Z</generated>
+    <scope>implementation</scope>
+  </metadata>
+
+  <!-- Current Implementation Context -->
+  <implementation>
+
+    <!-- Story 2-4: Message Streaming Implementation -->
+    <component name="message-streaming" story="2-4">
+      <file path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/suna/src/lib/llm-client.ts">
+        <description>LLM client with streaming support, circuit breaker pattern, and fallback mechanisms</description>
+        <key-features>
+          <feature>Streaming chat completion with callbacks</feature>
+          <feature>Circuit breaker for failover resilience</feature>
+          <feature>Primary/fallback client architecture</feature>
+          <feature>Token estimation and metadata tracking</feature>
+        </key-features>
+        <integration-points>
+          <point name="stream-callbacks" type="extension">
+            <description>Streaming callbacks (onChunk, onError, onComplete) can be extended for citation extraction</description>
+            <code-ref>streamChatCompletion(messages, onChunk, onError, onComplete)</code-ref>
+          </point>
+          <point name="metadata-tracking" type="enhancement">
+            <description>StreamMetadata interface can include citation data</description>
+            <code-ref>interface StreamMetadata { messageId, totalTokens, totalTime, modelUsed, finishReason }</code-ref>
+          </point>
+        </integration-points>
+      </file>
+
+      <file path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/suna/src/components/MessageList.tsx">
+        <description>React component for displaying chat messages with streaming indicators</description>
+        <message-interface>
+          <interface name="Message">
+            <field name="id" type="string"/>
+            <field name="role" type="'user' | 'assistant' | 'system'"/>
+            <field name="content" type="string"/>
+            <field name="timestamp" type="Date"/>
+            <!-- Extension point for citations -->
+            <field name="citations" type="Citation[]" optional="true"/>
+          </interface>
+        </message-interface>
+        <integration-points>
+          <point name="citation-display" type="component">
+            <description>Message component needs citation rendering section</description>
+            <location>After message content, before timestamp</location>
+          </point>
+          <point name="streaming-citations" type="enhancement">
+            <description>Streaming indicator can show real-time citation extraction</description>
+          </point>
+        </integration-points>
+      </file>
+    </component>
+
+    <!-- Story 2-5: System Prompt Framework -->
+    <component name="system-prompts" story="2-5">
+      <file path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/suna/src/lib/prompts.ts">
+        <description>Manus persona system prompt framework with citation requirements</description>
+        <persona-definition>
+          <name>Manus</name>
+          <role>Strategic Advisor for Founders</role>
+          <citation-requirements>
+            <requirement>Use numeric citations [1], [2], [3] for factual claims</requirement>
+            <requirement>Include source type and date when possible</requirement>
+            <requirement>Cite credible sources (academic papers, established research, reputable publications)</requirement>
+            <requirement>Clearly distinguish between evidence and reasoning</requirement>
+            <requirement>Mark assumptions explicitly when evidence is limited</requirement>
+          </citation-requirements>
+          <response-structure>
+            <step>1. Analysis: Step-by-step reasoning and context</step>
+            <step>2. Evidence: Cited sources and supporting data</step>
+            <step>3. Implications: Strategic considerations and impacts</step>
+            <step>4. Recommendations: Actionable next steps with timeline</step>
+            <step>5. Success Metrics: How to measure implementation success</step>
+          </response-structure>
+        </persona-definition>
+        <integration-points>
+          <point name="citation-extraction" type="function">
+            <description>buildSystemPrompt() function can include citation extraction instructions</description>
+          </point>
+          <point name="validation" type="enhancement">
+            <description>validateSystemPrompt() can check for citation compliance</description>
+          </point>
+        </integration-points>
+      </file>
+    </component>
+
+    <!-- Story 2-3: Database Schema & RAG Integration -->
+    <component name="database-rag" story="2-3">
+      <description>Database schema and RAG integration from Google Drive connector implementation</description>
+
+      <schema name="documents">
+        <table name="documents">
+          <column name="id" type="uuid" primary="true"/>
+          <column name="workspace_id" type="uuid" indexed="true"/>
+          <column name="parent_id" type="uuid" nullable="true" indexed="true"/>
+          <column name="name" type="varchar(255)" not-null="true"/>
+          <column name="drive_id" type="varchar(255)" unique="true"/>
+          <column name="drive_url" type="text"/>
+          <column name="mime_type" type="varchar(100)"/>
+          <column name="size_bytes" type="bigint"/>
+          <column name="checksum" type="varchar(64)"/>
+          <column name="extracted_text" type="text"/>
+          <column name="text_hash" type="varchar(64)" indexed="true"/>
+          <column name="embedding_id" type="varchar(255)" indexed="true"/>
+          <column name="source" type="varchar(50)" default="'drive'"/>
+          <column name="metadata" type="jsonb"/>
+          <column name="processed_at" type="timestamp"/>
+          <column name="created_at" type="timestamp"/>
+          <column name="updated_at" type="timestamp"/>
+          <column name="last_synced_at" type="timestamp"/>
+          <column name="sync_status" type="varchar(20)" default="'pending'"/>
+          <column name="sync_error" type="text"/>
+        </table>
+        <indexes>
+          <index columns="workspace_id, created_at"/>
+          <index columns="parent_id, created_at"/>
+          <index columns="text_hash"/>
+        </indexes>
+      </schema>
+
+      <schema name="document_permissions">
+        <table name="document_permissions">
+          <column name="id" type="uuid" primary="true"/>
+          <column name="document_id" type="uuid" foreign-key="documents.id"/>
+          <column name="user_id" type="uuid" indexed="true"/>
+          <column name="permission_level" type="varchar(20)" default="'read'"/>
+          <column name="granted_by" type="uuid"/>
+          <column name="granted_at" type="timestamp"/>
+          <column name="expires_at" type="timestamp" nullable="true"/>
+        </table>
+      </schema>
+
+      <rag-implementation>
+        <vector-storage provider="Qdrant">
+          <collection-name>"documents"</collection-name>
+          <embedding-dimension>1536</embedding-dimension>
+          <distance-metric>Cosine</distance-metric>
+        </vector-storage>
+        <embedding-service provider="OpenAI">
+          <model>text-embedding-3-small</model>
+          <dimensions>1536</dimensions>
+          <chunk-size>1000</chunk-size>
+          <chunk-overlap>200</chunk-overlap>
+        </embedding-service>
+        <permission-filtering>
+          <description>All RAG queries filtered by user permissions</description>
+          <implementation>Join with document_permissions before search</implementation>
+        </permission-filtering>
+      </rag-implementation>
+
+      <integration-points>
+        <point name="citation-storage" type="schema">
+          <description>New table needed for message-to-document citation links</description>
+          <table name="message_citations">
+            <column name="id" type="uuid" primary="true"/>
+            <column name="message_id" type="uuid" foreign-key="messages.id"/>
+            <column name="document_id" type="uuid" foreign-key="documents.id"/>
+            <column name="citation_index" type="integer"/> <!-- [1], [2], [3] -->
+            <column name="snippet" type="text"/> <!-- Relevant text snippet -->
+            <column name="confidence_score" type="float"/>
+            <column name="created_at" type="timestamp"/>
+          </table>
+        </point>
+        <point name="rag-citation-link" type="service">
+          <description>RAG service must return document IDs for citation linking</description>
+        </point>
+      </integration-points>
+    </component>
+
+  </implementation>
+
+  <!-- Citation Implementation Requirements -->
+  <citation-requirements>
+
+    <extraction-requirements>
+      <requirement name="real-time-extraction">
+        <description>Extract citations during LLM streaming without breaking flow</description>
+        <integration-point>llm-client.ts stream callbacks</integration-point>
+        <challenge>Balance extraction accuracy with streaming performance</challenge>
+      </requirement>
+
+      <requirement name="source-matching">
+        <description>Match citation references to actual source documents in RAG system</description>
+        <integration-point>Qdrant vector search results</integration-point>
+        <challenge>Handle ambiguous citations and multiple source matches</challenge>
+      </requirement>
+
+      <requirement name="permission-validation">
+        <description>Ensure all cited sources are accessible to current user</description>
+        <integration-point>document_permissions table</integration-point>
+        <challenge>Real-time permission checking during streaming</challenge>
+      </requirement>
+    </extraction-requirements>
+
+    <display-requirements>
+      <requirement name="inline-citations">
+        <description>Display citations as clickable inline references [1], [2], [3]</description>
+        <integration-point>MessageList.tsx message rendering</integration-point>
+        <ui-pattern>Superscript style with hover/click for source details</ui-pattern>
+      </requirement>
+
+      <requirement name="source-preview">
+        <description>Show source document snippet and metadata on citation interaction</description>
+        <component-type>CitationPopover / CitationModal</component-type>
+        <content-fields>Document name, source type, relevant snippet, access link</content-fields>
+      </requirement>
+
+      <requirement name="citation-integrity">
+        <description>Maintain citation formatting and links across message streaming</description>
+        <technical-challenge>Handle partial citations during streaming completion</technical-challenge>
+      </requirement>
+    </display-requirements>
+
+  </citation-requirements>
+
+  <!-- Performance Targets -->
+  <performance-targets>
+
+    <extraction-performance>
+      <metric name="citation-extraction-latency" target="&lt;100ms"/>
+      <metric name="streaming-overhead" target="&lt;5%"/>
+      <metric name="citation-accuracy" target="&gt;90%"/>
+      <metric name="false-positive-rate" target="&lt;5%"/>
+    </extraction-performance>
+
+    <database-performance>
+      <metric name="citation-lookup" target="&lt;50ms"/>
+      <metric name="permission-check" target="&lt;20ms"/>
+      <metric name="concurrent-citations" target="100+ per message"/>
+    </database-performance>
+
+    <ui-performance>
+      <metric name="citation-render" target="&lt;16ms"/>
+      <metric name="source-preview-load" target="&lt;200ms"/>
+      <metric name="citation-interaction" target="&lt;100ms"/>
+    </ui-performance>
+
+  </performance-targets>
+
+  <!-- Integration Dependencies -->
+  <dependencies>
+
+    <internal-dependencies>
+      <dependency component="message-streaming" status="completed"/>
+      <dependency component="system-prompts" status="completed"/>
+      <dependency component="database-rag" status="completed"/>
+    </internal-dependencies>
+
+    <external-dependencies>
+      <dependency name="OpenAI API" purpose="LLM streaming and embeddings"/>
+      <dependency name="Qdrant" purpose="Vector similarity search"/>
+      <dependency name="PostgreSQL" purpose="Citation storage and permissions"/>
+    </external-dependencies>
+
+  </dependencies>
+
+  <!-- Implementation Risks -->
+  <risks>
+    <risk level="high" name="streaming-performance">
+      <description>Citation extraction may impact streaming latency</description>
+      <mitigation>Implement asynchronous extraction with batching</mitigation>
+    </risk>
+    <risk level="medium" name="citation-accuracy">
+      <description>False positive citation matches may confuse users</description>
+      <mitigation>Implement confidence scoring and user feedback mechanisms</mitigation>
+    </risk>
+    <risk level="medium" name="data-privacy">
+      <description>Citation links may expose sensitive document information</description>
+      <mitigation>Strict permission validation and data masking</mitigation>
+    </risk>
+  </risks>
+
+  <!-- Success Criteria -->
+  <success-criteria>
+    <criterion name="functional-citations">
+      <description>Users can see and interact with accurate citations in responses</description>
+      <measurement>Citation accuracy &gt; 90%, user interaction rate &gt; 70%</measurement>
+    </criterion>
+    <criterion name="performance-compliance">
+      <description>Citation system meets performance targets</description>
+      <measurement>All performance metrics within targets</measurement>
+    </criterion>
+    <criterion name="permission-safety">
+      <description>No unauthorized document access through citations</description>
+      <measurement>Zero security incidents, permission audit pass</measurement>
+    </criterion>
+  </success-criteria>
+
+</context>

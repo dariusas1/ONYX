@@ -1,25 +1,33 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { User, Bot } from 'lucide-react';
+
+import { Citation } from '../lib/citation-extractor';
+import { CitationList } from './CitationList';
 
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
+  citations?: Citation[];
 }
 
 export interface MessageListProps {
   messages: Message[];
   isStreaming?: boolean;
   className?: string;
+  showCitations?: boolean;
+  onCitationClick?: (citation: Citation) => void;
 }
 
 export function MessageList({
   messages,
   isStreaming = false,
   className = '',
+  showCitations = true,
+  onCitationClick
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -27,6 +35,43 @@ export function MessageList({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Render content with inline citations
+  const renderContentWithCitations = (message: Message) => {
+    if (!message.citations || message.citations.length === 0) {
+      return message.content;
+    }
+
+    // Replace citation markers with clickable elements
+    let content = message.content;
+    const citationPattern = /\[(\d+)\]/g;
+
+    return content.split(citationPattern).map((part, index) => {
+      // Even indices are text, odd indices are citation numbers
+      if (index % 2 === 0) {
+        return part;
+      } else {
+        const citationIndex = parseInt(part);
+        const citation = message.citations?.find(c => c.index === citationIndex);
+
+        if (citation) {
+          return (
+            <button
+              key={`citation-${index}`}
+              onClick={() => onCitationClick?.(citation)}
+              className="inline-flex items-center justify-center w-5 h-5 rounded bg-manus-surface hover:bg-manus-accent text-manus-accent hover:text-white text-xs font-semibold transition-colors cursor-pointer mx-1"
+              title={citation.documentName || `Citation ${citationIndex}`}
+              aria-label={`View source ${citationIndex}`}
+            >
+              {citationIndex}
+            </button>
+          );
+        }
+
+        return <span key={`citation-${index}`}>[{citationIndex}]</span>;
+      }
+    });
+  };
 
   // Empty state
   if (messages.length === 0) {
@@ -79,9 +124,22 @@ export function MessageList({
             >
               <div className="prose prose-invert max-w-none">
                 <p className="text-sm md:text-base whitespace-pre-wrap break-words">
-                  {message.content}
+                  {message.role === 'assistant' ? renderContentWithCitations(message) : message.content}
                 </p>
               </div>
+
+              {/* Citations List for Assistant Messages */}
+              {showCitations && message.role === 'assistant' && message.citations && message.citations.length > 0 && (
+                <div className="mt-3">
+                  <CitationList
+                    citations={message.citations}
+                    maxVisible={2}
+                    onCitationClick={onCitationClick}
+                    className="border-t border-manus-border pt-3"
+                  />
+                </div>
+              )}
+
               <div className="mt-2 text-xs opacity-70">
                 {message.timestamp.toLocaleTimeString([], {
                   hour: '2-digit',
