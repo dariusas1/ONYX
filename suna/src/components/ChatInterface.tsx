@@ -4,6 +4,7 @@ import React from 'react';
 import { MessageList, Message } from './MessageList';
 import { InputBox } from './InputBox';
 import { useChat } from '@/hooks/useChat';
+import { FileUploadItem } from './upload/FileUploadZone';
 
 export interface ChatInterfaceProps {
   conversationId?: string;
@@ -44,6 +45,26 @@ export function ChatInterface({
     [sendMessage, sending, isStreaming]
   );
 
+  const handleFilesUploaded = React.useCallback(
+    async (files: FileUploadItem[]) => {
+      // Filter successfully uploaded files
+      const successfulFiles = files.filter(f => f.status === 'success');
+
+      if (successfulFiles.length === 0) return;
+
+      // Create a message about the uploaded files
+      const fileNames = successfulFiles.map(f => f.file.name).join(', ');
+      const fileMessage = `I've uploaded the following files: ${fileNames}. They should now be available for search and analysis.`;
+
+      try {
+        await sendMessage(fileMessage);
+      } catch (error) {
+        console.error('Failed to send file upload message:', error);
+      }
+    },
+    [sendMessage]
+  );
+
   return (
     <div
       className={`flex-1 flex flex-col min-h-0 ${className}`}
@@ -66,10 +87,12 @@ export function ChatInterface({
       <div className="flex-shrink-0">
         <InputBox
           onSubmit={handleSubmit}
+          onFilesUploaded={handleFilesUploaded}
           disabled={sending || isStreaming}
           aria-label="Type and send your message"
           error={error || streamingError}
           onClearError={clearError}
+          showFileUpload={true}
         />
       </div>
     </div>

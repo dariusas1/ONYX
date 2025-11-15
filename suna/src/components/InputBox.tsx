@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
-import { Send, Bot, MessageSquare } from 'lucide-react';
+import React, { useRef, useEffect, KeyboardEvent, ChangeEvent, useState } from 'react';
+import { Send, Bot, MessageSquare, Paperclip } from 'lucide-react';
 import { useAgentModeContext } from '@/components/AgentModeProvider';
 import type { AgentMode } from '@/components/ModeToggle';
+import { FileUploadZone, FileUploadItem } from './upload/FileUploadZone';
 
 export interface InputBoxProps {
   value?: string;
   onChange?: (value: string) => void;
   onSubmit: (message: string) => void;
+  onFilesUploaded?: (files: FileUploadItem[]) => void;
   disabled?: boolean;
   placeholder?: string;
   className?: string;
@@ -16,22 +18,27 @@ export interface InputBoxProps {
   onClearError?: () => void;
   agentMode?: AgentMode;
   showModeIndicator?: boolean;
+  showFileUpload?: boolean;
 }
 
 export function InputBox({
   value: externalValue,
   onChange: externalOnChange,
   onSubmit,
+  onFilesUploaded,
   disabled = false,
   placeholder,
   className = '',
   error,
   onClearError,
   agentMode,
-  showModeIndicator = true
+  showModeIndicator = true,
+  showFileUpload = true
 }: InputBoxProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [internalValue, setInternalValue] = React.useState('');
+  const [showFileUploadZone, setShowFileUploadZone] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<FileUploadItem[]>([]);
 
   const agentModeContext = useAgentModeContext();
 
@@ -109,6 +116,22 @@ export function InputBox({
     onChange(e.target.value);
   };
 
+  const handleFilesUploaded = (files: FileUploadItem[]) => {
+    setUploadedFiles(files);
+    if (onFilesUploaded) {
+      onFilesUploaded(files);
+    }
+    // Hide file upload zone after successful upload
+    const successfulFiles = files.filter(f => f.status === 'success');
+    if (successfulFiles.length > 0) {
+      setShowFileUploadZone(false);
+    }
+  };
+
+  const toggleFileUpload = () => {
+    setShowFileUploadZone(!showFileUploadZone);
+  };
+
   return (
     <div
       className={`border-t border-manus-border bg-manus-surface ${className}`}
@@ -116,6 +139,18 @@ export function InputBox({
       aria-label="Message input form"
     >
       <div className="max-w-chat mx-auto px-3 sm:px-4 py-3 sm:py-4">
+        {/* File upload zone */}
+        {showFileUpload && showFileUploadZone && (
+          <div className="mb-4">
+            <FileUploadZone
+              onFilesUploaded={handleFilesUploaded}
+              maxFiles={10}
+              maxSize={50 * 1024 * 1024} // 50MB
+              disabled={disabled}
+            />
+          </div>
+        )}
+
         {/* Mode indicator */}
         {showModeIndicator && (
           <div className="flex items-center gap-2 mb-3 px-1">
@@ -139,7 +174,45 @@ export function InputBox({
           </div>
         )}
 
+        {/* Uploaded files summary */}
+        {uploadedFiles.length > 0 && (
+          <div className="mb-3 px-1">
+            <div className="flex items-center gap-2 text-sm text-manus-muted">
+              <Paperclip className="w-4 h-4" />
+              <span>
+                {uploadedFiles.filter(f => f.status === 'success').length} of {uploadedFiles.length} files uploaded successfully
+              </span>
+              <button
+                type="button"
+                onClick={() => setUploadedFiles([])}
+                className="text-xs hover:text-manus-foreground transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2 sm:gap-3 items-end">
+          {/* File upload button */}
+          {showFileUpload && (
+            <button
+              type="button"
+              onClick={toggleFileUpload}
+              disabled={disabled}
+              className={`flex items-center justify-center h-10 sm:h-11 w-10 sm:w-11 flex-shrink-0 min-w-[44px] min-h-[44px] rounded-lg border transition-colors ${
+                showFileUploadZone
+                  ? 'bg-blue-100 border-blue-300 text-blue-700'
+                  : 'bg-manus-surface border-manus-border text-manus-muted hover:text-manus-foreground hover:border-manus-border-hover'
+              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              aria-label={showFileUploadZone ? 'Hide file upload' : 'Show file upload'}
+              title={showFileUploadZone ? 'Hide file upload' : 'Attach files'}
+            >
+              <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
+              <span className="sr-only">Attach files</span>
+            </button>
+          )}
+
           {/* Textarea */}
           <div className="flex-1 relative">
             <textarea

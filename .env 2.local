@@ -1,46 +1,61 @@
 # =============================================================================
-# ONYX Environment Variables - Production
+# ONYX Environment Variables - Development
 # =============================================================================
-# Production environment configuration
-# Use this for production deployment
+# Development environment configuration
+# NEVER commit actual secrets to version control
 # =============================================================================
-# 
-# SECURITY WARNING:
+#
+# SECURITY NOTES:
 # =================
-# 1. ALL placeholder values MUST be replaced with actual secure values
-# 2. Generate strong, unique passwords for all *_PASSWORD fields
-# 3. Use a 32-byte hex string for ENCRYPTION_KEY (openssl rand -hex 32)
-# 4. Generate a secure SESSION_SECRET (openssl rand -base64 32)
-# 5. Never commit actual values to version control
-# 6. Rotate secrets regularly in production
-# 7. Use environment-specific OAuth2 client IDs and secrets
+# 1. These are DEVELOPMENT values only
+# 2. For production, use Docker secrets or external secret management
+# 3. Generate strong, unique passwords for production
+# 4. Use a 32-byte hex string for ENCRYPTION_KEY in production
+# 5. Generate a secure SESSION_SECRET in production
+# 6. Never use these placeholder values in production
 # =============================================================================
 
 # Google OAuth2 Configuration
-# GOOGLE_CLIENT_ID=your-google-client-id-here
-# GOOGLE_CLIENT_SECRET=your-google-client-secret-here
-GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-https://yourdomain.com/api/auth/callback/google}
+GOOGLE_CLIENT_ID=dev-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=dev-google-client-secret-placeholder
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/callback/google
 
-# LLM API Keys
-# TOGETHER_API_KEY=your-together-ai-api-key-here
-# DEEPSEEK_API_KEY=your-deepseek-api-key-here
+# LLM API Keys - DEV PLACEHOLDERS ONLY
+TOGETHER_API_KEY=dev-together-api-key-placeholder
+DEEPSEEK_API_KEY=dev-deepseek-api-key-placeholder
+DEEPSEEK_MODEL=together/deepseek-chat
+OLLAMA_BASE_URL=http://ollama:11434
+OPENAI_API_KEY=dev-openai-api-key-placeholder
 
-# Database Configuration
+# Web Search API Keys - DEV PLACEHOLDERS ONLY
+SERPAPI_API_KEY=dev-serpapi-api-key-placeholder
+EXA_API_KEY=dev-exa-api-key-placeholder
+
+# Database Configuration - DEV VALUES ONLY
 POSTGRES_PASSWORD=dev-secure-password-12345
-DATABASE_URL=postgresql://manus:dev-secure-password-12345@postgres:5432/manus
+POSTGRES_DB=manus
+POSTGRES_USER=manus
+# DATABASE_URL constructed programmatically to avoid password exposure in config
+# DATABASE_URL=postgresql://manus:dev-secure-password-12345@postgres:5432/manus
 
 # Redis Configuration
 REDIS_URL=redis://redis:6379
-# REDIS_PASSWORD=your-redis-password-here
+REDIS_PASSWORD=
 
 # Qdrant Vector Database
 QDRANT_URL=http://qdrant:6333
-# QDRANT_API_KEY=your-qdrant-api-key-here
+QDRANT_API_KEY=
 
-# Encryption
+# Encryption - DEV KEY ONLY (generate real one for production)
 ENCRYPTION_KEY=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
 
-# Monitoring
+# Session Secret - DEV SECRET ONLY (generate real one for production)
+SESSION_SECRET=dev-session-secret-1234567890
+
+# LiteLLM Proxy
+LITELLM_URL=http://litellm-proxy:4000
+
+# Monitoring - DEV PASSWORD ONLY
 GRAFANA_PASSWORD=dev-grafana-password-12345
 
 # Feature Flags
@@ -49,56 +64,7 @@ ENABLE_CODE_EXECUTION=true
 ENABLE_GOOGLE_DRIVE=true
 ENABLE_SLACK=true
 
-# Development Settings
-NODE_ENV=production
-PYTHONPATH=/app
-
-# SSL Configuration
-SSL_CERT_PATH=./nginx/ssl/cert.pem
-SSL_KEY_PATH=./nginx/ssl/key.pem
-
-# Backup Configuration
-BACKUP_SCHEDULE=0 2 * * *
-BACKUP_RETENTION_DAYS=90
-
-# Logging Configuration
-LOG_LEVEL=warn
+# Development Environment Settings
+NODE_ENV=development
+LOG_LEVEL=info
 LOG_FORMAT=json
-
-# Rate Limiting
-RATE_LIMIT_REQUESTS_PER_MINUTE=100
-RATE_LIMIT_WINDOW_MS=60000
-
-# Session Management
-SESSION_SECRET=dev-session-secret-1234567890abcdef
-SESSION_TIMEOUT_MS=1800000
-
-# API Configuration
-API_TIMEOUT_MS=30000
-API_RETRY_ATTEMPTS=3
-API_RETRY_DELAY_MS=1000
-
-# File Upload Limits
-MAX_FILE_SIZE_MB=10
-ALLOWED_FILE_TYPES=pdf,doc,docx,txt,md
-
-# Background Jobs
-BULLMQ_CONCURRENCY=2
-SYNC_INTERVAL_MINUTES=30
-
-# Docker Configuration
-COMPOSE_PROJECT_NAME=onyx-production
-COMPOSE_FILE=docker-compose.yaml
-
-# Production Overrides
-COMPOSE_OVERRIDE_FILE=docker-compose.production.yml
-
-# =============================================================================
-# Production Environment Notes:
-# =============================================================================
-# - WARN level logging for production monitoring
-# - Strict rate limits for security
-# - Smaller file upload limits for resource management
-# - Longer backup retention for compliance
-# - Reduced background job concurrency for stability
-# =============================================================================

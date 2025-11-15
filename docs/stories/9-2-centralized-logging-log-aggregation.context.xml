@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<storyContext>
+  <storyId>9-2-centralized-logging-log-aggregation</storyId>
+  <epic>epic-9</epic>
+  <title>Centralized Logging & Log Aggregation</title>
+
+  <priority>P0</priority>
+  <estimatedPoints>10</estimatedPoints>
+  <sprint>Sprint 9-1</sprint>
+
+  <dependencies>
+    <dependency>epic-1</dependency>
+    <dependency>epic-2</dependency>
+    <dependency>epic-3</dependency>
+    <dependency>epic-5</dependency>
+    <dependency>epic-6</dependency>
+    <dependency>epic-7</dependency>
+  </dependencies>
+
+  <overview>
+    Essential infrastructure story implementing centralized logging system with ELK stack or CloudWatch Logs. Provides structured JSON logging, automated PII masking, log search capabilities, and retention policies critical for debugging cross-service issues and compliance requirements.
+  </overview>
+
+  <technicalRequirements>
+    <requirement id="TR-9.2.1">
+      <title>Logging Stack Deployment</title>
+      <description>Deploy and configure ELK Stack or CloudWatch Logs for centralized log collection</description>
+      <acceptanceCriteria>AC9.2.1</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>ELK Stack: Elasticsearch 8.x, Logstash 8.x, Kibana 8.x deployment</spec>
+        <spec>Alternative: AWS CloudWatch Logs with CloudWatch Insights</spec>
+        <spec>High availability: Multi-node Elasticsearch cluster with replica shards</spec>
+        <spec>Storage: Configurable storage with automated index lifecycle management</spec>
+        <spec>Access: Role-based access control for log viewing and management</spec>
+      </technicalSpecs>
+    </requirement>
+
+    <requirement id="TR-9.2.2">
+      <title>Structured Logging Format</title>
+      <description>Standardize JSON logging format across all ONYX services</description>
+      <acceptanceCriteria>AC9.2.2</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>Log Schema: timestamp, level, service, message, correlation_id, user_id, request_id</spec>
+        <spec>Levels: DEBUG, INFO, WARN, ERROR, FATAL with proper severity weighting</spec>
+        <spec>Context: Automatic injection of request context and service metadata</spec>
+        <spec>Format: Consistent JSON structure with field validation</spec>
+        <spec>Validation: Schema validation to ensure log format consistency</spec>
+      </technicalSpecs>
+    </requirement>
+
+    <requirement id="TR-9.2.3">
+      <title>Environment-based Log Filtering</title>
+      <description>Configure log levels with environment-specific filtering</description>
+      <acceptanceCriteria>AC9.2.3</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>Development: DEBUG level with verbose logging enabled</spec>
+        <spec>Staging: INFO level with selective DEBUG logging</spec>
+        <spec>Production: WARN and ERROR levels only, INFO for critical operations</spec>
+        <spec>Dynamic: Runtime log level adjustment without service restart</spec>
+        <spec>Performance: Zero performance impact from disabled log levels</spec>
+      </technicalSpecs>
+    </requirement>
+
+    <requirement id="TR-9.2.4">
+      <title>PII Data Masking</title>
+      <description>Implement consistent sensitive data masking across all log sources</description>
+      <acceptanceCriteria>AC9.2.4</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>PII Detection: Regex patterns for email, phone, SSN, credit card, API keys</spec>
+        <spec>Masking Strategy: Partial masking (show first/last characters) or full redaction</spec>
+        <spec>Custom Rules: Configurable masking rules for domain-specific sensitive data</spec>
+        <spec>Validation: Automated testing to ensure no PII leakage in logs</spec>
+        <spec>Performance: Sub-millisecond PII detection and masking overhead</spec>
+      </technicalSpecs>
+    </requirement>
+
+    <requirement id="TR-9.2.5">
+      <title>Log Retention Policies</title>
+      <description>Configure tiered log retention with hot, warm, and cold storage</description>
+      <acceptanceCriteria>AC9.2.5</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>Hot Storage: 30 days in Elasticsearch with full search capabilities</spec>
+        <spec>Warm Storage: 90 days in compressed Elasticsearch with limited search</spec>
+        <spec>Cold Storage: 365 days in S3/Glacier with on-demand restore</spec>
+        <spec>Archival: 7-year retention for compliance (audit logs only)</spec>
+        <spec>Cost Optimization: Automated index lifecycle management and storage tiering</spec>
+      </technicalSpecs>
+    </requirement>
+
+    <requirement id="TR-9.2.6">
+      <title>Search Performance</title>
+      <description>Ensure sub-second log search and filtering performance</description>
+      <acceptanceCriteria>AC9.2.6</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>Index Strategy: Time-based indices with optimized mappings</spec>
+        <spec>Query Performance: &lt;1 second for typical search queries</spec>
+        <spec>Search Capabilities: Full-text search, field filtering, range queries</spec>
+        <spec>Aggregations: Real-time log analytics and statistics</spec>
+        <spec>Caching: Query result caching for frequently accessed logs</spec>
+      </technicalSpecs>
+    </requirement>
+
+    <requirement id="TR-9.2.7">
+      <title>Log Parsing and Enrichment</title>
+      <description>Extract and enrich key fields from log messages for better analysis</description>
+      <acceptanceCriteria>AC9.2.7</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>Field Extraction: user_id, request_id, service, operation, duration_ms</spec>
+        <supp>GeoIP Enrichment: Geographic location from IP addresses</supp>
+        <spec>User Agent Parsing: Browser, OS, and device information extraction</spec>
+        <spec>Error Classification: Automatic error type categorization</spec>
+        <spec>Performance Metrics: Latency and throughput extraction from logs</spec>
+      </technicalSpecs>
+    </requirement>
+  </technicalRequirements>
+
+  <implementationPlan>
+    <phase id="phase-1" duration="4 days">
+      <title>Logging Stack Infrastructure</title>
+      <tasks>
+        <task>Deploy ELK Stack or configure CloudWatch Logs environment</task>
+        <task>Set up Elasticsearch cluster with proper shard configuration</task>
+        <task>Configure Logstash with input, filter, and output plugins</task>
+        <task>Deploy Kibana with security and access controls</task>
+        <task>Set up log shipping agents (Fluentd/Fluent Bit)</task>
+      </tasks>
+    </phase>
+
+    <phase id="phase-2" duration="3 days">
+      <title>Service Integration and Standardization</title>
+      <tasks>
+        <task>Implement structured JSON logging library for Python services</task>
+        <task>Integrate structured logging in Suna frontend (winston/pino)</task>
+        <task>Update all ONYX services to use standardized log format</task>
+        <task>Implement correlation ID propagation across services</task>
+        <task>Configure environment-based log filtering</task>
+      </tasks>
+    </phase>
+
+    <phase id="phase-3" duration="2 days">
+      <title>PII Protection and Security</title>
+      <tasks>
+        <task>Implement PII detection and masking algorithms</task>
+        <task>Configure custom masking rules for domain-specific data</task>
+        <task>Set up log access controls and audit logging</task>
+        <task>Test PII masking effectiveness with various data patterns</task>
+        <task>Validate no sensitive data leakage in production logs</task>
+      </tasks>
+    </phase>
+
+    <phase id="phase-4" duration="1 day">
+      <title>Search and Analytics</title>
+      <tasks>
+        <task>Create Kibana dashboards for log analysis and monitoring</task>
+        <task>Set up log retention policies and index lifecycle management</task>
+        <task>Configure log alerts for critical error patterns</task>
+        <task>Implement log search performance optimization</task>
+        <task>Test log search and filtering capabilities</task>
+      </tasks>
+    </phase>
+  </implementationPlan>
+
+  <integrationPoints>
+    <service name="suna-frontend">
+      <description>React/Next.js frontend logging client-side and server-side events</description>
+      <loggingPoints>
+        <point>User interactions and navigation events</point>
+        <point>Client-side errors and exceptions</point>
+        <point>API request/response logging</point>
+        <point>Performance metrics and Core Web Vitals</point>
+        <point>Authentication and authorization events</point>
+      </loggingPoints>
+    </service>
+
+    <service name="onyx-core">
+      <description>Python/FastAPI backend with comprehensive application and infrastructure logging</description>
+      <loggingPoints>
+        <point>HTTP request/response logging with performance metrics</point>
+        <point>Database query logging and performance</point>
+        <point>Cache operations and hit rates</point>
+        <point>Vector database operations and search queries</point>
+        <point>LLM API calls and streaming operations</point>
+        <point>Business logic events and user actions</point>
+      </loggingPoints>
+    </service>
+
+    <service name="infrastructure">
+      <description>Docker containers, load balancers, and database infrastructure logging</description>
+      <loggingPoints>
+        <point>Container lifecycle events and resource usage</point>
+        <point>Database query logs and performance metrics</point>
+        <point>Load balancer access logs and health checks</point>
+        <point>System logs and security events</point>
+        <point>Backup and maintenance operations</point>
+      </loggingPoints>
+    </service>
+  </integrationPoints>
+
+  <dataModel>
+    <entity name="LogEntry">
+      <attributes>
+        <attribute name="timestamp" type="datetime">ISO 8601 timestamp with timezone</attribute>
+        <attribute name="level" type="string">DEBUG, INFO, WARN, ERROR, FATAL</attribute>
+        <attribute name="service" type="string">Service name generating the log</attribute>
+        <attribute name="message" type="string">Log message content</attribute>
+        <attribute name="correlation_id" type="string">Request trace identifier</attribute>
+        <attribute name="user_id" type="string">User identifier when applicable</attribute>
+        <attribute name="request_id" type="string">HTTP request identifier</attribute>
+        <attribute name="operation" type="string">Business operation being performed</attribute>
+        <attribute name="duration_ms" type="integer">Operation duration in milliseconds</attribute>
+        <attribute name="error_code" type="string">Error code for failures</attribute>
+        <attribute name="stack_trace" type="text">Error stack trace for debugging</attribute>
+        <attribute name="metadata" type="map">Additional context and structured data</attribute>
+      </attributes>
+    </entity>
+  </dataModel>
+
+  <securityConsiderations>
+    <consideration id="SC-9.2.1">
+      <title>Log Access Control</title>
+      <description>Restrict log access based on user roles and data sensitivity</description>
+      <mitigation>Role-based access control in Kibana with field-level security</mitigation>
+    </consideration>
+
+    <consideration id="SC-9.2.2">
+      <title>PII Protection</title>
+      <description>Prevent sensitive user data from appearing in logs</description>
+      <mitigation>Multi-layer PII detection with regex patterns and ML-based classification</mitigation>
+    </consideration>
+
+    <consideration id="SC-9.2.3">
+      <title>Log Integrity</title>
+      <description>Ensure logs cannot be tampered with or modified</description>
+      <mitigation>Write-once storage with hash verification and audit trails</mitigation>
+    </consideration>
+
+    <consideration id="SC-9.2.4">
+      <title>Compliance and Retention</title>
+      <description>Meet regulatory requirements for log retention and privacy</description>
+      <mitigation>GDPR-compliant log handling with right to deletion capabilities</mitigation>
+    </consideration>
+  </securityConsiderations>
+
+  <testingStrategy>
+    <testingType name="unit">
+      <description>Test logging libraries and PII masking algorithms</description>
+      <tools>pytest (Python), Jest (JavaScript)</tools>
+      <coverage>&gt;95% for logging code paths</coverage>
+    </testingType>
+
+    <testingType name="integration">
+      <description>End-to-end log shipping and processing validation</description>
+      <tools>TestContainers, Mock log generators</tools>
+      <scenarios>Log flow from services through shippers to storage</scenarios>
+    </testingType>
+
+    <testingType name="security">
+      <description>PII masking effectiveness and access control validation</description>
+      <tools>PII test datasets, security scanners</tools>
+      <criteria>Zero PII leakage in production logs</criteria>
+    </testingType>
+
+    <testingType name="performance">
+      <description>Log shipping performance and search query optimization</description>
+      <tools>Log generators, Kibana query performance testing</tools>
+      <targets>&lt;100ms shipping, &lt;1s search queries</targets>
+    </testingType>
+  </testingStrategy>
+
+  <risks>
+    <risk id="R-9.2.1" probability="medium" impact="high">
+      <title>PII Leakage</title>
+      <description>Sensitive user data accidentally captured in application logs</description>
+      <mitigation>Comprehensive PII detection with automated testing and monitoring</mitigation>
+    </risk>
+
+    <risk id="R-9.2.2" probability="low" impact="medium">
+      <title>Logging Infrastructure Failure</title>
+      <description>ELK stack or log shipping services becoming unavailable</description>
+      <mitigation>High availability setup with fallback to local log files</mitigation>
+    </risk>
+
+    <risk id="R-9.2.3" probability="medium" impact="medium">
+      <title>Performance Impact</title>
+      <description>Logging infrastructure causing application performance degradation</description>
+      <mitigation>Async logging, sampling strategies, and performance monitoring</mitigation>
+    </risk>
+
+    <risk id="R-9.2.4" probability="low" impact="high">
+      <title>Data Loss</title>
+      <title>Loss of critical log data due to storage failures or misconfiguration</title>
+      <mitigation>Multiple storage replicas, backup strategies, and monitoring</mitigation>
+    </risk>
+  </risks>
+
+  <successCriteria>
+    <criterion>Centralized logging infrastructure deployed and operational</criterion>
+    <criterion>All ONYX services using structured JSON logging format</criterion>
+    <criterion>PII masking working consistently across all log sources</criterion>
+    <criterion>Log search performance meeting sub-second response time targets</criterion>
+    <criterion>Retention policies configured with cost-optimized storage tiering</criterion>
+    <criterion>Comprehensive dashboards created for log analysis and monitoring</criterion>
+    <criterion>Security controls implemented for log access and data protection</criterion>
+  </successCriteria>
+</storyContext>

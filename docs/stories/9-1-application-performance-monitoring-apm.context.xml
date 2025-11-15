@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<storyContext>
+  <storyId>9-1-application-performance-monitoring-apm</storyId>
+  <epic>epic-9</epic>
+  <title>Application Performance Monitoring (APM) Setup</title>
+
+  <priority>P0</priority>
+  <estimatedPoints>8</estimatedPoints>
+  <sprint>Sprint 9-1</sprint>
+
+  <dependencies>
+    <dependency>epic-1</dependency>
+    <dependency>epic-2</dependency>
+    <dependency>epic-3</dependency>
+    <dependency>epic-5</dependency>
+    <dependency>epic-6</dependency>
+    <dependency>epic-7</dependency>
+  </dependencies>
+
+  <overview>
+    Critical foundation story implementing comprehensive APM instrumentation across all ONYX services. This story enables observability, performance monitoring, distributed tracing, and intelligent alerting capabilities essential for production operations and incident response.
+  </overview>
+
+  <technicalRequirements>
+    <requirement id="TR-9.1.1">
+      <title>APM Agent Integration</title>
+      <description>Integrate DataDog or New Relic APM agents across Suna frontend, Onyx Core backend, and Agent Execution Service</description>
+      <acceptanceCriteria>AC9.1.1</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>OpenTelemetry SDK integration with auto-instrumentation</spec>
+        <spec>Custom instrumentation for business logic and critical operations</spec>
+        <spec>Performance overhead: &lt;1% for all APM operations</spec>
+        <spec>Service naming consistency: suna-frontend, onyx-core, agent-service</spec>
+      </technicalSpecs>
+    </requirement>
+
+    <requirement id="TR-9.1.2">
+      <title>Custom Dashboards</title>
+      <description>Create comprehensive dashboards for service latency, throughput, and error rates</description>
+      <acceptanceCriteria>AC9.1.2</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>Service Overview Dashboard: latency, error rate, throughput per service</spec>
+        <spec>Transaction Flow Dashboard: end-to-end request tracing visualization</spec>
+        <spec>Resource Utilization Dashboard: CPU, memory, database connections</spec>
+        <spec>Business Metrics Dashboard: user transactions, feature usage patterns</spec>
+      </technicalSpecs>
+    </requirement>
+
+    <requirement id="TR-9.1.3">
+      <title>Distributed Tracing</title>
+      <description>Implement end-to-end distributed tracing across service boundaries</description>
+      <acceptanceCriteria>AC9.1.3</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>Trace context propagation: trace_id, span_id across all HTTP requests</spec>
+        <spec>Custom spans for database queries, external API calls, file operations</spec>
+        <spec>Sampling strategy: 1% for production traces, 100% for staging</spec>
+        <spec>Trace retention: 30 days with configurable retention policies</spec>
+      </technicalSpecs>
+    </requirement>
+
+    <requirement id="TR-9.1.4">
+      <title>Performance Baselines</title>
+      <description>Establish performance baselines with SLO/SLI definitions</description>
+      <acceptanceCriteria>AC9.1.4</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>SLI Definition: 95th percentile response time &lt;500ms for API calls</spec>
+        <spec>SLO Definition: 99.9% uptime for critical services</spec>
+        <spec>Error Budget: 0.1% error rate allowance per month</spec>
+        <spec>Burn Rate Alerting: notify when error budget consumption &gt;20% monthly</spec>
+      </technicalSpecs>
+    </requirement>
+
+    <requirement id="TR-9.1.5">
+      <title>Data Retention Optimization</title>
+      <description>Configure cost-optimized data retention policies</description>
+      <acceptanceCriteria>AC9.1.5</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>High-resolution data: 1-minute intervals for 7 days</spec>
+        <spec>Medium-resolution data: 5-minute intervals for 30 days</spec>
+        <spec>Low-resolution data: 1-hour intervals for 90 days</spec>
+        <spec>Trace data: 30 days retention with intelligent sampling</spec>
+      </technicalSpecs>
+    </requirement>
+
+    <requirement id="TR-9.1.6">
+      <title>Alert Thresholds</title>
+      <description>Configure intelligent alert thresholds for performance degradation</description>
+      <acceptanceCriteria>AC9.1.6</acceptanceCriteria>
+      <technicalSpecs>
+        <spec>Response Time Alert: 95th percentile &gt;2x baseline for 5 minutes</spec>
+        <spec>Error Rate Alert: error rate &gt;1% for 2 minutes</spec>
+        <spec>Throughput Alert: request rate &lt;50% of baseline for 10 minutes</spec>
+        <spec>Database Performance Alert: query latency &gt;100ms for 5 minutes</spec>
+      </technicalSpecs>
+    </requirement>
+  </technicalRequirements>
+
+  <implementationPlan>
+    <phase id="phase-1" duration="3 days">
+      <title>APM Provider Setup & Agent Integration</title>
+      <tasks>
+        <task>Set up DataDog/New Relic account and API keys</task>
+        <task>Integrate OpenTelemetry SDK in Suna frontend (React/Next.js)</task>
+        <task>Integrate OpenTelemetry SDK in Onyx Core (Python/FastAPI)</task>
+        <task>Configure auto-instrumentation and service naming</task>
+        <task>Test basic trace generation and data collection</task>
+      </tasks>
+    </phase>
+
+    <phase id="phase-2" duration="2 days">
+      <title>Custom Instrumentation & Tracing</title>
+      <tasks>
+        <task>Add custom spans for database operations (PostgreSQL, Redis, Qdrant)</task>
+        <task>Instrument external API calls (Google APIs, Slack, Search APIs)</task>
+        <task>Add business logic spans for agent task execution</task>
+        <task>Implement trace context propagation between services</task>
+        <task>Validate end-to-end trace completeness</task>
+      </tasks>
+    </phase>
+
+    <phase id="phase-3" duration="2 days">
+      <title>Dashboard Creation & SLO Definition</title>
+      <tasks>
+        <task>Create service overview dashboard with latency and error metrics</task>
+        <task>Build transaction flow dashboard for distributed tracing</task>
+        <task>Implement resource utilization dashboard</task>
+        <task>Define SLOs and configure error budget tracking</task>
+        <task>Set up automated SLO reporting</task>
+      </tasks>
+    </phase>
+
+    <phase id="phase-4" duration="1 day">
+      <title>Alerting Configuration & Optimization</title>
+      <tasks>
+        <task>Configure performance degradation alerts</task>
+        <task>Set up error rate and throughput alerts</task>
+        <task>Implement intelligent alert thresholds</task>
+        <task>Configure data retention policies for cost optimization</task>
+        <task>Test alert delivery and escalation</task>
+      </tasks>
+    </phase>
+  </implementationPlan>
+
+  <integrationPoints>
+    <service name="suna-frontend">
+      <description>React/Next.js frontend requiring browser and server-side monitoring</description>
+      <instrumentation>
+        <point>HTTP requests to backend APIs</point>
+        <point>Client-side performance metrics (Core Web Vitals)</point>
+        <point>User interaction tracking</point>
+        <point>Error boundary and exception monitoring</point>
+      </instrumentation>
+    </service>
+
+    <service name="onyx-core">
+      <description>Python/FastAPI backend service handling chat, RAG, and agent operations</description>
+      <instrumentation>
+        <point>HTTP endpoint performance and routing</point>
+        <point>Database query performance (PostgreSQL)</point>
+        <point>Cache operations (Redis)</point>
+        <point>Vector database operations (Qdrant)</point>
+        <point>LLM API calls and streaming operations</point>
+      </instrumentation>
+    </service>
+
+    <service name="agent-execution">
+      <description>Agent task execution service with tool orchestration</description>
+      <instrumentation>
+        <point>Task planning and execution workflow</point>
+        <point>Tool selection and routing performance</point>
+        <point>External API integrations (Google Workspace, Web Automation)</point>
+        <point>Approval workflow performance</point>
+        <point>Task completion and rollback operations</point>
+      </instrumentation>
+    </service>
+  </integrationPoints>
+
+  <dataModel>
+    <entity name="Trace">
+      <attributes>
+        <attribute name="trace_id" type="string">Unique identifier for distributed trace</attribute>
+        <attribute name="span_id" type="string">Unique identifier for individual span</attribute>
+        <attribute name="parent_span_id" type="string">Parent span identifier for hierarchy</attribute>
+        <attribute name="service_name" type="string">Service generating the span</attribute>
+        <attribute name="operation_name" type="string">Operation being traced</attribute>
+        <attribute name="duration_ms" type="integer">Operation duration in milliseconds</attribute>
+        <attribute name="status_code" type="string">Success, error, or timeout status</attribute>
+        <attribute name="tags" type="map">Key-value metadata for correlation</attribute>
+      </attributes>
+    </entity>
+  </dataModel>
+
+  <securityConsiderations>
+    <consideration id="SC-9.1.1">
+      <title>API Key Management</title>
+      <description>APM provider API keys stored in encrypted environment variables</description>
+      <mitigation>Use Docker secrets for production, environment variables for development</mitigation>
+    </consideration>
+
+    <consideration id="SC-9.1.2">
+      <title>Data Privacy</title>
+      <description>Ensure no sensitive user data is captured in traces</description>
+      <mitigation>Implement PII detection and masking in trace data</mitigation>
+    </consideration>
+
+    <consideration id="SC-9.1.3">
+      <title>Network Security</title>
+      <description>Secure communication with APM provider endpoints</description>
+      <mitigation>Use HTTPS/TLS for all APM data transmission</mitigation>
+    </consideration>
+  </securityConsiderations>
+
+  <testingStrategy>
+    <testingType name="unit">
+      <description>Test APM SDK integration and custom instrumentation logic</description>
+      <tools>Jest (frontend), pytest (backend)</tools>
+      <coverage>&gt;90% for instrumentation code</coverage>
+    </testingType>
+
+    <testingType name="integration">
+      <description>End-to-end trace validation across service boundaries</description>
+      <tools>Docker Compose, TestContainers</tools>
+      <scenarios>Request flow from frontend through backend to external services</scenarios>
+    </testingType>
+
+    <testingType name="performance">
+      <description>Validate APM overhead impact on application performance</description>
+      <tools>Artillery, k6</tools>
+      <metrics>&lt;1% overhead, &lt;5ms additional latency</metrics>
+    </testingType>
+  </testingStrategy>
+
+  <risks>
+    <risk id="R-9.1.1" probability="low" impact="high">
+      <title>APM Provider Outage</title>
+      <description>Downtime of APM service affecting monitoring capabilities</description>
+      <mitigation>Multi-provider setup or fallback to local metrics collection</mitigation>
+    </risk>
+
+    <risk id="R-9.1.2" probability="medium" impact="medium">
+      <title>Performance Impact</title>
+      <description>APM instrumentation causing performance degradation</description>
+      <mitigation>Comprehensive performance testing and sampling strategies</mitigation>
+    </risk>
+
+    <risk id="R-9.1.3" probability="low" impact="high">
+      <title>Data Privacy Violation</title>
+      <description>Accidental capture of sensitive user data in traces</description>
+      <mitigation>Automated PII detection and strict data governance policies</mitigation>
+    </risk>
+  </risks>
+
+  <successCriteria>
+    <criterion>All APM agents successfully integrated with &lt;1% performance overhead</criterion>
+    <criterion>End-to-end distributed tracing working across all service boundaries</criterion>
+    <criterion>Custom dashboards created showing real-time performance metrics</criterion>
+    <criterion>SLOs defined with automated error budget tracking and alerting</criterion>
+    <criterion>Data retention policies configured for cost optimization</criterion>
+    <criterion>Alert thresholds tested and validated for performance degradation detection</criterion>
+  </successCriteria>
+</storyContext>

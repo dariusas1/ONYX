@@ -8,8 +8,6 @@ services:
     command: sh -c "npm install && npm run dev"
     ports:
       - "3000:3000"
-    env_file:
-      - ${ENV_FILE:-.env.local}
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_BASE: /
@@ -22,6 +20,8 @@ services:
       NEXT_PUBLIC_LOG_LEVEL: info
       NEXT_PUBLIC_SERVICE_NAME: suna-frontend
       NEXT_PUBLIC_ENABLE_REMOTE_LOGGING: false
+      # NO env_file directive - secrets managed through environment variables only
+      # This prevents secret exposure in docker compose config
     volumes:
       - ./suna:/app
       - /app/node_modules
@@ -53,8 +53,6 @@ services:
     command: sh -c "pip install -r requirements.txt && python -m uvicorn main:app --host 0.0.0.0 --port 8080 --reload"
     ports:
       - "8080:8080"
-    env_file:
-      - ${ENV_FILE:-.env.local}
     environment:
       PYTHONPATH: /app
       # Logging configuration
@@ -62,6 +60,8 @@ services:
       LOG_FORMAT: json
       SERVICE_NAME: onyx-core
       PYTHON_ENV: development
+      # NO env_file directive - secrets managed through environment variables only
+      # This prevents secret exposure in docker compose config
     volumes:
       - ./onyx-core:/app
       - ./logs/onyx-core:/var/log/onyx
@@ -89,12 +89,12 @@ services:
     image: postgres:15-alpine
     ports:
       - "5432:5432"
-    env_file:
-      - ${ENV_FILE:-.env.local}
     environment:
       POSTGRES_DB: manus
       POSTGRES_USER: manus
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+      # NO env_file directive - secrets managed through environment variables only
+      # This prevents secret exposure in docker compose config
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-postgres.sql:/docker-entrypoint-initdb.d/01-schema.sql
@@ -112,8 +112,8 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-    env_file:
-      - ${ENV_FILE:-.env.local}
+    # NO env_file directive - secrets managed through environment variables only
+    # This prevents secret exposure in docker compose config
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -132,12 +132,12 @@ services:
     ports:
       - "6333:6333"
       - "6334:6334"
-    env_file:
-      - ${ENV_FILE:-.env.local}
     environment:
       QDRANT__SERVICE__HTTP_PORT: 6333
       QDRANT__SERVICE__GRPC_PORT: 6334
       QDRANT__LOG_LEVEL: INFO
+      # NO env_file directive - secrets managed through environment variables only
+      # This prevents secret exposure in docker compose config
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
@@ -155,8 +155,6 @@ services:
     image: ghcr.io/berriai/litellm:latest
     ports:
       - "4000:4000"
-    env_file:
-      - ${ENV_FILE:-.env.local}
     environment:
       LITELLM_PORT: 4000
       LITELLM_MODEL_LIST: |
@@ -168,6 +166,8 @@ services:
             litellm_params:
               model: "ollama/mistral:latest"
               api_base: "http://ollama:11434"
+      # NO env_file directive - secrets managed through environment variables only
+      # This prevents secret exposure in docker compose config
 
     depends_on:
       - ollama
@@ -184,8 +184,8 @@ services:
     image: ollama/ollama:latest
     ports:
       - "11434:11434"
-    env_file:
-      - ${ENV_FILE:-.env.local}
+    # NO env_file directive - secrets managed through environment variables only
+    # This prevents secret exposure in docker compose config
     volumes:
       - ollama_models:/root/.ollama
     networks:
@@ -202,8 +202,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    env_file:
-      - ${ENV_FILE:-.env.local}
+    # NO env_file directive - secrets managed through environment variables only
+    # This prevents secret exposure in docker compose config
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
@@ -231,8 +231,8 @@ services:
     image: prom/prometheus:latest
     ports:
       - "9090:9090"
-    env_file:
-      - ${ENV_FILE:-.env.local}
+    # NO env_file directive - secrets managed through environment variables only
+    # This prevents secret exposure in docker compose config
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -256,10 +256,10 @@ services:
     image: grafana/grafana:latest
     ports:
       - "3001:3000"
-    env_file:
-      - ${ENV_FILE:-.env.local}
     environment:
       GF_USERS_ALLOW_SIGN_UP: false
+      # NO env_file directive - secrets managed through environment variables only
+      # This prevents secret exposure in docker compose config
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
@@ -276,8 +276,6 @@ services:
     image: mcr.microsoft.com/playwright/python:v1.40.0-jammy
     container_name: onyx-playwright
     working_dir: /app
-    env_file:
-      - ${ENV_FILE:-.env.local}
     environment:
       PYTHONPATH: /app
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright

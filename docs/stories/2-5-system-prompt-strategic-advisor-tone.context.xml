@@ -1,0 +1,528 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>2-5-system-prompt-strategic-advisor-tone</story-id>
+    <story-title>System Prompt &amp; Strategic Advisor Tone</story-title>
+    <epic-id>epic-2</epic-id>
+    <sprint>Sprint 2</sprint>
+    <priority>P1</priority>
+    <estimated-points>8</estimated-points>
+    <status>drafted</status>
+    <context-generated>2025-11-15T00:00:00Z</context-generated>
+    <context-version>1.0</context-version>
+  </metadata>
+
+  <!-- ========================================== -->
+  <!-- PROJECT OVERVIEW &amp; CURRENT STATE -->
+  <!-- ========================================== -->
+
+  <project-overview>
+    <project-name>ONYX - Manus Internal</project-name>
+    <project-description>Strategic AI assistant for founders with consistent advisor persona</project-description>
+    <tech-stack>
+      <framework>Next.js 14 with App Router</framework>
+      <language>TypeScript</language>
+      <database>PostgreSQL</database>
+      <ui>React with Suna UI components</ui>
+      <styling>Manus theme (dark, minimalist)</styling>
+      <ai-integration>LiteLLM proxy with OpenAI fallback</ai-integration>
+    </tech-stack>
+  </project-overview>
+
+  <!-- ========================================== -->
+  <!-- CURRENT ARCHITECTURE &amp; PATTERNS -->
+  <!-- ========================================== -->
+
+  <architecture-overview>
+    <directory-structure>
+      <base-path>/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/suna/src</base-path>
+      <api-routes>app/api/ - Next.js App Router API endpoints</api-routes>
+      <components>components/ - React UI components</components>
+      <lib>lib/ - Utility functions and services</lib>
+      <database>Database operations through PostgreSQL connection pool</database>
+    </directory-structure>
+
+    <key-patterns>
+      <pattern name="Database Integration">
+        <description>PostgreSQL with connection pooling, query utilities, and transaction support</description>
+        <implementation-file>src/lib/database.ts</implementation-file>
+        <features>
+          <feature>Connection pool with 20 max connections</feature>
+          <feature>Automatic query logging and performance monitoring</feature>
+          <feature>Transaction support with rollback</feature>
+          <feature>Health check functionality</feature>
+        </features>
+      </pattern>
+
+      <pattern name="Message Service Layer">
+        <description>Abstraction layer for message and conversation persistence</description>
+        <implementation-file>src/lib/message-service.ts</implementation-file>
+        <current-state>Mock implementation for development, ready for database integration</current-state>
+        <database-schema-planned>conversations and messages tables with full-text search</database-schema-planned>
+      </pattern>
+
+      <pattern name="LLM Client Integration">
+        <description>Streaming chat completion with circuit breaker and fallback support</description>
+        <implementation-file>src/lib/llm-client.ts</implementation-file>
+        <features>
+          <feature>OpenAI-compatible client interface</feature>
+          <feature>Primary/fallback client support</feature>
+          <feature>Circuit breaker for failover</feature>
+          <feature>Streaming response processing</feature>
+          <feature>Token estimation and performance monitoring</feature>
+        </features>
+      </pattern>
+
+      <pattern name="Streaming API Architecture">
+        <description>Server-Sent Events (SSE) for real-time chat responses</description>
+        <implementation-file>src/app/api/chat/route.ts</implementation-file>
+        <performance-targets>
+          <target name="first-token-latency">&lt;500ms</target>
+          <target name="continuous-streaming">No artificial batching</target>
+          <target name="total-response-time">&lt;2s for typical responses</target>
+        </performance-targets>
+      </pattern>
+    </key-patterns>
+  </architecture-overview>
+
+  <!-- ========================================== -->
+  <!-- DATABASE SCHEMA &amp; INTEGRATION POINTS -->
+  <!-- ========================================== -->
+
+  <database-context>
+    <current-schema>
+      <table name="users">
+        <description>User authentication and profile management</description>
+        <agent-mode-integration>
+          <column name="agent_mode" type="VARCHAR(10)" default="chat">Current agent mode: chat or agent</column>
+          <column name="agent_mode_enabled" type="BOOLEAN" default="false">Whether agent mode is enabled</column>
+          <column name="agent_mode_warning_accepted" type="BOOLEAN" default="false">Warning consent status</column>
+          <column name="agent_mode_consent_timestamp" type="TIMESTAMP">When consent was given</column>
+        </agent-mode-integration>
+      </table>
+
+      <table name="agent_mode_audit_logs">
+        <description>Audit trail for agent mode changes and consent tracking</description>
+        <columns>
+          <column name="user_id" type="UUID">Reference to users table</column>
+          <column name="action" type="VARCHAR(50)">Type of action performed</column>
+          <column name="details" type="JSONB">Additional action details</column>
+          <column name="ip_address" type="INET">Client IP for security</column>
+          <column name="session_id" type="VARCHAR(255)">Session identifier</column>
+        </columns>
+        <indexes>
+          <index on="user_id" />
+          <index on="created_at" order="DESC" />
+          <index on="action" />
+        </indexes>
+        <security>Row Level Security (RLS) enabled - users can only see their own logs</security>
+      </table>
+
+      <planned-schema>
+        <table name="conversations">
+          <description>Chat conversation sessions</description>
+          <columns>
+            <column name="id" type="UUID PRIMARY KEY">Conversation identifier</column>
+            <column name="user_id" type="UUID">Reference to users table</column>
+            <column name="title" type="TEXT">Conversation title</column>
+            <column name="is_deleted" type="BOOLEAN DEFAULT false">Soft delete flag</column>
+            <column name="created_at" type="TIMESTAMP DEFAULT NOW()">Creation timestamp</column>
+            <column name="updated_at" type="TIMESTAMP DEFAULT NOW()">Last update timestamp</column>
+          </columns>
+          <indexes>
+            <index on="user_id" />
+            <index on="updated_at" order="DESC" />
+          </indexes>
+        </table>
+
+        <table name="messages">
+          <description>Individual chat messages with metadata</description>
+          <columns>
+            <column name="id" type="UUID PRIMARY KEY">Message identifier</column>
+            <column name="conversation_id" type="UUID">Reference to conversations</column>
+            <column name="role" type="TEXT">user/assistant/system</column>
+            <column name="content" type="TEXT">Message content</column>
+            <column name="metadata" type="JSONB">Message metadata (model, tokens, etc.)</column>
+            <column name="created_at" type="TIMESTAMP DEFAULT NOW()">Creation timestamp</column>
+          </columns>
+          <indexes>
+            <index on="conversation_id, created_at" />
+            <index type="GIN" on="to_tsvector('english', content)" comment="Full-text search" />
+          </indexes>
+          <triggers>
+            <trigger name="messages_update_conversation" event="AFTER INSERT">Updates conversation timestamp</trigger>
+          </triggers>
+        </table>
+      </planned-schema>
+    </current-schema>
+
+    <database-utilities>
+      <utility-file>src/lib/database.ts</utility-file>
+      <functions>
+        <function name="query">Generic query with error handling and logging</function>
+        <function name="transaction">Transaction support with rollback</function>
+        <function name="healthCheck">Database connection health monitoring</function>
+        <function name="getPoolStats">Connection pool statistics</function>
+      </functions>
+      <connection-pool>
+        <max-connections>20</max-connections>
+        <idle-timeout>30s</idle-timeout>
+        <connection-timeout>2s</connection-timeout>
+      </connection-pool>
+    </database-utilities>
+  </database-context>
+
+  <!-- ========================================== -->
+  <!-- STREAMING IMPLEMENTATION CONTEXT -->
+  <!-- ========================================== -->
+
+  <streaming-implementation>
+    <api-endpoint>src/app/api/chat/route.ts</api-endpoint>
+    <architecture>
+      <component name="Request Processing">
+        <description>Handles POST requests with message and conversation_id</description>
+        <validation>Message content validation and session management</validation>
+      </component>
+
+      <component name="Conversation History Loading">
+        <description>Loads last 10 messages for context</description>
+        <implementation>messageService.getMessages(conversationId, 10)</implementation>
+        <performance-target>&lt;100ms for history loading</performance-target>
+      </component>
+
+      <component name="LLM Streaming">
+        <description>Real-time token streaming from LLM client</description>
+        <implementation>streamChatCompletion with callback pattern</implementation>
+        <performance-target>First token &lt;500ms, continuous streaming</performance-target>
+      </component>
+
+      <component name="SSE Response">
+        <description>Server-Sent Events for real-time UI updates</description>
+        <events>
+          <event name="message">Content chunks</event>
+          <event name="metrics">Performance data</event>
+          <event name="error">Error conditions</event>
+          <event name="complete">Response completion</event>
+        </events>
+      </component>
+
+      <component name="Message Persistence">
+        <description>Async saving of user and assistant messages</description>
+        <timing>After streaming completes</timing>
+        <error-handling>Non-blocking - errors don't affect response</error-handling>
+      </component>
+    </architecture>
+
+    <performance-monitoring>
+      <component-file>src/lib/performance-monitor.ts</component-file>
+      <metrics>
+        <metric name="first-token-latency">Time to first token</metric>
+        <metric name="tokens-per-second">Streaming throughput</metric>
+        <metric name="total-response-time">Complete response time</metric>
+        <metric name="error-rate">Failed request percentage</metric>
+      </metrics>
+    </performance-monitoring>
+  </streaming-implementation>
+
+  <!-- ========================================== -->
+  <!-- CODEBASE INTEGRATION POINTS -->
+  <!-- ========================================== -->
+
+  <integration-points>
+    <chat-api-integration>
+      <file>src/app/api/chat/route.ts</file>
+      <integration-point>System prompt injection before LLM calls</integration-point>
+      <current-flow>
+        <step>1: Load conversation history via messageService</step>
+        <step>2: Format messages for LLM client</step>
+        <step>3: Stream completion via streamChatCompletion</step>
+      </current-flow>
+      <proposed-flow>
+        <step>1: Load conversation history via messageService</step>
+        <step>2: Load user profile and standing instructions</step>
+        <step>3: Build system prompt with Manus persona + user context</step>
+        <step>4: Format messages with system prompt prepended</step>
+        <step>5: Stream completion via streamChatCompletion</step>
+        <step>6: Validate tone and structure of response</step>
+      </proposed-flow>
+    </chat-api-integration>
+
+    <database-integration>
+      <file>src/lib/database.ts</file>
+      <extension-points>
+        <point name="User Profile Queries">Standing instructions and preferences</point>
+        <point name="Standing Instructions CRUD">Create, read, update, delete operations</point>
+        <point name="User Context Loading">Profile data for system prompt generation</point>
+      </extension-points>
+    </database-integration>
+
+    <message-service-integration>
+      <file>src/lib/message-service.ts</file>
+      <current-state>Mock implementation for development</current-state>
+      <migration-required>Replace mock with PostgreSQL integration from database.ts</migration-required>
+      <system-prompt-connection>No current integration point for system prompt loading</system-prompt-connection>
+    </message-service-integration>
+
+    <llm-client-integration>
+      <file>src/lib/llm-client.ts</file>
+      <integration-point>System message parameter support needed</integration-point>
+      <current-interface>streamChatCompletion(messages, onChunk, onError, onComplete)</current-interface>
+      <enhancement-needed>Add systemPrompt parameter or modify messages array structure</enhancement-needed>
+    </llm-client-integration>
+  </integration-points>
+
+  <!-- ========================================== -->
+  <!-- SECURITY &amp; PERFORMANCE REQUIREMENTS -->
+  <!-- ========================================== -->
+
+  <requirements>
+    <security-requirements>
+      <requirement>Row Level Security for user data isolation</requirement>
+      <requirement>Input validation for system prompt injection prevention</requirement>
+      <requiretion>Audit logging for standing instructions changes</requiretion>
+      <requirement>User consent tracking for prompt customization</requirement>
+    </security-requirements>
+
+    <performance-requirements>
+      <requirement>System prompt construction &lt;50ms</requirement>
+      <requirement>Standing instructions loading &lt;30ms</requirement>
+      <requirement>Total chat overhead &lt;200ms</requirement>
+      <requirement>Validation processing &lt;100ms</requirement>
+      <requirement>Database queries optimized with proper indexes</requirement>
+    </performance-requirements>
+
+    <quality-requirements>
+      <requirement>TypeScript interfaces for all data structures</requirement>
+      <requirement>Comprehensive error handling and recovery</requirement>
+      <requirement>Unit test coverage &gt;90%</requirement>
+      <requirement>Integration tests for end-to-end workflows</requirement>
+      <requirement>Performance benchmarks meeting latency targets</requirement>
+    </quality-requirements>
+  </requirements>
+
+  <!-- ========================================== -->
+  <!-- STORY 2-5 SPECIFIC REQUIREMENTS -->
+  <!-- ========================================== -->
+
+  <story-specific-context>
+    <manus-persona-definition>
+      <name>Manus</name>
+      <role>Strategic Advisor for Founders</role>
+      <tone-characteristics>
+        <characteristic>Professional and direct</characteristic>
+        <characteristic>Step-by-step reasoning in responses</characteristic>
+        <characteristic>Sources cited for factual claims</characteristic>
+        <characteristic>Strategic implications highlighted</characteristic>
+        <characteristic>Actionable recommendations provided</characteristic>
+        <characteristic>No speculation - evidence-based analysis</characteristic>
+        <characteristic>Clear, structured communication</characteristic>
+      </tone-characteristics>
+    </manus-persona-definition>
+
+    <system-prompt-requirements>
+      <requirement>Base Manus persona template with consistent voice</requirement>
+      <requirement>Dynamic user profile injection (preferences, context)</requirement>
+      <requirement>Standing instructions integration with enabled flag filtering</requirement>
+      <requirement>Structured response format requirements</requirement>
+      <requirement>Runtime construction with caching for performance</requirement>
+    </system-prompt-requirements>
+
+    <standing-instructions-schema>
+      <table-design>
+        <name>standing_instructions</name>
+        <columns>
+          <column name="id" type="UUID PRIMARY KEY">Instruction identifier</column>
+          <column name="user_id" type="UUID">Reference to users table</column>
+          <column name="content" type="TEXT">Instruction content</column>
+          <column name="priority" type="INTEGER">Instruction priority (1-10)</column>
+          <column name="enabled" type="BOOLEAN DEFAULT true">Whether instruction is active</column>
+          <column name="category" type="TEXT">Instruction category for organization</column>
+          <column name="conditions" type="JSONB">Conditional logic for instruction application</column>
+          <column name="created_at" type="TIMESTAMP DEFAULT NOW()">Creation timestamp</column>
+          <column name="updated_at" type="TIMESTAMP DEFAULT NOW()">Last update timestamp</column>
+        </columns>
+        <indexes>
+          <index on="user_id, enabled" />
+          <index on="priority" />
+          <index on="category" />
+        </indexes>
+        <security>Row Level Security - users can only access their own instructions</security>
+      </table-design>
+    </standing-instructions-schema>
+
+    <tone-validation-framework>
+      <validation-components>
+        <component name="Citation Detection">
+          <pattern>Regex patterns for [1], [2], etc. citation format</pattern>
+          <requirement>All factual claims must have citations</requirement>
+          <validation>Automated detection of uncited factual statements</validation>
+        </component>
+
+        <component name="Reasoning Structure">
+          <pattern>Step-by-step reasoning indicators</pattern>
+          <keywords>"First", "Next", "Then", "Finally", "Therefore"</keywords>
+          <validation>Presence of logical flow markers</validation>
+        </component>
+
+        <component name="Strategic Implications">
+          <pattern>Strategic analysis markers</pattern>
+          <keywords>"Strategic implication", "Impact on", "Consideration", "Risk factor"</keywords>
+          <validation>Presence of strategic analysis sections</validation>
+        </component>
+
+        <component name="Recommendation Clarity">
+          <pattern>Actionable recommendation format</pattern>
+          <structure>"Recommendation:", "Action:", "Timeline:", "Success metrics:"</structure>
+          <validation>Structured recommendation format compliance</validation>
+        </component>
+
+        <component name="Professional Tone">
+          <pattern>Professional language validation</pattern>
+          <checks>No marketing language, no speculation, clear communication</checks>
+          <validation>Tone analysis against professional standards</validation>
+        </component>
+      </validation-components>
+
+      <validation-api>
+        <file>src/lib/tone-validator.ts</file-name>
+        <function>validateTone(response: string): ToneValidationResult</function>
+        <metrics>
+          <metric name="citation-coverage">Percentage of factual claims with citations</metric>
+          <metric name="reasoning-structure">Presence of logical flow indicators</metric>
+          <metric name="recommendation-clarity">Structured actionable recommendations</metric>
+          <metric name="professional-tone">Professional language compliance</metric>
+          <metric name="overall-score">Composite quality score (0-100)</metric>
+        </metrics>
+      </validation-api>
+    </tone-validation-framework>
+
+    <implementation-files-to-create>
+      <file path="src/lib/prompts.ts">System prompt template and Manus persona definition</file>
+      <file path="src/lib/system-prompt.ts">Database integration and dynamic loading</file>
+      <file path="src/lib/tone-validator.ts">Response validation framework</file>
+      <file path="src/db/migrations/002_standing_instructions.sql">Database schema for instructions</file>
+      <file path="tests/prompts.test.ts">Comprehensive test suite</file>
+    </implementation-files-to-create>
+
+    <files-to-modify>
+      <file path="src/app/api/chat/route.ts">Integrate system prompt loading and validation</file>
+    </files-to-modify>
+  </story-specific-context>
+
+  <!-- ========================================== -->
+  <!-- DEPENDENCIES &amp; PREREQUISITES -->
+  <!-- ========================================== -->
+
+  <dependencies>
+    <story-dependencies>
+      <dependency story-id="epic-1">Foundation &amp; Infrastructure (Database setup, authentication)</dependency>
+      <dependency story-id="2-3">Message History &amp; Persistence (Database schema, conversation management)</dependency>
+    </story-dependencies>
+
+    <technical-dependencies>
+      <dependency>PostgreSQL database with proper schema</dependency>
+      <dependency>LiteLLM proxy integration for LLM access</dependency>
+      <dependency>NextAuth for user session management</dependency>
+      <dependency>TypeScript interfaces for type safety</dependency>
+    </technical-dependencies>
+
+    <blocking-issues>
+      <issue>Message service currently uses mock implementation</issue>
+      <resolution>Complete database integration from Story 2-3</resolution>
+      <impact>System prompt loading requires real database access for user profiles</impact>
+    </blocking-issues>
+  </dependencies>
+
+  <!-- ========================================== -->
+  <!-- TESTING &amp; VALIDATION REQUIREMENTS -->
+  <!-- ========================================== -->
+
+  <testing-requirements>
+    <unit-testing>
+      <file>tests/prompts.test.ts</file>
+      <coverage>System prompt construction, tone validation, standing instructions</coverage>
+      <framework>Jest with comprehensive mock fixtures</framework>
+    </unit-testing>
+
+    <integration-testing>
+      <scope>Chat API with system prompts, database operations, LLM integration</scope>
+      <test-cases>
+        <case>System prompt construction with various user profiles</case>
+        <case>Standing instructions loading and filtering</case>
+        <case>Tone validation with sample responses</case>
+        <case>Performance benchmarks meeting latency targets</case>
+      </test-cases>
+    </integration-testing>
+
+    <performance-testing>
+      <targets>
+        <target name="system-prompt-construction">&lt;50ms</target>
+        <target name="tone-validation">&lt;100ms</target>
+        <target name="total-overhead">&lt;200ms</target>
+      </targets>
+      <tools>Performance monitoring integration with existing metrics system</tools>
+    </performance-testing>
+  </testing-requirements>
+
+  <!-- ========================================== -->
+  <!-- RISKS &amp; MITIGATION STRATEGIES -->
+  <!-- ========================================== -->
+
+  <risks>
+    <technical-risk>
+      <description>System prompt overhead impacting response latency</description>
+      <probability>Medium</probability>
+      <impact>High - affects user experience</impact>
+      <mitigation>Caching, optimized database queries, performance monitoring</mitigation>
+    </technical-risk>
+
+    <technical-risk>
+      <description>Tone validation false positives/negatives</description>
+      <probability>Medium</probability>
+      <impact>Medium - affects response quality</impact>
+      <mitigation>Comprehensive test suite, adjustable validation thresholds</mitigation>
+    </technical-risk>
+
+    <integration-risk>
+      <description>Database schema conflicts with existing implementation</description>
+      <probability>Low</probability>
+      <impact>High - blocks deployment</impact>
+      <mitigation>Migration scripts, backward compatibility, thorough testing</mitigation>
+    </integration-risk>
+
+    <security-risk>
+      <description>System prompt injection through standing instructions</description>
+      <probability>Low</probability>
+      <impact>High - affects system integrity</impact>
+      <mitigation>Input validation, instruction sanitization, audit logging</mitigation>
+    </security-risk>
+  </risks>
+
+  <!-- ========================================== -->
+  <!-- SUCCESS CRITERIA &amp; ACCEPTANCE -->
+  <!-- ========================================== -->
+
+  <success-criteria>
+    <functional-criteria>
+      <criteria>System prompt consistently prepended to all LLM requests</criteria>
+      <criteria>Manus persona maintained across all responses</criteria>
+      <criteria>Standing instructions loaded and applied correctly</criteria>
+      <criteria>Tone validation passes for professional, structured responses</criteria>
+      <criteria>Performance targets met without regression</criteria>
+    </functional-criteria>
+
+    <quality-criteria>
+      <criteria>Test coverage &gt;90% for all new components</criteria>
+      <criteria>TypeScript interfaces for all data structures</criteria>
+      <criteria>Error handling comprehensive and user-friendly</criteria>
+      <criteria>Code follows existing project patterns and conventions</criteria>
+    </quality-criteria>
+
+    <performance-criteria>
+      <criteria>System prompt construction &lt;50ms (95th percentile)</criteria>
+      <criteria>Tone validation &lt;100ms (95th percentile)</criteria>
+      <criteria>Total overhead &lt;200ms for complete system prompt integration</criteria>
+      <criteria>No regression in existing chat streaming performance</criteria>
+    </performance-criteria>
+  </success-criteria>
+</story-context>

@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { streamChatCompletion } from '@/lib/llm-client';
 import { performanceMonitor } from '@/lib/performance-monitor';
 import { messageService } from '@/lib/message-service';
+import { buildSystemPrompt, SystemPromptComponents } from '@/lib/prompts';
+import { getUserStandingInstructions } from '@/lib/standing-instructions';
+import { validateTone } from '@/lib/tone-validator';
 
 // SSE Message format
 interface SSEMessage {
@@ -49,7 +52,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { message, conversation_id, model = 'manus-primary' } = body;
+    const {
+      message,
+      conversation_id,
+      model = 'manus-primary',
+      user_id,
+      user_context
+    } = body;
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -66,10 +75,55 @@ export async function POST(request: NextRequest) {
     // Get conversation history for context
     const history = await messageService.getMessages(conversationId, 10);
 
-    // Format messages for LLM client
+    // Build system prompt components
+    const systemPromptStartTime = Date.now();
+
+    // Get user standing instructions
+    let standingInstructions: any[] = [];
+    if (user_id) {
+      try {
+        const instructionResult = await getUserStandingInstructions(user_id, {
+          enabled_only: true,
+          limit: 10
+        });
+        if (instructionResult.success && instructionResult.data) {
+          standingInstructions = instructionResult.data;
+        }
+      } catch (error) {
+        console.warn('Failed to load standing instructions:', error);
+        // Continue without standing instructions
+      }
+    }
+
+    // Build system prompt
+    const systemPromptComponents: SystemPromptComponents = {
+      basePersona: undefined, // Will use default
+      userProfile: user_context ? {
+        id: user_id || 'anonymous',
+        ...user_context
+      } : undefined,
+      standingInstructions: standingInstructions,
+      context: {
+        currentConversation: {
+          topic: undefined, // Could be derived from message
+          length: history.length + 1,
+          userGoal: undefined // Could be derived from message
+        },
+        sessionInfo: {
+          sessionId: requestId,
+          timestamp: new Date()
+        }
+      }
+    };
+
+    const systemPrompt = buildSystemPrompt(systemPromptComponents);
+    const systemPromptTime = Date.now() - systemPromptStartTime;
+
+    // Format messages for LLM client with system prompt prepended
     const messages = [
+      { role: 'system', content: systemPrompt },
       ...history.map(msg => ({
-        role: msg.role,
+        role: msg.role as 'user' | 'assistant',
         content: msg.content
       })),
       { role: 'user', content: message }
@@ -159,6 +213,16 @@ export async function POST(request: NextRequest) {
               const totalTime = Date.now() - startTime;
               messageId = metadata.messageId;
 
+              // Perform tone validation
+              let toneValidation: any = null;
+              if (currentContent && currentContent.length > 50) {
+                try {
+                  toneValidation = validateTone(currentContent);
+                } catch (error) {
+                  console.warn('Tone validation failed:', error);
+                }
+              }
+
               // Complete performance monitoring
               const metrics = performanceMonitor.completeStream(requestId, {
                 totalTokens,
@@ -166,7 +230,7 @@ export async function POST(request: NextRequest) {
                 finishReason: metadata.finishReason
               });
 
-              // Send completion metrics
+              // Send completion metrics with tone validation
               controller.enqueue(
                 encoder.encode(createSSEMessage({
                   event: EventType.METRICS,
@@ -175,12 +239,22 @@ export async function POST(request: NextRequest) {
                     total_time: totalTime,
                     tokens_per_second: metrics?.tokensPerSecond,
                     finish_reason: metadata.finishReason,
-                    model_used: metadata.modelUsed || model
+                    model_used: metadata.modelUsed || model,
+                    system_prompt_time_ms: systemPromptTime,
+                    tone_validation: toneValidation ? {
+                      score: toneValidation.overallScore,
+                      is_valid: toneValidation.isValid,
+                      categories: Object.keys(toneValidation.categories).map(key => ({
+                        name: key,
+                        score: toneValidation.categories[key].score,
+                        passed: toneValidation.categories[key].passed
+                      }))
+                    } : null
                   }
                 }))
               );
 
-              // Send completion event
+              // Send completion event with tone validation
               controller.enqueue(
                 encoder.encode(createSSEMessage({
                   event: EventType.COMPLETE,
@@ -189,7 +263,14 @@ export async function POST(request: NextRequest) {
                     total_tokens: totalTokens,
                     total_time: totalTime,
                     model_used: metadata.modelUsed || model,
-                    finish_reason: metadata.finishReason
+                    finish_reason: metadata.finishReason,
+                    tone_validation: toneValidation ? {
+                      overall_score: toneValidation.overallScore,
+                      is_valid: toneValidation.isValid,
+                      critical_issues: toneValidation.issues
+                        .filter(issue => issue.severity === 'high')
+                        .map(issue => issue.message)
+                    } : null
                   }
                 }))
               );
@@ -216,7 +297,22 @@ export async function POST(request: NextRequest) {
                       modelUsed: metadata.modelUsed || model,
                       totalTokens,
                       totalTime,
-                      finishReason: metadata.finishReason
+                      finishReason: metadata.finishReason,
+                      systemPrompt: {
+                        length: systemPrompt.length,
+                        constructionTimeMs: systemPromptTime,
+                        standingInstructionsCount: standingInstructions.length,
+                        hasUserProfile: !!user_context
+                      },
+                      toneValidation: toneValidation ? {
+                        overallScore: toneValidation.overallScore,
+                        isValid: toneValidation.isValid,
+                        categoryScores: Object.entries(toneValidation.categories).map(([key, category]) => ({
+                          category: key,
+                          score: category.score,
+                          passed: category.passed
+                        }))
+                      } : null
                     }
                   });
                 }

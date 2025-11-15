@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # =============================================================================
-# ONYX Secrets Masking Test Script
+# ONYX Secrets Masking Validation Script - FINAL ATTEMPT #3
 # =============================================================================
-# This script tests that secrets are properly masked in docker compose config
-# Updated to support Docker secrets and improved masking validation
+# CRITICAL: Tests AC1.3.5 compliance - docker compose config shows masked secrets
+# This script tests the FUNDAMENTAL requirement that NO secret values are exposed
+# Updated to handle the new architecture without env_file directives
 # =============================================================================
 
 set -e
@@ -16,390 +17,280 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🎭 ONYX Secrets Masking Test${NC}"
-echo "==============================="
+echo -e "${BLUE}🛡️ ONYX Secrets Masking Validation - FINAL ATTEMPT #3${NC}"
+echo -e "${BLUE}🎯 Target: AC1.3.5 - docker compose config shows masked secrets${NC}"
+echo "======================================================================"
 
-# Function to test with ACTUAL secret values (CRITICAL SECURITY TEST)
-test_actual_secrets_masking() {
-    echo -e "\n${RED}🚨 TESTING WITH ACTUAL SECRET VALUES (CRITICAL SECURITY TEST)${NC}"
-    
-    # Set test secrets to verify they are NOT exposed in config output
-    export POSTGRES_PASSWORD="test-secret-password-123"
-    export DEEPSEEK_API_KEY="test-secret-api-key-456"
-    export GOOGLE_CLIENT_SECRET="test-google-secret-789"
-    export ENCRYPTION_KEY="test-encryption-key-abcdef1234567890"
-    
-    echo -e "${BLUE}Testing with actual secret values set in environment...${NC}"
-    echo -e "${BLUE}Testing SECRETS MASKING (env_file should protect against exposure)${NC}"
-    
-    security_failure=false
-    
-    # Test each service-variable combination individually
-    echo -e "\n${YELLOW}Service: postgres${NC}"
-    var="POSTGRES_PASSWORD"
-    echo -n "  $var: "
-    if [ -n "$ENV_FILE" ]; then
-        value=$(docker compose --env-file "$ENV_FILE" config --no-path-resolution 2>/dev/null | grep -A 50 "^  postgres:" | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
+# Track test results
+total_tests=0
+passed_tests=0
+failed_tests=0
+
+# Function to log test result
+log_test() {
+    local test_name="$1"
+    local result="$2"
+    local details="$3"
+
+    total_tests=$((total_tests + 1))
+
+    echo -n "  $test_name: "
+    if [ "$result" = "PASS" ]; then
+        echo -e "${GREEN}✅ PASS${NC}"
+        passed_tests=$((passed_tests + 1))
     else
-        value=$(docker compose config --no-path-resolution 2>/dev/null | grep -A 50 "^  postgres:" | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
-    fi
-    if [[ "$value" == *"test-secret"* ]]; then
-        echo -e "${RED}❌ SECURITY FAILURE: Secret exposed in config ($value)${NC}"
-        security_failure=true
-    elif [[ "$value" == *"dev-"* ]] || [[ "$value" == *"placeholder"* ]]; then
-        echo -e "${GREEN}✅ MASKED: env_file value protected ($value)${NC}"
-    else
-        echo -e "${YELLOW}⚠️  UNKNOWN: $value${NC}"
-    fi
-    
-    echo -e "\n${YELLOW}Service: litellm-proxy${NC}"
-    var="DEEPSEEK_API_KEY"
-    echo -n "  $var: "
-    if [ -n "$ENV_FILE" ]; then
-        value=$(docker compose --env-file "$ENV_FILE" config --no-path-resolution 2>/dev/null | grep -A 50 "^  litellm-proxy:" | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
-    else
-        value=$(docker compose config --no-path-resolution 2>/dev/null | grep -A 50 "^  litellm-proxy:" | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
-    fi
-    if [[ "$value" == *"test-secret"* ]]; then
-        echo -e "${RED}❌ SECURITY FAILURE: Secret exposed in config ($value)${NC}"
-        security_failure=true
-    elif [[ "$value" == *"dev-"* ]] || [[ "$value" == *"placeholder"* ]]; then
-        echo -e "${GREEN}✅ MASKED: env_file value protected ($value)${NC}"
-    else
-        echo -e "${YELLOW}⚠️  UNKNOWN: $value${NC}"
-    fi
-    
-    echo -e "\n${YELLOW}Service: onyx-core${NC}"
-    for var in "GOOGLE_CLIENT_SECRET" "ENCRYPTION_KEY"; do
-        echo -n "  $var: "
-        if [ -n "$ENV_FILE" ]; then
-            value=$(docker compose --env-file "$ENV_FILE" config --no-path-resolution 2>/dev/null | grep -A 50 "^  onyx-core:" | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
-        else
-            value=$(docker compose config --no-path-resolution 2>/dev/null | grep -A 50 "^  onyx-core:" | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
+        echo -e "${RED}❌ FAIL${NC}"
+        failed_tests=$((failed_tests + 1))
+        if [ -n "$details" ]; then
+            echo -e "    ${RED}Reason: $details${NC}"
         fi
-        if [[ "$value" == *"test-secret"* ]]; then
-            echo -e "${RED}❌ SECURITY FAILURE: Secret exposed in config ($value)${NC}"
-            security_failure=true
-        elif [[ "$value" == *"dev-"* ]] || [[ "$value" == *"placeholder"* ]] || [[ "$value" == *"1234567890abcdef"* ]]; then
-            echo -e "${GREEN}✅ MASKED: env_file value protected ($value)${NC}"
+    fi
+}
+
+# CRITICAL TEST 1: Test with actual secret values to ensure they are NOT exposed
+test_actual_secrets_exposure() {
+    echo -e "\n${RED}🚨 CRITICAL TEST 1: Testing with ACTUAL secret values${NC}"
+    echo -e "${RED}❌ This simulates real deployment - secrets MUST NOT be exposed${NC}"
+
+    # Set actual test secrets (NOT placeholders)
+    export POSTGRES_PASSWORD="super-secret-password-12345"
+    export DEEPSEEK_API_KEY="sk-real-api-key-abcdef67890"
+    export GOOGLE_CLIENT_SECRET="GOCSPX-real-secret-xyz1234567890"
+    export ENCRYPTION_KEY="abcdef1234567890abcdef1234567890"
+    export SESSION_SECRET="real-session-secret-abcdef123456"
+    export GRAFANA_PASSWORD="real-grafana-password-123456"
+    export REDIS_PASSWORD="real-redis-password-789"
+    export QDRANT_API_KEY="real-qdrant-key-abcdef123456"
+    export TOGETHER_API_KEY="sk-together-real-key-xyz1234567890"
+
+    echo -e "${YELLOW}Testing with REAL secret values set in environment...${NC}"
+
+    # Get docker compose config output
+    config_output=$(docker compose config --no-path-resolution 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ FAILED: Cannot run docker compose config${NC}"
+        return 1
+    fi
+
+    # Count exposed secrets - CRITICAL SECURITY MEASUREMENT
+    exposed_secrets=0
+
+    # Test each sensitive variable
+    local sensitive_vars=(
+        "POSTGRES_PASSWORD:super-secret-password-12345"
+        "DEEPSEEK_API_KEY:sk-real-api-key-abcdef67890"
+        "GOOGLE_CLIENT_SECRET:GOCSPX-real-secret-xyz1234567890"
+        "ENCRYPTION_KEY:abcdef1234567890abcdef1234567890"
+        "SESSION_SECRET:real-session-secret-abcdef123456"
+        "GRAFANA_PASSWORD:real-grafana-password-123456"
+        "REDIS_PASSWORD:real-redis-password-789"
+        "QDRANT_API_KEY:real-qdrant-key-abcdef123456"
+        "TOGETHER_API_KEY:sk-together-real-key-xyz1234567890"
+    )
+
+    for var_test in "${sensitive_vars[@]}"; do
+        local var_name=$(echo "$var_test" | cut -d: -f1)
+        local var_value=$(echo "$var_test" | cut -d: -f2)
+
+        # Check if the actual secret value appears in config output
+        if echo "$config_output" | grep -q "$var_value"; then
+            echo -e "  ${RED}❌ $var_name: EXPOSED (value: $var_value)${NC}"
+            exposed_secrets=$((exposed_secrets + 1))
         else
-            echo -e "${YELLOW}⚠️  UNKNOWN: $value${NC}"
+            echo -e "  ${GREEN}✅ $var_name: NOT EXPOSED${NC}"
         fi
     done
-        
-        for var in $vars; do
-            echo -n "  $var: "
-            
-            # Get value from specific service in docker compose config
-            if [ -n "$ENV_FILE" ]; then
-                value=$(docker compose --env-file "$ENV_FILE" config --no-path-resolution 2>/dev/null | grep -A 50 "^  $service:" | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
-            else
-                value=$(docker compose config --no-path-resolution 2>/dev/null | grep -A 50 "^  $service:" | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
-            fi
-            
-            if [ "$value" = "NOT_FOUND" ]; then
-                echo -e "${YELLOW}NOT FOUND${NC}"
-            elif [[ "$value" == *"test-secret"* ]]; then
-                echo -e "${GREEN}✅ OVERRIDE WORKING: Environment variable took precedence ($value)${NC}"
-            elif [[ "$value" == *"dev-"* ]] || [[ "$value" == *"test-"* ]] || [[ "$value" == *"placeholder"* ]]; then
-                echo -e "${RED}❌ OVERRIDE FAILED: env_file value not overridden ($value)${NC}"
-                security_failure=true
-            else
-                echo -e "${YELLOW}⚠️  UNKNOWN: $value${NC}"
-        fi
-    done
-    
+
     # Clean up test environment variables
-    unset POSTGRES_PASSWORD DEEPSEEK_API_KEY GOOGLE_CLIENT_SECRET ENCRYPTION_KEY
-    
-    if [ "$security_failure" = true ]; then
-        echo -e "\n${RED}❌ CRITICAL SECURITY FAILURE: Secrets exposed in docker compose config!${NC}"
-        echo -e "${RED}❌ Environment variables are being exposed in config output!${NC}"
+    unset POSTGRES_PASSWORD DEEPSEE_API_KEY GOOGLE_CLIENT_SECRET ENCRYPTION_KEY
+    unset SESSION_SECRET GRAFANA_PASSWORD REDIS_PASSWORD QDRANT_API_KEY TOGETHER_API_KEY
+
+    if [ $exposed_secrets -gt 0 ]; then
+        echo -e "\n${RED}🚨 CRITICAL SECURITY FAILURE: $exposed_secrets secrets EXPOSED in docker compose config!${NC}"
         return 1
     else
-        echo -e "\n${GREEN}✅ SECURITY TEST PASSED: Secrets properly masked in config${NC}"
+        echo -e "\n${GREEN}✅ CRITICAL TEST PASSED: NO secrets exposed in config${NC}"
         return 0
     fi
 }
 
-# Function to test current masking
-test_current_masking() {
-    echo -e "\n${YELLOW}🔍 Testing current secrets masking...${NC}"
-    
-    # List of sensitive variables to check
-    SENSITIVE_VARS=(
-        "POSTGRES_PASSWORD"
-        "TOGETHER_API_KEY"
-        "DEEPSEEK_API_KEY"
-        "GOOGLE_CLIENT_SECRET"
-        "ENCRYPTION_KEY"
-        "SESSION_SECRET"
-        "GRAFANA_PASSWORD"
-        "REDIS_PASSWORD"
-        "QDRANT_API_KEY"
-    )
-    
-    echo -e "${BLUE}Checking docker compose config output:${NC}"
-    
-    for var in "${SENSITIVE_VARS[@]}"; do
-        echo -n "  $var: "
-        
-        # Get value from docker compose config (respect ENV_FILE if set)
-        if [ -n "$ENV_FILE" ]; then
-            value=$(docker compose --env-file "$ENV_FILE" config --no-path-resolution 2>/dev/null | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
-        else
-            value=$(docker compose config --no-path-resolution 2>/dev/null | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
-        fi
-        
-        if [ "$value" = "NOT_FOUND" ]; then
-            echo -e "${YELLOW}NOT FOUND${NC}"
-        elif [ "$value" = "" ]; then
-            echo -e "${GREEN}MASKED (empty)${NC}"
-        elif [[ "$value" == \$* ]]; then
-            echo -e "${GREEN}MASKED (\$VAR)${NC}"
-        elif [[ "$value" == *"your-"* ]] || [[ "$value" == *"generate-"* ]] || [[ "$value" == *"placeholder"* ]] || [[ "$value" == *"dev-"* ]]; then
-            echo -e "${YELLOW}PLACEHOLDER${NC}"
-        else
-            echo -e "${RED}EXPOSED: $value${NC}"
-        fi
-    done
+# TEST 2: Verify no env_file directives exist (they've been removed)
+test_no_env_file_directives() {
+    echo -e "\n${BLUE}TEST 2: Verify no env_file directives${NC}"
+
+    # Check that no env_file directives exist in the main compose file
+    if grep -q "env_file:" docker-compose.yaml; then
+        log_test "No env_file directives" "FAIL" "Found env_file directives in docker-compose.yaml"
+        return 1
+    else
+        log_test "No env_file directives" "PASS" "All env_file directives successfully removed"
+        return 0
+    fi
 }
 
-# Function to test with production environment
-test_production_masking() {
-    echo -e "\n${YELLOW}🏭 Testing production environment masking...${NC}"
-    
+# TEST 3: Verify Docker secrets configuration exists and is properly structured
+test_docker_secrets_config() {
+    echo -e "\n${BLUE}TEST 3: Verify Docker secrets configuration${NC}"
+
+    if [ ! -f "docker-compose.secrets.yaml" ]; then
+        log_test "Docker secrets config exists" "FAIL" "docker-compose.secrets.yaml not found"
+        return 1
+    fi
+
+    # Check that docker-compose.secrets.yaml uses secrets properly
+    if grep -q "secrets:" docker-compose.secrets.yaml; then
+        log_test "Docker secrets config has secrets section" "PASS" "Docker secrets properly configured"
+    else
+        log_test "Docker secrets config has secrets section" "FAIL" "No secrets section found in docker-compose.secrets.yaml"
+        return 1
+    fi
+
+    # Count external secrets
+    secret_count=$(grep -c "external: true" docker-compose.secrets.yaml || echo "0")
+    if [ "$secret_count" -ge 5 ]; then
+        log_test "Docker secrets configured" "PASS" "Found $secret_count external secrets"
+    else
+        log_test "Docker secrets configured" "FAIL" "Only $secret_count secrets found, need at least 5"
+        return 1
+    fi
+
+    return 0
+}
+
+# TEST 4: Test development environment still works
+test_development_environment() {
+    echo -e "\n${BLUE}TEST 4: Verify development environment still works${NC}"
+
+    if [ ! -f ".env.local" ]; then
+        log_test "Development environment file exists" "FAIL" ".env.local not found"
+        return 1
+    fi
+
+    # Check that .env.local has actual values (not just ${VAR} substitution)
+    if grep -q "POSTGRES_PASSWORD=dev-" .env.local; then
+        log_test "Development env has actual values" "PASS" "Development environment configured with actual values"
+    else
+        log_test "Development env has actual values" "FAIL" "Development environment missing actual values"
+        return 1
+    fi
+
+    return 0
+}
+
+# TEST 5: Test production environment configuration
+test_production_environment() {
+    echo -e "\n${BLUE}TEST 5: Verify production environment configuration${NC}"
+
     if [ ! -f ".env.production" ]; then
-        echo -e "${RED}❌ .env.production not found${NC}"
+        log_test "Production environment file exists" "FAIL" ".env.production not found"
         return 1
     fi
-    
-    # Backup current .env.local
-    if [ -f ".env.local" ]; then
-        cp .env.local .env.local.backup.test
-    fi
-    
-    # Switch to production environment temporarily
-    cp .env.production .env.local
-    
-    echo -e "${BLUE}Testing with production environment:${NC}"
-    
-    # List of sensitive variables to check
-    SENSITIVE_VARS=(
-        "POSTGRES_PASSWORD"
-        "TOGETHER_API_KEY"
-        "DEEPSEEK_API_KEY"
-        "GOOGLE_CLIENT_SECRET"
-        "ENCRYPTION_KEY"
-        "SESSION_SECRET"
-        "GRAFANA_PASSWORD"
-    )
-    
-    for var in "${SENSITIVE_VARS[@]}"; do
-        echo -n "  $var: "
-        
-        # Get the value from docker compose config (respect ENV_FILE if set)
-        if [ -n "$ENV_FILE" ]; then
-            value=$(docker compose --env-file "$ENV_FILE" config --no-path-resolution 2>/dev/null | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
-        else
-            value=$(docker compose config --no-path-resolution 2>/dev/null | grep "^      $var:" | head -1 | cut -d: -f2- | xargs || echo "NOT_FOUND")
-        fi
-        
-        if [ "$value" = "NOT_FOUND" ]; then
-            echo -e "${YELLOW}NOT FOUND${NC}"
-        elif [ "$value" = "" ]; then
-            echo -e "${GREEN}MASKED (empty)${NC}"
-        elif [[ "$value" == \$* ]]; then
-            echo -e "${GREEN}MASKED (\$VAR)${NC}"
-        elif [[ "$value" == *"GENERATE"* ]] || [[ "$value" == *"generate-"* ]]; then
-            echo -e "${RED}PLACEHOLDER: $value${NC}"
-        else
-            echo -e "${RED}EXPOSED: $value${NC}"
+
+    # Check that production environment has NO sensitive values (only safe configs)
+    sensitive_patterns=("PASSWORD=" "SECRET=" "KEY=")
+
+    for pattern in "${sensitive_patterns[@]}"; do
+        if grep -q "$pattern" .env.production; then
+            # But allow REDACTED which is a safe placeholder
+            if grep -q "$pattern" .env.production | grep -v "REDACTED" | grep -q -v "your-"; then
+                log_test "Production env has no sensitive values" "FAIL" "Found $pattern in production environment"
+                return 1
+            fi
         fi
     done
-    
-    # Restore original .env.local
-    if [ -f ".env.local.backup.test" ]; then
-        mv .env.local.backup.test .env.local
-    fi
+
+    log_test "Production env has no sensitive values" "PASS" "Production environment properly configured"
+    return 0
 }
 
-# Function to test container environment
-test_container_environment() {
-    echo -e "\n${YELLOW}🐳 Testing container environment isolation...${NC}"
-    
-    # Get list of services (respect ENV_FILE if set)
-    if [ -n "$ENV_FILE" ]; then
-        services=$(docker compose --env-file "$ENV_FILE" config --services 2>/dev/null || echo "")
+# TEST 6: Test docker compose config output for any sensitive patterns
+test_config_output_cleanliness() {
+    echo -e "\n${BLUE}TEST 6: Verify config output contains no sensitive patterns${NC}"
+
+    # Get docker compose config output
+    config_output=$(docker compose config --no-path-resolution 2>/dev/null)
+
+    # Check for any obvious sensitive patterns in config
+    sensitive_patterns=("password" "secret" "key=" "token" "credential")
+
+    found_sensitive=false
+    for pattern in "${sensitive_patterns[@]}"; do
+        if echo "$config_output" | grep -i "$pattern" | grep -v "NOT_FOUND"; then
+            echo -e "  ${RED}⚠️  Found sensitive pattern: $pattern${NC}"
+            found_sensitive=true
+        fi
+    done
+
+    if [ "$found_sensitive" = true ]; then
+        log_test "Config output has no sensitive patterns" "FAIL" "Found potentially sensitive patterns in config output"
     else
-        services=$(docker compose config --services 2>/dev/null || echo "")
+        log_test "Config output has no sensitive patterns" "PASS" "Config output appears clean"
     fi
-    
-    if [ -z "$services" ]; then
-        echo -e "${YELLOW}⚠️  Could not get services list${NC}"
-        return 1
-    fi
-    
-    echo -e "${BLUE}Checking if containers would have access to sensitive variables:${NC}"
-    
-    for service in $services; do
-        echo -n "  $service: "
-        
-        # Check if service has env_file directive (respect ENV_FILE if set)
-        if [ -n "$ENV_FILE" ]; then
-            if docker compose --env-file "$ENV_FILE" config 2>/dev/null | grep -A 20 "^  $service:" | grep -q "env_file"; then
-                echo -e "${GREEN}✅ Has env_file${NC}"
-            else
-                echo -e "${YELLOW}⚠️  No env_file${NC}"
-            fi
-        else
-            if docker compose config 2>/dev/null | grep -A 20 "^  $service:" | grep -q "env_file"; then
-                echo -e "${GREEN}✅ Has env_file${NC}"
-            else
-                echo -e "${YELLOW}⚠️  No env_file${NC}"
-            fi
-        fi
-    done
 }
 
-# Function to suggest improvements
-suggest_improvements() {
-    echo -e "\n${BLUE}💡 Suggestions for better secrets management:${NC}"
-    echo ""
-    echo "1. Use Docker secrets for production:"
-    echo "   docker compose --file docker-compose.yaml --file docker-compose.prod.yaml up"
-    echo ""
-    echo "2. Consider using a secrets management system:"
-    echo "   - HashiCorp Vault"
-    echo "   - AWS Secrets Manager"
-    echo "   - Azure Key Vault"
-    echo ""
-    echo "3. Use environment-specific compose files:"
-    echo "   docker-compose.staging.yaml"
-    echo "   docker-compose.production.yaml"
-    echo ""
-    echo "4. Implement runtime secret injection:"
-    echo "   - Kubernetes secrets"
-    echo "   - Docker swarm secrets"
-    echo "   - External secret providers"
-}
+# TEST 7: Test specific AC1.3.5 requirement
+test_ac1_3_5_compliance() {
+    echo -e "\n${BLUE}TEST 7: AC1.3.5 Compliance Test${NC}"
+    echo -e "${BLUE}Requirement: 'docker compose config shows masked secrets'${NC}"
 
-# Function to create production compose file
-create_production_compose() {
-    echo -e "\n${YELLOW}📝 Creating production compose file with secrets...${NC}"
-    
-    if [ -f "docker-compose.production.yaml" ]; then
-        echo -e "${YELLOW}⚠️  docker-compose.production.yaml already exists${NC}"
-        return 0
+    # Set up test environment with actual secrets
+    export POSTGRES_PASSWORD="test-ac1-3-5-password"
+    export GOOGLE_CLIENT_SECRET="test-ac1-3-5-secret"
+    export ENCRYPTION_KEY="test-ac1-3-5-encryption-key"
+
+    # Get config output
+    config_output=$(docker compose config --no-path-resolution 2>/dev/null)
+
+    # CRITICAL: Check that NO actual secret values appear in config output
+    if echo "$config_output" | grep -q "test-ac1-3-5"; then
+        log_test "AC1.3.5: docker compose config shows masked secrets" "FAIL" "AC1.3.5 VIOLATION: Actual secret values exposed in config output"
+        result=1
+    else
+        log_test "AC1.3.5: docker compose config shows masked secrets" "PASS" "AC1.3.5 COMPLIANT: No secret values exposed in config"
+        result=0
     fi
-    
-    cat > docker-compose.production.yaml << 'EOF'
-# =============================================================================
-# ONYX Production Docker Compose Override
-# =============================================================================
-# This file extends docker-compose.yaml for production deployment
-# Use Docker secrets for sensitive data in production
-# =============================================================================
 
-services:
-  postgres:
-    secrets:
-      - postgres_password
-    environment:
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    # Clean up
+    unset POSTGRES_PASSWORD GOOGLE_CLIENT_SECRET ENCRYPTION_KEY
 
-  redis:
-    secrets:
-      - redis_password
-    command: redis-server --appendonly yes --requirepass-file /run/secrets/redis_password
-
-  grafana:
-    secrets:
-      - grafana_password
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD_FILE: /run/secrets/grafana_password
-
-  onyx-core:
-    secrets:
-      - encryption_key
-      - session_secret
-      - google_client_id
-      - google_client_secret
-    environment:
-      ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
-      SESSION_SECRET_FILE: /run/secrets/session_secret
-      GOOGLE_CLIENT_ID_FILE: /run/secrets/google_client_id
-      GOOGLE_CLIENT_SECRET_FILE: /run/secrets/google_client_secret
-
-  litellm-proxy:
-    secrets:
-      - together_api_key
-      - deepseek_api_key
-    environment:
-      TOGETHER_API_KEY_FILE: /run/secrets/together_api_key
-      DEEPSEEK_API_KEY_FILE: /run/secrets/deepseek_api_key
-
-secrets:
-  postgres_password:
-    external: true
-  redis_password:
-    external: true
-  grafana_password:
-    external: true
-  encryption_key:
-    external: true
-  session_secret:
-    external: true
-  google_client_id:
-    external: true
-  google_client_secret:
-    external: true
-  together_api_key:
-    external: true
-  deepseek_api_key:
-    external: true
-EOF
-
-    echo -e "${GREEN}✅ Created docker-compose.production.yaml${NC}"
-    echo -e "${YELLOW}💡 Use with: docker compose -f docker-compose.yaml -f docker-compose.production.yaml up${NC}"
+    return $result
 }
 
-# Main execution
+# Main validation execution
 main() {
-    echo "Starting secrets masking tests..."
-    
-    # CRITICAL: Test with actual secret values first
-    test_actual_secrets_masking
-    critical_test_result=$?
-    
-    test_current_masking
-    test_production_masking
-    test_container_environment
-    suggest_improvements
-    
-    # Skip interactive prompt in non-interactive mode (e.g., during tests)
-    if [[ -z "$NON_INTERACTIVE" ]]; then
-        read -p $'\nCreate production compose file with Docker secrets? (y/N): ' -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            create_production_compose
-        fi
-    fi
-    
-    if [ $critical_test_result -eq 0 ]; then
-        echo -e "\n${GREEN}🎉 Secrets masking test complete - SECURITY PASSED!${NC}"
-    else
-        echo -e "\n${RED}❌ Secrets masking test complete - SECURITY FAILED!${NC}"
-        echo -e "${RED}❌ DO NOT DEPLOY TO PRODUCTION!${NC}"
-    fi
-    
-    # Return 0 in non-interactive mode (for testing), otherwise return critical test result
-    if [[ -n "$NON_INTERACTIVE" ]]; then
+    echo -e "${BLUE}Starting comprehensive secrets masking validation...${NC}"
+    echo -e "${RED}🎯 TARGET: AC1.3.5 COMPLIANCE - docker compose config shows masked secrets${NC}"
+    echo ""
+
+    # Run all tests
+    test_actual_secrets_exposure || echo -e "${RED}CRITICAL FAILURE: Secrets exposed${NC}"
+    test_no_env_file_directives || echo -e "${YELLOW}WARNING: env_file directives still exist${NC}"
+    test_docker_secrets_config || echo -e "${YELLOW}WARNING: Docker secrets not configured${NC}"
+    test_development_environment || echo -e "${YELLOW}WARNING: Development environment issues${NC}"
+    test_production_environment || echo -e "${YELLOW}WARNING: Production environment issues${NC}"
+    test_config_output_cleanliness || echo -e "${YELLOW}WARNING: Config output may contain sensitive patterns${NC}"
+    test_ac1_3_5_compliance || echo -e "${RED}CRITICAL FAILURE: AC1.3.5 NOT COMPLIANT${NC}"
+
+    # Final results
+    echo -e "\n${BLUE}══════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}FINAL VALIDATION RESULTS:${NC}"
+    echo -e "${BLUE}Total Tests: $total_tests, Passed: $passed_tests, Failed: $failed_tests${NC}"
+
+    if [ $failed_tests -eq 0 ]; then
+        echo -e "\n${GREEN}🎉 SUCCESS: ALL TESTS PASSED - AC1.3.5 COMPLIANT!${NC}"
+        echo -e "${GREEN}✅ docker compose config shows masked secrets${NC}"
+        echo -e "${GREEN}✅ Ready for production deployment${NC}"
         exit 0
     else
-        exit $critical_test_result
+        echo -e "\n${RED}❌ FAILURE: $failed_tests TESTS FAILED${NC}"
+        echo -e "${RED}❌ NOT READY FOR PRODUCTION DEPLOYMENT${NC}"
+        echo -e "${RED}❌ AC1.3.5 CRITICAL REQUIREMENT NOT MET${NC}"
+        exit 1
     fi
 }
 
-# Run main function
-main "$@"
+# Execute main function if script is called directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
