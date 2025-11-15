@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="story-context-workflow" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>3</storyId>
+    <title>url-scraping-content-extraction</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>.bmad-ephemeral/stories/7-3-url-scraping-content-extraction.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Manus Internal system</asA>
+    <iWant>intelligent URL content scraping and extraction capabilities</iWant>
+    <soThat>I can automatically extract clean article content, product information, and structured data from websites for knowledge ingestion and research tasks</soThat>
+    <tasks>Task 1: Content Extractor Service Implementation (AC: 7.3.1, 7.3.2, 7.3.3, 7.3.4, 7.3.5, 7.3.6)
+  - Implement ContentExtractor class with intelligent content type detection
+  - Add content type handlers for articles, products, documentation, academic content
+  - Implement Readability algorithm for clean content extraction
+  - Add HTML cleaning and metadata extraction (titles, authors, dates)
+  - Implement quality scoring algorithm (0-1) for content assessment
+  - Add structured data extraction (prices, specifications, etc.)
+Task 2: Integration with Browser Manager (Dependency: Story 7-1)
+  - Integrate ContentExtractor with existing BrowserManager service
+  - Handle JavaScript rendering for dynamic content
+  - Implement error handling for timeouts, 404s, blocked requests
+  - Add browser resource cleanup and memory management
+  - Test performance targets (<3s extraction time for typical pages)
+Task 3: HTML Processing Dependencies Setup
+  - Install and configure BeautifulSoup4, readability-lxml, html2text
+  - Set up content parsing pipeline (HTML → clean → structured → output)
+  - Configure image and link extraction capabilities
+  - Test with diverse website structures (news, blogs, products, docs)
+Task 4: Quality Assurance and Testing (AC: All acceptance criteria)
+  - Test article extraction from news/blog sites with clean content
+  - Test product information extraction with pricing and specifications
+  - Test documentation extraction with structured sections and code examples
+  - Test academic content extraction with citations and references
+  - Test automatic content type detection accuracy (>90% for known types)
+  - Test content quality scoring and duplicate detection
+Task 5: Performance and Error Handling (Technical requirements)
+  - Validate extraction performance targets (<2s for articles, <3s for complex pages)
+  - Test timeout handling and graceful degradation
+  - Test memory usage and cleanup for large documents
+  - Test rate limiting and respectful scraping practices
+  - Validate resource limits and concurrent browser management</tasks>
+  </story>
+
+  <acceptanceCriteria>1. Given: A URL pointing to a news article or blog post
+2. When: The system calls extract_content(url, type="article")
+3. Then: It returns clean article content with title, author, date, and body text
+4. And: Navigation, ads, and boilerplate content are removed
+5. And: The content is formatted as structured JSON with metadata
+6. Given: A URL pointing to an e-commerce product page
+7. When: The system calls extract_content(url, type="product")
+8. Then: It returns product details including name, price, description, images, and specifications
+9. And: Structured data includes availability, variants, and reviews count
+10. And: Currency and pricing information are normalized
+11. Given: A URL without explicit content type
+12. When: The system calls extract_content(url) without type parameter
+13. Then: It automatically detects the content type based on URL patterns and page analysis
+14. And: Applies the appropriate extraction strategy
+15. And: Returns the detected type in the response metadata
+16. Given: Extracted content from any URL
+17. When: The content extraction completes
+18. Then: A quality score (0-1) is calculated based on content length, readability, and structure
+19. And: Low-quality content (&lt;0.3) is flagged for manual review
+20. And: Duplicate content is detected across multiple extractions</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Document</title>
+        <section>Epic 7: Web Automation</section>
+        <snippet>Playwright browser automation with headless Chrome/Firefox setup, content extraction with Readability algorithm, tool orchestration via Onyx Core</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Document</title>
+        <section>Project Structure</section>
+        <snippet>onyx-core/ - Python RAG service, services/rag_service.py, services/sync_service.py, browser_tools.py for web automation</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Document</title>
+        <section>Integration Points</section>
+        <snippet>Onyx Core ↔ Playwright for browser automation, HTML processing, content extraction, web research capabilities</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics/epic-7-tech-spec.md</path>
+        <title>Epic 7 Technical Specification</title>
+        <section>Detailed Design</section>
+        <snippet>scraper-service: Content extraction with Readability + Cheerio, HTML parsing, text extraction, Markdown conversion, quality assessment</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics/epic-7-tech-spec.md</path>
+        <title>Epic 7 Technical Specification</title>
+        <section>APIs and Interfaces</section>
+        <snippet>POST /tools/scrape_url - URL parameter, format (markdown/text/html), extract_metadata flag, returns structured content</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics/epic-7-tech-spec.md</path>
+        <title>Epic 7 Technical Specification</title>
+        <section>Data Models and Contracts</section>
+        <snippet>ScrapedContent schema: url, title, author, publish_date, content_markdown, word_count, language, metadata, scrape_time_ms</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Functional Requirements</section>
+        <snippet>F4: Agent Mode & Task Execution - Tool selection, web research, data analysis, external search capabilities</snippet>
+      </doc>
+      <doc>
+        <path>.bmad-ephemeral/stories/7-3-url-scraping-content-extraction.md</path>
+        <title>Story 7-3: URL Scraping & Content Extraction</title>
+        <section>Implementation Details</section>
+        <snippet>ContentExtractor service with intelligent extraction, content type detection, HTML cleaning, metadata extraction, quality scoring</snippet>
+      </doc>
+      <doc>
+        <path>.bmad-ephemeral/stories/7-3-url-scraping-content-extraction.md</path>
+        <title>Story 7-3: URL Scraping & Content Extraction</title>
+        <section>Dependencies</section>
+        <snippet>Story 7-1: Playwright Browser Setup - Must be completed and approved, HTML processing libraries (BeautifulSoup, readability)</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>onyx-core/main.py</path>
+        <kind>application</kind>
+        <symbol>FastAPI server</symbol>
+        <lines>1-50</lines>
+        <reason>Existing FastAPI application where content extraction endpoints will be registered</reason>
+      </artifact>
+      <artifact>
+        <path>onyx-core/rag_service.py</path>
+        <kind>service</kind>
+        <symbol>RAG service</symbol>
+        <lines>1-100</lines>
+        <reason>Existing service pattern for Onyx Core, ContentExtractor will follow similar structure</reason>
+      </artifact>
+      <artifact>
+        <path>onyx-core/logger.py</path>
+        <kind>utility</kind>
+        <symbol>logging configuration</symbol>
+        <lines>1-50</lines>
+        <reason>Existing logging pattern for structured JSON logging, ContentExtractor will use same approach</reason>
+      </artifact>
+      <artifact>
+        <path>onyx-core/health.py</path>
+        <kind>utility</kind>
+        <symbol>health checks</symbol>
+        <lines>1-50</lines>
+        <reason>Existing health check pattern, content extraction service health monitoring</reason>
+      </artifact>
+      <artifact>
+        <path>onyx-core/metrics.py</path>
+        <kind>utility</kind>
+        <symbol>metrics collection</symbol>
+        <lines>1-50</lines>
+        <reason>Existing metrics pattern for performance monitoring, extraction latency tracking</reason>
+      </artifact>
+      <artifact>
+        <path>onyx-core/Dockerfile</path>
+        <kind>infrastructure</kind>
+        <symbol>Python environment</symbol>
+        <lines>1-20</lines>
+        <reason>Docker container where Playwright and content extraction libraries will be installed</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="python">
+        <package name="playwright" version="1.40.0">Browser automation foundation (dependency from Story 7.1)</package>
+        <package name="beautifulsoup4" version="4.12.0">HTML parsing and content extraction</package>
+        <package name="readability-lxml" version="0.8.1">Mozilla Readability algorithm for content cleaning</package>
+        <package name="html2text" version="2020.1.16">HTML to Markdown conversion</package>
+        <package name="lxml" version="4.9.0">Fast XML/HTML parsing performance</package>
+        <package name="python-dateutil" version="2.8.2">Date parsing and normalization</package>
+        <package name="fastapi" version="latest">REST API framework (existing)</package>
+        <package name="asyncio" version="builtin">Async programming support</package>
+        <package name="typing" version="builtin">Type hints for content schemas</package>
+      </ecosystem>
+      <ecosystem name="external">
+        <service name="SerpAPI" version="v1">Web search API (potential integration)</service>
+        <service name="Exa AI" version="v1">Semantic search API (potential integration)</service>
+        <service name="Redis" version="7.0+">Content caching (existing from Epic 1)</service>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Must integrate with existing BrowserManager from Story 7.1 (blocking dependency)</constraint>
+    <constraint>Content extraction must complete within performance targets (&lt;3s for typical pages)</constraint>
+    <constraint>Follow existing service patterns in onyx-core/ (FastAPI, structured logging, error handling)</constraint>
+    <constraint>Use Mozilla Readability algorithm for content cleaning and boilerplate removal</constraint>
+    <constraint>Implement content quality scoring with 0-1 scale for filtering low-quality content</constraint>
+    <constraint>Support content type auto-detection with &gt;90% accuracy for common patterns</constraint>
+    <constraint>Handle error cases gracefully (404s, timeouts, blocked requests, CAPTCHAs)</constraint>
+    <constraint>Extract structured metadata (titles, authors, dates, pricing, specifications)</constraint>
+    <constraint>Implement respectful scraping with rate limiting per domain</constraint>
+    <constraint>Follow security patterns: no JS execution from extracted content, input sanitization</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Content Extraction API</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /tools/scrape_url {url: string, type?: string, extract_images?: boolean, extract_links?: boolean}</signature>
+      <path>onyx-core/services/content_extractor.py</path>
+    </interface>
+    <interface>
+      <name>Browser Manager Integration</name>
+      <kind>Service dependency</kind>
+      <signature>ContentExtractor(BrowserManager) - requires browser automation capabilities</signature>
+      <path>onyx-core/services/content_extractor.py</path>
+    </interface>
+    <interface>
+      <name>Content Quality Assessment</name>
+      <kind>Internal algorithm</kind>
+      <signature>_calculate_quality_score(content: Dict[str, Any]) - returns float 0-1</signature>
+      <path>onyx-core/services/content_extractor.py</path>
+    </interface>
+    <interface>
+      <name>Content Type Detection</name>
+      <kind>Algorithm</kind>
+      <signature>_detect_content_type(url: str) - returns article|product|documentation|academic|generic</signature>
+      <path>onyx-core/services/content_extractor.py</path>
+    </interface>
+    <interface>
+      <name>HTML Processing Pipeline</name>
+      <kind>Workflow</kind>
+      <signature>HTML → Readability → Clean → Extract → Format → Quality Score</signature>
+      <path>onyx-core/services/content_extractor.py</path>
+    </interface>
+    <interface>
+      <name>Image and Link Extraction</name>
+      <kind>Utility</kind>
+      <signature>_extract_images(page), _extract_links(page) - returns structured metadata</signature>
+      <path>onyx-core/services/content_extractor.py</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Use pytest + async testing patterns, mock browser for unit tests, integration tests with real URLs, performance testing with timing validation, error case coverage</standards>
+    <locations>
+      <location>onyx-core/tests/ - Unit and integration tests for content extraction</location>
+      <location>onyx-core/tests/integration/ - End-to-end content extraction workflows</location>
+      <location>tests/ - System-level tests for web automation</location>
+    </locations>
+    <ideas>
+      <test idea="Test article content extraction" ac="7.3.1">Test with news sites, verify clean content extraction, metadata accuracy</test>
+      <test idea="Test product information extraction" ac="7.3.2">Test with e-commerce sites, verify pricing, specifications, image extraction</test>
+      <test idea="Test documentation extraction" ac="7.3.3">Test with technical docs, verify sections, code examples, structure</test>
+      <test idea="Test academic content extraction" ac="7.3.4">Test with research papers, verify citations, references, author extraction</test>
+      <test idea="Test automatic content type detection" ac="7.3.5">Test accuracy across URL patterns, validate detection success rates</test>
+      <test idea="Test content quality scoring" ac="7.3.6">Test scoring algorithm, validate quality assessment, flag low-quality content</test>
+      <test idea="Performance testing" ac="technical">Validate extraction time targets, memory usage, browser cleanup</test>
+      <test idea="Error handling testing" ac="technical">Test 404s, timeouts, blocked requests, CAPTCHAs, graceful degradation</test>
+      <test idea="Browser integration testing" ac="technical">Test BrowserManager integration, JavaScript rendering, dynamic content</test>
+      <test idea="Duplicate detection testing" ac="technical">Test duplicate content detection across multiple extractions</test>
+    </ideas>
+  </tests>
+</story-context>

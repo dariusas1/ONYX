@@ -102,7 +102,7 @@ development_status:
   epic-7: contexted
   7-1-playwright-browser-setup-headless-automation: done
   7-2-web-search-tool-serpapi-exa: done
-  7-3-url-scraping-content-extraction: backlog
+  7-3-url-scraping-content-extraction: ready-for-dev
   7-4-form-filling-web-interaction: ready-for-dev
   7-5-screenshot-page-capture: backlog
   epic-7-retrospective: optional
