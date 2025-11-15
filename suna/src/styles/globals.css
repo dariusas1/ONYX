@@ -49,6 +49,19 @@
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-manus-accent;
   }
 
+  /* Agent mode specific button */
+  .btn-purple {
+    @apply bg-purple-600 text-white hover:bg-purple-700 disabled:bg-gray-600 disabled:text-gray-400;
+  }
+
+  /* Input styles */
+  .input {
+    @apply w-full px-3 py-2 bg-manus-surface border border-manus-border rounded-lg;
+    @apply text-manus-text placeholder-manus-muted;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-manus-accent;
+    @apply transition-colors duration-200;
+  }
+
   .btn-primary {
     @apply bg-manus-accent text-white hover:bg-blue-600;
   }

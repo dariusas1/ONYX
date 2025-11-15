@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { MessageList, Message } from './MessageList';
 import { InputBox } from './InputBox';
+import { useChat } from '@/hooks/useChat';
 
 export interface ChatInterfaceProps {
   conversationId?: string;
@@ -13,42 +14,34 @@ export function ChatInterface({
   conversationId: _conversationId,
   className = '',
 }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
+  const {
+    messages,
+    sending,
+    error,
+    isStreaming,
+    firstTokenLatency,
+    currentContent,
+    totalTokens,
+    streamingError,
+    sendMessage,
+    clearError
+  } = useChat({
+    conversationId: _conversationId,
+    autoLoad: true
+  });
 
-  // Note: conversationId will be used in Story 2.3 for message persistence
-
-  // Handle message submission
-  // Note: Full streaming implementation will be added in Story 2.4
-  const handleSubmit = useCallback(
+  const handleSubmit = React.useCallback(
     async (message: string) => {
-      // Add user message to the list
-      const userMessage: Message = {
-        id: `user-${Date.now()}`,
-        role: 'user',
-        content: message,
-        timestamp: new Date(),
-      };
+      if (sending || isStreaming) return;
 
-      setMessages((prev) => [...prev, userMessage]);
-      setIsStreaming(true);
-
-      // Simulate streaming response (placeholder for Story 2.4)
-      // In Story 2.4, this will be replaced with actual LiteLLM streaming
-      setTimeout(() => {
-        const assistantMessage: Message = {
-          id: `assistant-${Date.now()}`,
-          role: 'assistant',
-          content: `I received your message: "${message}". Full streaming and AI response functionality will be implemented in Story 2.4 (Message Streaming & Real-Time Response Display).`,
-          timestamp: new Date(),
-        };
-
-        setMessages((prev) => [...prev, assistantMessage]);
-        setIsStreaming(false);
-      }, 1500);
+      try {
+        await sendMessage(message);
+      } catch (error) {
+        console.error('Failed to send message:', error);
+        // Error is handled by the hook
+      }
     },
-    []
+    [sendMessage, sending, isStreaming]
   );
 
   return (
@@ -61,6 +54,9 @@ export function ChatInterface({
         <MessageList
           messages={messages}
           isStreaming={isStreaming}
+          streamingContent={currentContent}
+          firstTokenLatency={firstTokenLatency}
+          totalTokens={totalTokens}
           className="flex-1"
           aria-live="polite"
           aria-label="Messages in conversation"
@@ -69,11 +65,11 @@ export function ChatInterface({
 
       <div className="flex-shrink-0">
         <InputBox
-          value={input}
-          onChange={setInput}
           onSubmit={handleSubmit}
-          disabled={isStreaming}
+          disabled={sending || isStreaming}
           aria-label="Type and send your message"
+          error={error || streamingError}
+          onClearError={clearError}
         />
       </div>
     </div>

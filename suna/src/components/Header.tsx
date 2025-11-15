@@ -2,12 +2,29 @@
 
 import React from 'react';
 import { Menu } from 'lucide-react';
+import { useAgentModeContext } from '@/components/AgentModeProvider';
+import ModeToggle from '@/components/ModeToggle';
+import type { AgentMode } from '@/components/ModeToggle';
 
 export interface HeaderProps {
   className?: string;
+  agentMode?: AgentMode;
+  onModeChange?: (mode: AgentMode) => void;
+  modeDisabled?: boolean;
 }
 
-export function Header({ className = '' }: HeaderProps) {
+export function Header({
+  className = '',
+  agentMode,
+  onModeChange,
+  modeDisabled = false
+}: HeaderProps) {
+  const agentModeContext = useAgentModeContext();
+
+  // Use context values if props not provided
+  const currentMode = agentMode || agentModeContext.mode;
+  const handleModeChange = onModeChange || agentModeContext.changeMode;
+
   return (
     <header
       className={`flex items-center justify-between px-3 sm:px-4 py-3 border-b border-manus-border bg-manus-surface ${className}`}
@@ -28,8 +45,17 @@ export function Header({ className = '' }: HeaderProps) {
         </div>
       </div>
 
-      {/* Navigation/Actions - Placeholder for future features */}
+      {/* Navigation/Actions */}
       <nav className="flex items-center gap-2" aria-label="Main navigation">
+        {/* Mode Toggle */}
+        <ModeToggle
+          currentMode={currentMode}
+          onModeChange={handleModeChange}
+          disabled={modeDisabled}
+          showLabel={false}
+          className="hidden sm:flex"
+        />
+
         {/* User menu placeholder */}
         <button
           type="button"

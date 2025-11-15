@@ -1,0 +1,701 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>3-4-local-file-upload-parsing</story-id>
+    <story-title>Local File Upload &amp; Parsing</story-title>
+    <epic-id>epic-3</epic-id>
+    <epic-title>RAG Integration &amp; Knowledge Retrieval</epic-title>
+    <status>ready-for-dev</status>
+    <created>2025-11-14</created>
+    <context-generated>2025-11-15</context-generated>
+    <priority>High</priority>
+    <story-points>8</story-points>
+  </metadata>
+
+  <story-details>
+    <user-story>
+      <as>Manus user</as>
+      <i-want>to upload files directly through the Suna UI with automatic parsing and indexing</i-want>
+      <so-that>I can quickly add local documents, spreadsheets, and images to my knowledge base for immediate search and retrieval</so-that>
+    </user-story>
+
+    <business-context>
+      Local file upload capability completes the RAG ingestion pipeline by providing three comprehensive knowledge sources:
+      1. Automated Sync: Google Drive + Slack (Stories 3.2, 3.3)
+      2. Manual Upload: Local files (this Story 3.4)
+      3. Web Content: URL scraping and search (Epic 7)
+
+      Users need direct upload capabilities for:
+      - Local Documents: Draft reports, working papers, legacy documents not in cloud storage
+      - Spreadsheets: Data analysis, financial models, structured data with context
+      - Presentations &amp; Images: Visual content, charts, diagrams that contain valuable information
+      - Text Files: Configuration files, logs, code snippets, documentation fragments
+
+      Implementation focuses on immediate indexing (&lt;30 seconds) and broad format support while maintaining security and performance standards.
+    </business-context>
+
+    <acceptance-criteria>
+      <criterion id="AC3.4.1">
+        <title>Drag-and-Drop File Upload Interface</title>
+        <given>User is on the Suna chat interface with upload permissions</given>
+        <when>User drags files from desktop and drops them in the designated upload area</when>
+        <then>Upload interface displays with file list, progress indicators, and upload button</then>
+        <and>Visual feedback shows files being processed with individual progress bars</and>
+        <and>Users can cancel individual uploads or clear all pending uploads</and>
+        <and>Upload area highlights during drag-over with clear "Drop files here" messaging</and>
+      </criterion>
+
+      <criterion id="AC3.4.2">
+        <title>File Format Support and Validation</title>
+        <given>User attempts to upload one or more files</given>
+        <when>Files are added to upload queue (drag-drop or file picker)</when>
+        <then>System validates each file against supported formats:
+          Documents: .md, .txt, .pdf (text extractable)
+          Structured Data: .csv, .json (parseable content)
+          Images: .png, .jpg, .jpeg (metadata extractable)</then>
+        <and>Supported files show green checkmark with file type icon</and>
+        <and>Unsupported files show red X with clear error message: "File type not supported. Supported formats: .md, .pdf, .csv, .json, .txt, .png, .jpg"</and>
+        <and>Files larger than 50MB show error: "File size exceeds 50MB limit"</and>
+      </criterion>
+
+      <criterion id="AC3.4.3">
+        <title>Multi-Format Content Parsing and Extraction</title>
+        <given>User has uploaded supported files of various formats</given>
+        <when>Upload processing begins after user confirmation</when>
+        <then>Each file type is parsed using appropriate extraction method:
+          Markdown (.md): Extract raw text, preserve headers, code blocks, and formatting
+          Text (.txt): Extract raw text content with line breaks preserved
+          PDF (.pdf): Extract text content using pdfminer, handle multi-page documents
+          CSV (.csv): Parse with csv module, extract headers and data rows into structured text
+          JSON (.json): Parse and extract all string values, preserve structure context
+          Images (.png/.jpg): Extract filename, basic metadata, placeholder text "[Image: filename]"</then>
+        <and>All extracted text content is UTF-8 encoded and sanitized</and>
+        <and>Parsing failures are logged with specific error messages and user notifications</and>
+      </criterion>
+
+      <criterion id="AC3.4.4">
+        <title>Automatic Vector Indexing with Metadata</title>
+        <given>File content has been successfully parsed and extracted</given>
+        <when>Content extraction is complete for a file</when>
+        <then>Text content is automatically chunked into 500-token segments with 50-token overlap</then>
+        <and>Each chunk is converted to 1536-dimensional vector using OpenAI text-embedding-3-small</and>
+        <and>Vectors are stored in Qdrant "documents" collection with rich metadata</and>
+        <and>Indexing status shows "Processing → Indexed" with completion percentage</and>
+      </criterion>
+
+      <criterion id="AC3.4.5">
+        <title>Immediate Search Availability (&lt;30 seconds)</title>
+        <given>User has uploaded and processed files successfully</given>
+        <when>User performs a semantic search query within 30 seconds of upload completion</when>
+        <then>Uploaded file content appears in search results with relevant rankings</then>
+        <and>Search results include proper source attribution: "From uploaded file: &lt;filename&gt;"</and>
+        <and>Result snippets show relevant content from uploaded documents</and>
+        <and>File metadata (upload time, file type) is displayed in result details</and>
+        <and>Performance test shows search latency &lt;200ms for uploaded content queries</and>
+      </criterion>
+
+      <criterion id="AC3.4.6">
+        <title>File Size Limits and Resource Management</title>
+        <given>User attempts to upload files</given>
+        <when>Each file is validated before processing</when>
+        <then>Single files larger than 50MB are rejected with clear error message</then>
+        <and>Cumulative upload session limited to 500MB (10 files × 50MB average)</and>
+        <and>System memory usage during processing remains &lt;1GB additional RAM</and>
+        <and>Processing timeout after 5 minutes per file with progress indication</and>
+        <and>Failed uploads are cleaned up automatically (no orphaned files or vectors)</and>
+        <and>User can retry failed uploads after addressing error conditions</and>
+      </criterion>
+
+      <criterion id="AC3.4.7">
+        <title>Error Handling and User Feedback</title>
+        <given>File upload or processing encounters issues</given>
+        <when>Errors occur at any stage (validation, parsing, indexing)</when>
+        <then>Specific error messages guide users to resolution:
+          "Corrupted PDF file - please check file integrity and retry"
+          "Invalid CSV format - file must contain comma-separated values"
+          "JSON parsing failed - check file contains valid JSON syntax"
+          "Network error during indexing - please retry upload"
+          "Processing timeout - try smaller file or check system resources"</then>
+        <and>Partial uploads allow individual file retry without affecting successful files</and>
+        <and>Error logs capture technical details for debugging while showing user-friendly messages</and>
+        <and>Upload interface shows retry button for failed files with error preservation</and>
+      </criterion>
+    </acceptance-criteria>
+
+    <dependencies>
+      <prerequisite>
+        <story-id>3-1-qdrant-vector-database-setup</story-id>
+        <status>COMPLETED</status>
+        <reason>Qdrant vector database with "documents" collection, OpenAI embeddings integration, and performance targets met</reason>
+      </prerequisite>
+      <external-dependency>
+        <name>OpenAI API</name>
+        <purpose>text-embedding-3-small model for vector generation</purpose>
+        <cost>$0.02 per 1M tokens</cost>
+        <rate-limit>60 requests/minute</rate-limit>
+      </external-dependency>
+      <blocks>
+        <story-id>3-5-hybrid-search-semantic-keyword</story-id>
+        <story-id>3-6-rag-pipeline-query-processing</story-id>
+      </blocks>
+    </dependencies>
+  </story-details>
+
+  <technical-context>
+    <architecture-integration>
+      <description>
+        Local file upload integrates with existing ONYX architecture:
+
+        User Upload → Suna UI Upload Component → FastAPI Upload Endpoint → File Validation &amp; Storage
+                                                           ↓
+                                                   Multi-Format Parser
+                                                           ↓
+                                                   Text Content Extraction
+                                                           ↓
+                                                   OpenAI Embedding Generation
+                                                           ↓
+                                                   Qdrant Vector Storage (1536-dim)
+                                                           ↓
+                                                   Immediate Search Availability
+
+        The upload feature extends the existing RAG system with a third knowledge source alongside Google Drive and Slack connectors.
+      </description>
+
+      <frontend-integration>
+        <component-structure>
+          <directory>suna/src/components/upload</directory>
+          <files>
+            <file>FileUploadZone.tsx</file>
+            <file>FileList.tsx</file>
+            <file>FileValidator.tsx</file>
+            <file>UploadProgress.tsx</file>
+            <file>ErrorDisplay.tsx</file>
+          </files>
+          <technologies>
+            <tech>React 18 with TypeScript</tech>
+            <tech>HTML5 Drag and Drop API</tech>
+            <tech>File input with fallback picker</tech>
+            <tech>WebSocket for real-time progress</tech>
+            <tech>Tailwind CSS with Suna theme</tech>
+          </technologies>
+        </component-structure>
+      </frontend-integration>
+
+      <backend-api-structure>
+        <endpoint method="POST" path="/api/upload">
+          <description>Handle multiple file upload with validation and processing</description>
+          <authentication>JWT token via require_authenticated_user</authentication>
+          <file-handling>FastAPI UploadFile with python-multipart</file-handling>
+          <processing>Async file validation → parsing → embedding → indexing</processing>
+        </endpoint>
+        <parser-modules>
+          <directory>onyx-core/file_parsers</directory>
+          <files>
+            <file>base_parser.py</file>
+            <file>markdown_parser.py</file>
+            <file>pdf_parser.py</file>
+            <file>csv_parser.py</file>
+            <file>json_parser.py</file>
+            <file>text_parser.py</file>
+            <file>image_parser.py</file>
+          </files>
+        </parser-modules>
+      </backend-api-structure>
+
+      <qdrant-integration>
+        <collection>documents</collection>
+        <vector-size>1536</vector-size>
+        <embedding-model>OpenAI text-embedding-3-small</embedding-model>
+        <chunk-strategy>
+          <chunk-size>500 tokens (~375 words)</chunk-size>
+          <overlap>50 tokens (25 words)</overlap>
+          <smart-splitting>Preserve sentence boundaries and paragraphs</smart-splitting>
+        </chunk-strategy>
+        <batch-embedding>10 chunks per API call for efficiency</batch-embedding>
+        <permission-filtering>User-specific access control with metadata.permissions</permission-filtering>
+      </qdrant-integration>
+
+      <file-processing-pipeline>
+        <validation>
+          <type-check>File extension + magic number verification</type-check>
+          <size-limit>50MB per file, 500MB per session</size-limit>
+          <virus-scanning>clamav integration (optional for production)</virus-scanning>
+          <content-sanitization>Remove executable content and scripts</content-sanitization>
+        </validation>
+        <storage>
+          <temporary>/tmp/uploads with restricted access</temporary>
+          <cleanup>Automatic cleanup after processing</cleanup>
+          <isolation>Dedicated upload directory</isolation>
+        </storage>
+      </file-processing-pipeline>
+    </architecture-integration>
+
+    <existing-code-integration>
+      <file path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/rag_service.py">
+        <description>Existing RAG service with Qdrant integration and OpenAI embeddings</description>
+        <relevant-methods>
+          <method>embed_query() - Already uses OpenAI text-embedding-3-small</method>
+          <method>search() - Supports permission filtering with user_email parameter</method>
+          <method>add_document() - Handles vector upsertion with metadata</method>
+          <method>ensure_collection_exists() - Manages collection creation</method>
+        </relevant-methods>
+        <configuration>
+          <collection-name>documents</collection-name>
+          <vector-size>1536</vector-size>
+          <embedding-model>text-embedding-3-small</embedding-model>
+          <on-disk-storage>true</on-disk-storage>
+        </configuration>
+        <integration-points>
+          <point>Add metadata schema for local_upload source_type</point>
+          <point>Implement chunking strategy for large documents</point>
+          <point>Add batch embedding for performance optimization</point>
+        </integration-points>
+      </file>
+
+      <file path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/requirements.txt">
+        <description>Python dependencies - already includes necessary file processing libraries</description>
+        <existing-dependencies>
+          <dep>python-multipart==0.0.6</dep>
+          <dep>openai==1.3.7</dep>
+          <dep>PyPDF2==3.0.1</dep>
+          <dep>python-docx==1.1.0</dep>
+          <dep>openpyxl==3.1.2</dep>
+          <dep>beautifulsoup4==4.12.2</dep>
+        </existing-dependencies>
+        <additional-needs>
+          <dep>pdfminer.six (for better PDF extraction)</dep>
+          <dep>aiofiles (for async file operations)</dep>
+          <dep>Pillow (for image metadata)</dep>
+        </additional-needs>
+      </file>
+
+      <file path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/main.py">
+        <description>FastAPI application with existing RAG endpoints</description>
+        <existing-endpoints>
+          <endpoint method="GET" path="/search">RAG search with permission filtering</endpoint>
+          <endpoint method="POST" path="/documents">Add document to RAG system</endpoint>
+        </existing-endpoints>
+        <integration-points>
+          <point>Add /api/upload router for file upload functionality</point>
+          <point>Update main.py to include upload router</point>
+          <point>Ensure authentication middleware applies to upload endpoints</point>
+        </integration-points>
+      </file>
+
+      <file path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/suna/src/components/ChatInterface.tsx">
+        <description>Existing chat interface component structure</description>
+        <pattern-analysis>
+          <pattern>Modular component architecture with hooks</pattern>
+          <pattern>Consistent TypeScript interfaces</pattern>
+          <pattern>Accessibility-first design with ARIA labels</pattern>
+          <pattern>Error handling and user feedback</pattern>
+        </pattern-analysis>
+        <integration-points>
+          <point>Add FileUploadZone component above InputBox</point>
+          <point>Create useUpload hook for upload state management</point>
+          <point>Integrate with existing chat message flow</point>
+        </integration-points>
+      </file>
+
+      <file path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/suna/package.json">
+        <description>Frontend dependencies and build configuration</description>
+        <existing-dependencies>
+          <dep>next: ^14.0.0</dep>
+          <dep>react: ^18.0.0</dep>
+          <dep>typescript: ^5.3.0</dep>
+          <dep>tailwindcss: ^3.4.0</dep>
+        </existing-dependencies>
+        <additional-needs>
+          <dep>react-dropzone: ^14.2.3</dep>
+          <dep>@types/react-dropzone: ^14.2.3</dep>
+        </additional-needs>
+      </file>
+    </existing-code-integration>
+
+    <security-considerations>
+      <file-upload-security>
+        <validation-layers>
+          <layer>File extension validation</layer>
+          <layer>Magic number verification</layer>
+          <layer>Virus scanning with clamav</layer>
+          <layer>Content sanitization</layer>
+        </validation-layers>
+        <storage-isolation>
+          <feature>Dedicated /tmp/uploads directory</feature>
+          <feature>Restricted file permissions</feature>
+          <feature>Automatic cleanup after processing</feature>
+        </storage-isolation>
+      </file-upload-security>
+      <access-control>
+        <authentication>JWT token via require_authenticated_user</authentication>
+        <permissions>User-specific document ownership</permissions>
+        <audit-logging>All uploads logged with user, timestamp, file details</audit-logging>
+      </access-control>
+    </security-considerations>
+
+    <performance-requirements>
+      <upload-performance>
+        <file-validation>&lt;1 second per file</file-validation>
+        <content-parsing>&lt;5 seconds for 10MB files, &lt;30 seconds for 50MB files</content-parsing>
+        <vector-generation>&lt;10 seconds per 500-token chunk</vector-generation>
+        <qdrant-indexing>&lt;2 seconds per chunk batch</qdrant-indexing>
+        <total-processing>&lt;30 seconds for typical 5MB document</total-processing>
+      </upload-performance>
+      <search-performance>
+        <index-availability>&lt;30 seconds from upload completion</index-availability>
+        <search-latency>&lt;200ms for uploaded content queries</search-latency>
+        <result-ranking>Relevant content appears in top-5 results</result-ranking>
+      </search-performance>
+      <resource-management>
+        <memory-usage>&lt;1GB additional RAM during processing</memory-usage>
+        <concurrent-uploads>Support multiple simultaneous uploads</concurrent-uploads>
+        <cleanup>Automatic cleanup of temporary files and failed uploads</cleanup>
+      </resource-management>
+    </performance-requirements>
+
+    <data-schemas>
+      <upload-metadata>
+        <schema>
+          <field name="doc_id" type="string" format="upload_timestamp_random"/>
+          <field name="source_type" type="string" default="local_upload"/>
+          <field name="source_id" type="string" format="original_filename"/>
+          <field name="title" type="string" format="original_filename"/>
+          <field name="filename" type="string" format="original_filename_with_extension"/>
+          <field name="file_type" type="string" format="file_extension"/>
+          <field name="file_size" type="integer" description="File size in bytes"/>
+          <field name="upload_timestamp" type="datetime" format="ISO8601"/>
+          <field name="user_id" type="string" description="Uploader identifier"/>
+          <field name="chunk_index" type="integer" description="Segment number within document"/>
+          <field name="total_chunks" type="integer" description="Total segments in document"/>
+          <field name="permissions" type="string[]" description="Access control array"/>
+          <field name="content_hash" type="string" format="SHA-256"/>
+        </schema>
+      </upload-metadata>
+      <chunking-schema>
+        <chunk-size>500 tokens (~375 words)</chunk-size>
+        <overlap>50 tokens (25 words)</overlap>
+        <segmentation>Smart splitting respecting sentences and paragraphs</segmentation>
+        <preservation>Headers, code blocks, table headers maintained in context</preservation>
+      </chunking-schema>
+    </data-schemas>
+  </technical-context>
+
+  <implementation-plan>
+    <step number="1" title="Backend API Development">
+      <action>Create upload API endpoints and file processing pipeline</action>
+      <tasks>
+        <task>Create onyx-core/api/upload.py router with FastAPI endpoints</task>
+        <task>Implement file validation middleware with type and size checks</task>
+        <task>Create onyx-core/file_parsers/ module with base parser interface</task>
+        <task>Implement specific parsers for PDF, CSV, JSON, images, markdown, and text</task>
+        <task>Add upload endpoint with multipart file handling</task>
+        <task>Implement progress tracking and WebSocket updates</task>
+      </tasks>
+      <verification>pytest tests/unit/test_upload.py</verification>
+    </step>
+
+    <step number="2" title="Frontend Upload Component">
+      <action>Create React upload interface with drag-and-drop functionality</action>
+      <tasks>
+        <task>Add react-dropzone dependency to package.json</task>
+        <task>Create FileUploadZone.tsx component with drag-and-drop API</task>
+        <task>Create FileList.tsx for upload queue management</task>
+        <task>Create FileValidator.tsx for real-time file validation</task>
+        <task>Create UploadProgress.tsx for progress tracking</task>
+        <task>Create ErrorDisplay.tsx for user-friendly error messages</task>
+        <task>Create useUpload.ts hook for state management</task>
+      </tasks>
+           <verification>npm test -- --testPathPattern=upload</verification>
+    </step>
+
+    <step number="3" title="Content Processing Pipeline">
+      <action>Implement multi-format content extraction and vectorization</action>
+      <tasks>
+        <task>Implement text chunking strategy (500 tokens, 50 token overlap)</task>
+        <task>Create batch embedding generation for OpenAI API efficiency</task>
+        <task>Integrate with existing RAG service for vector storage</task>
+        <task>Implement metadata enrichment with file information</task>
+        <task>Add error handling and retry logic for processing failures</task>
+        <task>Create automatic cleanup for temporary files</task>
+      </tasks>
+      <verification>Integration tests for complete upload-to-search pipeline</verification>
+    </step>
+
+    <step number="4" title="Security and Performance">
+      <action>Implement security measures and performance optimization</action>
+      <tasks>
+        <task>Add magic number validation beyond file extensions</task>
+        <task>Implement file size limits and session quotas</task>
+        <task>Add rate limiting for upload endpoints</task>
+        <task>Implement proper permission-based access control</task>
+        <task>Add comprehensive audit logging</task>
+        <task>Optimize memory usage for large file processing</task>
+      </tasks>
+      <verification>Security tests and performance benchmarks</verification>
+    </step>
+
+    <step number="5" title="Integration and Testing">
+      <action>Integrate upload functionality with existing RAG system</action>
+      <tasks>
+        <task>Update main.py to include upload router</task>
+        <task>Integrate upload interface with ChatInterface component</task>
+        <task>Test end-to-end upload, processing, and search functionality</task>
+        <task>Verify search results include uploaded file content</task>
+        <task>Test permission filtering for user-specific documents</task>
+        <task>Validate performance targets (&lt;30s processing, &lt;200ms search)</task>
+      </tasks>
+      <verification>End-to-end integration tests with real file uploads</verification>
+    </step>
+
+    <step number="6" title="Documentation and Cleanup">
+      <action>Update documentation and finalize implementation</action>
+      <tasks>
+        <task>Update README.md with upload functionality documentation</task>
+        <task>Create upload instructions with supported formats and size limits</task>
+        <task>Add environment variables to .env.example</task>
+        <task>Update API documentation with upload endpoints</task>
+        <task>Create troubleshooting guide for common upload issues</task>
+      </tasks>
+      <verification>Manual documentation review</verification>
+    </step>
+  </implementation-plan>
+
+  <testing-guidelines>
+    <unit-tests>
+      <test name="test_file_upload_validation">
+        <description>Verify file format and size validation</description>
+        <steps>
+          <step>Test valid file formats (.md, .pdf, .csv, .json, .txt, .png, .jpg)</step>
+          <step>Test rejection of invalid formats (.exe, .zip, .docx)</step>
+          <step>Test file size limit enforcement (50MB max)</step>
+          <step>Test cumulative session limit (500MB)</step>
+        </steps>
+      </test>
+
+      <test name="test_content_parsing">
+        <description>Verify multi-format content extraction</description>
+        <steps>
+          <step>Parse Markdown content with headers and code blocks</step>
+          <step>Extract text from PDF documents including multi-page</step>
+          <step>Parse CSV data with headers and structured output</step>
+          <step>Extract JSON values preserving structure context</step>
+          <step>Handle image metadata extraction</step>
+        </steps>
+      </test>
+
+      <test name="test_vector_indexing">
+        <description>Verify embedding generation and vector storage</description>
+        <steps>
+          <step>Generate embeddings using OpenAI API</step>
+          <step>Chunk text into 500-token segments with overlap</step>
+          <step>Store vectors in Qdrant with proper metadata</step>
+          <step>Verify search functionality with uploaded content</step>
+        </steps>
+      </test>
+    </unit-tests>
+
+    <integration-tests>
+      <test name="test_upload_to_search_pipeline">
+        <description>Test complete pipeline from upload to search availability</description>
+        <script>
+          <![CDATA[
+async def test_complete_upload_pipeline():
+    # Upload test file
+    test_file = create_test_pdf_file("Sample document content")
+
+    # Submit upload request
+    response = client.post("/api/upload", files={"files": test_file})
+    assert response.status_code == 200
+
+    # Verify upload processing
+    upload_id = response.json()["results"][0]["upload_id"]
+
+    # Wait for processing completion
+    await wait_for_upload_completion(upload_id, timeout=30)
+
+    # Search for uploaded content
+    search_response = client.get("/search?query=Sample document")
+    assert response.status_code == 200
+
+    # Verify search results
+    results = search_response.json()["data"]["results"]
+    assert len(results) > 0
+    assert any("From uploaded file:" in r.get("metadata", {}).get("source", "") for r in results)
+          ]]>
+        </script>
+      </test>
+
+      <test name="test_permission_filtering">
+        <description>Verify user-specific access control for uploaded files</description>
+        <script>
+          <![CDATA[
+# Test that users can only search their own uploads
+user1_token = get_user_token("user1@example.com")
+user2_token = get_user_token("user2@example.com")
+
+# User 1 uploads document
+user1_upload = client.post("/api/upload",
+    files={"files": test_file},
+    headers={"Authorization": f"Bearer {user1_token}"})
+
+# User 2 searches (should not see User 1's document)
+user2_search = client.get("/search?query=content_from_user1_upload",
+    headers={"Authorization": f"Bearer {user2_token}"})
+
+assert len(user2_search.json()["data"]["results"]) == 0
+          ]]>
+        </script>
+      </test>
+    </integration-tests>
+
+    <performance-tests>
+      <test name="test_processing_performance">
+        <requirements>
+          <requirement>Process 10MB file in &lt;30 seconds</requirement>
+          <requirement>Generate embeddings in &lt;10 seconds per chunk</requirement>
+          <requirement>Complete upload-to-search in &lt;60 seconds</requirement>
+        </requirements>
+      </test>
+
+      <test name="test_memory_usage">
+        <requirements>
+          <requirement>Peak memory usage &lt;1GB additional RAM</requirement>
+          <requirement>Memory released after processing completion</requirement>
+          <requirement>No memory leaks with repeated uploads</requirement>
+        </requirements>
+      </test>
+    </performance-tests>
+
+    <manual-verification-checklist>
+      <item>Drag-and-drop interface works in Chrome, Firefox, Safari</item>
+      <item>File picker fallback works for all browsers</item>
+      <item>Visual feedback shows upload progress for each file</item>
+      <item>Can cancel individual uploads during processing</item>
+      <item>Search results appear within 30 seconds of upload</item>
+      <item>Uploaded files show proper source attribution</item>
+      <item>File type validation rejects unsupported formats</item>
+      <item>File size limits enforced with clear error messages</item>
+      <item>Multiple files upload simultaneously</item>
+      <item>Permission filtering prevents unauthorized access</item>
+      <item>Processing errors show actionable user guidance</item>
+      <item>Failed uploads can be retried successfully</item>
+    </manual-verification-checklist>
+  </testing-guidelines>
+
+  <definition-of-done>
+    <criteria>
+      <item checked="false">Frontend upload component implemented with drag-and-drop interface</item>
+      <item checked="false">Multi-format file parser supporting all specified formats</item>
+      <item checked="false">File validation enforcing size limits and format restrictions</item>
+      <item checked="false">Content extraction and chunking working for all file types</item>
+      <item checked="false">Vector indexing with rich metadata storage in Qdrant</item>
+      <item checked="false">Upload progress tracking with real-time feedback</item>
+      <item checked="false">Error handling with user-friendly messages and retry capabilities</item>
+      <item checked="false">Security measures (file validation, virus scanning optional)</item>
+      <item checked="false">All acceptance criteria verified (AC3.4.1 - AC3.4.7)</item>
+      <item checked="false">Unit tests pass for all parser components</item>
+      <item checked="false">Integration tests pass for complete upload flow</item>
+      <item checked="false">Performance benchmarks meet requirements (&lt;30s indexing)</item>
+      <item checked="false">Security tests verify file handling safety</item>
+      <item checked="false">Code reviewed and merged to main branch</item>
+      <item checked="false">Documentation updated with upload instructions</item>
+      <item checked="false">Sprint status updated to "done"</item>
+    </criteria>
+  </definition-of-done>
+
+  <risks-and-mitigations>
+    <risk severity="medium">
+      <description>Large file processing timeouts</description>
+      <mitigation>Implement streaming processing, set realistic timeouts, provide progress feedback</mitigation>
+    </risk>
+    <risk severity="high">
+      <description>Malicious file uploads</description>
+      <mitigation>File type validation, virus scanning, content sanitization, isolated processing</mitigation>
+    </risk>
+    <risk severity="medium">
+      <description>PDF extraction failures</description>
+      <mitigation>Multiple PDF parsing libraries, fallback to OCR for image-based PDFs</mitigation>
+    </risk>
+    <risk severity="medium">
+      <description>Memory exhaustion with large uploads</description>
+      <mitigation>Streaming processing, file size limits, memory usage monitoring</mitigation>
+    </risk>
+    <risk severity="low">
+      <description>Duplicate content indexing</description>
+      <mitigation>Content hash-based deduplication, metadata comparison</mitigation>
+    </risk>
+    <risk severity="medium">
+      <description>Embedding API rate limits</description>
+      <mitigation>Batch processing, exponential backoff, queue management</mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <additional-notes>
+    <note type="file-format-decision">
+      Selected file formats prioritize document and structured data most valuable for knowledge work:
+      - Markdown (.md): Native to development workflows, preserves formatting
+      - PDF (.pdf): Standard document format with broad adoption
+      - CSV (.json): Structured data with business value
+      - Text (.txt): Universal format for configuration and logs
+      - Images (.png/.jpg): Limited to metadata extraction (OCR deferred to future story)
+
+      Excluded formats: Office documents (.docx, .xlsx) - require specialized libraries not in current stack
+    </note>
+
+    <note type="chunking-strategy">
+      500-token chunks with 50-token overlap optimizes for:
+      - Context preservation across chunk boundaries
+      - Reasonable chunk size for embedding API efficiency
+      - 10% overlap maintains semantic continuity
+      - Smart sentence/paragraph boundary detection reduces context fragmentation
+    </note>
+
+    <note type="performance-optimization">
+      Batch embedding generation (10 chunks per API call) optimizes OpenAI API usage:
+      - Reduces API calls by 90% compared to individual chunk embedding
+      - Respects rate limits (60 requests/minute)
+      - Provides faster processing for multi-chunk documents
+      - Reduces embedding costs through batch pricing
+    </note>
+
+    <note type="future-enhancements">
+      Post-MVP enhancements (out of scope for this story):
+      - OCR for images using Tesseract or cloud OCR services
+      - Advanced PDF processing with table extraction and formatting preservation
+      - Batch upload via zip archive with automatic extraction
+      - File organization with folder structure preservation
+      - Version control for uploaded documents
+      - Collaborative annotation features
+    </note>
+  </additional-notes>
+
+  <references>
+    <document type="story" path="/home/user/ONYX/docs/stories/3-1-qdrant-vector-database-setup.md">
+      Story 3-1 - Qdrant Vector Database Setup (COMPLETED)
+    </document>
+    <document type="story" path="/home/user/ONYX/docs/stories/3-2-google-drive-connector-auto-sync.md">
+      Story 3-2 - Google Drive Connector &amp; Auto-Sync (COMPLETED)
+    </document>
+    <document type="story" path="/home/user/ONYX/docs/stories/3-3-slack-connector-message-indexing.md">
+      Story 3-3 - Slack Connector &amp; Message Indexing (COMPLETED)
+    </document>
+    <document type="epic" path="/home/user/ONYX/docs/epics/epic-3-tech-spec.md">
+      Epic 3 Technical Specification - RAG Integration &amp; Knowledge Retrieval
+    </document>
+    <document type="architecture" path="/home/user/ONYX/docs/architecture.md">
+      Architecture Document - System design and integration patterns
+    </document>
+    <external-link url="https://react-dropzone.js.org/">React Dropzone Documentation</external-link>
+    <external-link url="https://pdfminersix.readthedocs.io/">PDFMiner Documentation</external-link>
+    <external-link url="https://platform.openai.com/docs/guides/embeddings">OpenAI Embeddings API Documentation</external-link>
+  </references>
+
+  <related-files>
+    <file path="/home/user/ONYX/docker-compose.yaml" type="infrastructure">Service definitions and networking</file>
+    <file path="/home/user/ONYX/onyx-core/main.py" type="code">FastAPI application and existing endpoints</file>
+    <file path="/home/user/ONYX/onyx-core/rag_service.py" type="code">RAG service with Qdrant integration</file>
+    <file path="/home/user/ONYX/onyx-core/requirements.txt" type="dependency">Python dependencies (already includes file processing libs)</file>
+    <file path="/home/user/ONYX/suna/src/components/ChatInterface.tsx" type="code">Existing chat interface for integration</file>
+    <file path="/home/user/ONYX/suna/package.json" type="dependency">Frontend dependencies (needs react-dropzone)</file>
+  </related-files>
+</story-context>

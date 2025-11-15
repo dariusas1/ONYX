@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
 import { PerformanceMonitor } from '@/components/PerformanceMonitor';
+import { AgentModeProvider } from '@/components/AgentModeProvider';
 
 // Configure Inter font with Next.js Font Optimization
 // For environments without network access, set NEXT_PUBLIC_SKIP_FONTS=true
@@ -78,7 +79,9 @@ export default function RootLayout({
       <body className={`${inter.className} font-sans h-full antialiased`}>
         <div className="h-full w-full">
           <PerformanceMonitor onMetricsUpdate={handleMetricsUpdate}>
-            {children}
+            <AgentModeProvider>
+              {children}
+            </AgentModeProvider>
           </PerformanceMonitor>
         </div>
       </body>

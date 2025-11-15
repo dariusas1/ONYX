@@ -192,3 +192,6 @@ backups/
 # Local scripts
 scripts/local-*
 scripts/dev-*
+# Runtime/temporary files
+.claude-flow/metrics/
+.swarm/memory.db-shm
