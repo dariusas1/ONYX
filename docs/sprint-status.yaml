@@ -132,7 +132,7 @@ epics:
 
       - story_id: "3-5-hybrid-search-semantic-keyword"
         title: "Hybrid Search (Semantic + Keyword)"
-        status: "drafted"
+        status: "ready-for-dev"
         priority: "P0"
         estimated_points: 13
         assigned_to: "TBD"
@@ -141,7 +141,7 @@ epics:
         started_date: null
         completed_date: null
         blocked_reason: null
-        notes: "Hybrid search combining semantic vector search (70%) with keyword BM25 search (30%) for optimal relevance, with parallel processing, result fusion, recency boosting, and sub-200ms latency performance. Critical for delivering high-quality search results across all indexed knowledge sources."
+        notes: "Complete story-context workflow executed. Context.xml generated with comprehensive implementation details including current Qdrant setup (1536-dimensional vectors), PostgreSQL BM25 integration requirements, parallel search architecture, result fusion algorithms (70% semantic + 30% keyword), recency boosting (+10% for 30-day window), sub-200ms performance targets, and complete integration patterns. All dependencies (3-1, 3-2, 3-3, 3-4) completed. Ready for development with detailed technical specifications and implementation guidance."
         dependencies: ["3-1-qdrant-vector-database-setup", "3-2-google-drive-connector-auto-sync", "3-3-slack-connector-message-indexing", "3-4-local-file-upload-parsing"]
         acceptance_criteria:
           - "AC3.5.1: User query triggers both semantic (vector) and keyword (BM25) search"

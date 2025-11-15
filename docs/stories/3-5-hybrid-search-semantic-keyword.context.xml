@@ -1,0 +1,810 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>3-5-hybrid-search-semantic-keyword</story-id>
+    <story-title>Hybrid Search (Semantic + Keyword)</story-title>
+    <epic-id>epic-3</epic-id>
+    <epic-title>Knowledge Retrieval (RAG)</epic-title>
+    <status>ready-for-dev</status>
+    <created>2025-11-15</created>
+    <updated>2025-11-15</updated>
+    <priority>Critical</priority>
+    <story-points>13</story-points>
+    <context-generated>2025-11-15</context-generated>
+    <developer>TBD</developer>
+  </metadata>
+
+  <story-details>
+    <user-story>
+      <as>user of Manus Internal</as>
+      <i-want>hybrid search that combines semantic vector search with keyword BM25 search</i-want>
+      <so-that>I get the most relevant results from all company knowledge sources with optimal precision and recall</so-that>
+    </user-story>
+
+    <business-context>
+      Hybrid search is a critical component of Manus Internal's RAG system that combines the strengths of two complementary search approaches:
+
+      1. **Semantic Vector Search (70% weight)**: Understands meaning, concepts, and context using embeddings
+      2. **Keyword BM25 Search (30% weight)**: Finds exact terms, names, and technical specifications
+
+      This hybrid approach delivers >95% relevance across diverse query types:
+      - **Semantic queries**: "What are our Q3 revenue targets?" → Finds related concepts even without exact keywords
+      - **Keyword queries**: "project-unicorn launch date" → Finds exact document references
+      - **Mixed queries**: "customer feedback on AI features" → Combines semantic understanding with keyword matching
+
+      The search system processes queries across all indexed knowledge sources:
+      - Google Drive documents (Story 3-2) - COMPLETE
+      - Slack messages (Story 3-3) - COMPLETE
+      - Local file uploads (Story 3-4) - COMPLETE
+      - Qdrant vector database (Story 3-1) - COMPLETE
+
+      **Performance Requirements:**
+      - Sub-200ms total retrieval latency (95th percentile)
+      - Parallel processing of semantic and keyword searches
+      - Intelligent result fusion and ranking
+      - Recency boosting for timely information
+    </business-context>
+
+    <acceptance-criteria>
+      <criterion id="AC3.5.1">
+        <title>User Query Triggers Both Semantic and Keyword Search</title>
+        <given>User submits a search query via RAG service</given>
+        <when>The search request is processed</when>
+        <then>Both semantic vector search AND keyword BM25 search are executed in parallel</then>
+        <and>Query processing starts within 10ms of request receipt</and>
+        <and>No sequential blocking between search approaches</and>
+      </criterion>
+
+      <criterion id="AC3.5.2">
+        <title>Semantic Search Returns Top-10 Candidates from Qdrant</title>
+        <given>User query is processed for semantic search</given>
+        <when>Vector similarity search is executed against Qdrant</when>
+        <then>Returns top-10 most semantically similar documents</then>
+        <and>Each result includes similarity score (0.0-1.0)</and>
+        <and>Results sorted by semantic similarity in descending order</and>
+        <and>Includes document metadata (title, source, created_date, permissions)</and>
+      </criterion>
+
+      <criterion id="AC3.5.3">
+        <title>Keyword Search Returns Top-10 Candidates from PostgreSQL</title>
+        <given>User query is processed for keyword search</given>
+        <when>BM25 text search is executed against the keyword index</when>
+        <then>Returns top-10 most relevant documents by keyword matching</then>
+        <and>Each result includes BM25 score</and>
+        <and>Results sorted by BM25 score in descending order</and>
+        <and>Includes document metadata (title, source, created_date, permissions)</and>
+        <and>Supports phrase matching, stemming, and term frequency analysis</and>
+      </criterion>
+
+      <criterion id="AC3.5.4">
+        <title>Results Merged and Ranked by Combined Score (70% Semantic + 30% Keyword)</title>
+        <given>Top-10 results from both semantic and keyword searches are available</given>
+        <when>Result fusion and ranking algorithm processes both result sets</when>
+        <then>Results are merged and re-ranked using weighted scoring:
+  - Combined Score = (Semantic Score × 0.7) + (BM25 Score × 0.3)</then>
+        <and>Duplicate results are intelligently merged (highest score kept)</and>
+        <and>Final result set contains unique documents with combined scores</and>
+        <and>Results sorted by combined score in descending order</and>
+      </criterion>
+
+      <criterion id="AC3.5.5">
+        <title>Top-5 Final Results Passed to LLM Context</title>
+        <given>Merged and ranked results are available</given>
+        <when>Results are prepared for LLM context injection</when>
+        <then>Top-5 highest-scoring documents are selected</then>
+        <and>Each document includes full text content and metadata</and>
+        <and>Results are formatted for LLM consumption with source attribution</and>
+        <and>Context includes relevance scores for transparency</and>
+      </criterion>
+
+      <criterion id="AC3.5.6">
+        <title>Total Retrieval Latency &lt;200ms (95th Percentile)</title>
+        <given>User search query is submitted to RAG service</given>
+        <when>Complete hybrid search pipeline executes</when>
+        <then>Total time from query receipt to final results is &lt;200ms (95th percentile)</then>
+        <and>Average latency &lt;150ms across 1000 test queries</and>
+        <and>Parallel processing reduces total time compared to sequential execution</and>
+        <and>Performance monitoring tracks latency percentiles</and>
+      </criterion>
+
+      <criterion id="AC3.5.7">
+        <title>Recent Documents Boosted by 10% in Ranking</title>
+        <given>Documents have creation/update timestamps</given>
+        <when>Results are ranked by combined scores</when>
+        <then>Documents created/updated within last 30 days receive 10% score boost</then>
+        <and>Recency boost is applied after semantic/keyword fusion</and>
+        <and>Boost factor is configurable (default: 1.10× for recent documents)</and>
+        <and>Ensures timely information appears higher in results</and>
+      </criterion>
+    </acceptance-criteria>
+
+    <dependencies>
+      <prerequisite>
+        <story-id>3-1-qdrant-vector-database-setup</story-id>
+        <status>COMPLETED</status>
+        <reason>Qdrant vector database with documents collection and 1536-dimensional vectors</reason>
+      </prerequisite>
+      <prerequisite>
+        <story-id>3-2-google-drive-connector-auto-sync</story-id>
+        <status>COMPLETED</status>
+        <reason>All Google Drive documents indexed with embeddings stored in Qdrant</reason>
+      </prerequisite>
+      <prerequisite>
+        <story-id>3-3-slack-connector-message-indexing</story-id>
+        <status>COMPLETED</status>
+        <reason>All Slack messages indexed with embeddings stored in Qdrant</reason>
+      </prerequisite>
+      <prerequisite>
+        <story-id>3-4-local-file-upload-parsing</story-id>
+        <status>COMPLETED</status>
+        <reason>All uploaded files processed and embedded in Qdrant</reason>
+      </prerequisite>
+      <external-dependency>
+        <name>OpenAI API</name>
+        <version>text-embedding-3-small</version>
+        <purpose>Query embedding generation for semantic search</purpose>
+        <verification>OPENAI_API_KEY environment variable</verification>
+      </external-dependency>
+      <external-dependency>
+        <name>PostgreSQL</name>
+        <version>15+ with pg_trgm extension</version>
+        <purpose>Full-text search with BM25 algorithm for keyword search</purpose>
+        <verification>PostgreSQL container running in Docker Compose</verification>
+      </external-dependency>
+      <blocks>
+        <story-id>3-6-rag-pipeline-integration</story-id>
+      </blocks>
+    </dependencies>
+  </story-details>
+
+  <technical-context>
+    <architecture-overview>
+      <description>
+        Hybrid search combines semantic vector understanding with keyword precision across all company knowledge sources. The system executes both search approaches in parallel and fuses results using weighted scoring.
+
+        User Query → Hybrid Search Engine
+                                      ↓
+                    ┌─────────────────────────┬─────────────────────────┐
+                    │                         │                         │
+            Semantic Search        Keyword Search        Query Preprocessing
+                    │                         │                         │
+            Qdrant Vector DB      PostgreSQL BM25        Tokenization
+            (1536-dim vectors)     (Full-text Search)      Stemming
+                    │                         │                         │
+            Top-10 Results         Top-10 Results            Stop Words
+                    │                         │                         │
+                    └─────────────────────────┴─────────────────────────┘
+                                      ↓
+                              Result Fusion Engine
+                                      ↓
+                            Score: (Semantic × 0.7) + (BM25 × 0.3)
+                                      ↓
+                             Recency Boost (+10% for 30d)
+                                      ↓
+                              Top-5 Results → LLM Context
+      </description>
+
+      <hybrid-search-algorithm>
+        <phase name="1: Query Preprocessing">
+          <description>Normalize and prepare query for both search approaches</description>
+          <steps>
+            <step>Original query preserved for semantic search</step>
+            <step>Query tokenized, stemmed for keyword search</step>
+            <step>Query metadata captured (length, type classification)</step>
+          </steps>
+        </phase>
+
+        <phase name="2: Parallel Search Execution">
+          <description>Execute both searches concurrently using asyncio</description>
+          <steps>
+            <step>Semantic search: embed query → query Qdrant → top-10 results</step>
+            <step>Keyword search: BM25 search PostgreSQL → top-10 results</step>
+            <step>Both searches execute in parallel with timeout protection</step>
+          </steps>
+        </phase>
+
+        <phase name="3: Result Fusion">
+          <description>Merge and re-rank results using weighted scoring</description>
+          <steps>
+            <step>Deduplicate results across search approaches</step>
+            <step>Calculate combined scores (70% semantic + 30% keyword)</step>
+            <step>Apply recency boosting (10% for documents &lt;30 days old)</step>
+            <step>Sort by final combined score</step>
+            <step>Return top-5 results for LLM context</step>
+          </steps>
+        </phase>
+      </hybrid-search-algorithm>
+    </architecture-overview>
+
+    <existing-system-components>
+      <component name="Qdrant Vector Database" status="OPERATIONAL">
+        <description>Story 3-1 completed - vector database with 1536-dimensional embeddings</description>
+        <configuration>
+          <collection-name>documents</collection-name>
+          <vector-size>1536</vector-size>
+          <distance-metric>Cosine</distance-metric>
+          <on-disk-storage>true</on-disk-storage>
+          <hnsw-indexing>enabled</hnsw-indexing>
+        </configuration>
+        <connection>
+          <url>http://qdrant:6333</url>
+          <client>qdrant-client (Python SDK)</client>
+        </connection>
+        <current-data>All Google Drive, Slack, and local file documents indexed with OpenAI text-embedding-3-small embeddings</current-data>
+      </component>
+
+      <component name="PostgreSQL Database" status="OPERATIONAL">
+        <description>Primary database with user data, conversations, messages, and document metadata</description>
+        <configuration>
+          <version>PostgreSQL 15</version>
+          <extensions>uuid-ossp, pgvector (optional), pg_trgm (needed for BM25)</extensions>
+          <database>manus</database>
+          <connection>Internal Docker network (postgres:5432)</connection>
+        </configuration>
+        <schema>
+          <table name="users">User accounts and authentication</table>
+          <table name="conversations">Chat conversations</table>
+          <table name="messages">Chat messages with citations support</table>
+          <table name="documents">Document metadata from all sources</table>
+          <table name="message_citations">Citation system for LLM responses</table>
+        </schema>
+      </component>
+
+      <component name="RAG Service" status="OPERATIONAL">
+        <description>onyx-core/rag_service.py - semantic search using Qdrant</description>
+        <current-implementation>
+          <class name="RAGService">
+            <method name="search">Performs semantic search with permission filtering</method>
+            <method name="add_document">Upserts documents to Qdrant with embeddings</method>
+            <method name="embed_query">Generates embeddings using OpenAI text-embedding-3-small</method>
+            <method name="health_check">Monitors Qdrant connection and collection status</method>
+          </class>
+          <embedding-model>OpenAI text-embedding-3-small (1536 dimensions)</embedding-model>
+          <search-type>Semantic vector similarity only</search-type>
+          <permission-filtering>Document-level permissions based on user email</permission-filtering>
+        </current-implementation>
+        <limitations>Only semantic search, no keyword search, no result fusion</limitations>
+      </component>
+
+      <component name="Google Drive Sync Service" status="OPERATIONAL">
+        <description>Story 3-2 completed - automatic Google Drive document indexing</description>
+        <implementation>
+          <class name="GoogleDriveSync">
+            <method name="sync_files">Downloads and processes Google Drive files</method>
+            <method name="extract_content">Parses PDF, DOCX, TXT, MD formats</method>
+            <method name="index_documents">Stores embeddings in Qdrant</method>
+          </class>
+        </implementation>
+        <indexed-content>All Google Drive documents with embeddings in Qdrant and metadata in PostgreSQL</indexed-content>
+      </component>
+
+      <component name="Slack Message Indexing" status="OPERATIONAL">
+        <description>Story 3-3 completed - real-time Slack message indexing</description>
+        <implementation>
+          <slack-events-api>Real-time message capture via webhooks</slack-events-api>
+          <content-processing>Cleans messages, removes mentions, formats text</content-processing>
+          <embedding-generation>Creates embeddings for message content</embedding-generation>
+        </implementation>
+        <indexed-content>All Slack messages with embeddings in Qdrant and metadata in PostgreSQL</indexed-content>
+      </component>
+
+      <component name="Local File Upload System" status="OPERATIONAL">
+        <description>Story 3-4 completed - local file upload and parsing</description>
+        <implementation>
+          <file-formats>PDF, DOCX, TXT, MD, CSV, Excel support</file-formats>
+          <chunking-strategy>Max 8000 characters per chunk for large documents</chunking-strategy>
+          <progress-tracking>Upload status and error reporting</progress-tracking>
+        </implementation>
+        <indexed-content>Uploaded files processed and embedded in Qdrant</indexed-content>
+      </component>
+
+      <component name="Web Search Manager" status="OPERATIONAL">
+        <description>Story 7-2 completed - external web search via SerpAPI/Exa</description>
+        <purpose>External search capabilities separate from internal knowledge base</purpose>
+        <search-providers>SerpAPI (Google/Bing), Exa (semantic search)</search-providers>
+      </component>
+
+      <component name="Browser Automation Service" status="OPERATIONAL">
+        <description>Story 7-1 completed - Playwright browser automation</description>
+        <purpose>Web scraping, form filling, screenshot capture</purpose>
+        <capabilities>Headless browser automation with JavaScript rendering</capabilities>
+      </component>
+    </existing-system-components>
+
+    <current-search-infrastructure-gaps>
+      <gap severity="high">
+        <description>No keyword search capability</description>
+        <impact>Cannot find exact matches for names, IDs, technical terms</impact>
+        <solution>Implement PostgreSQL BM25 full-text search</solution>
+      </gap>
+      <gap severity="high">
+        <description>No result fusion algorithm</description>
+        <impact>Cannot combine semantic and keyword search results</impact>
+        <solution>Implement weighted scoring and result merging</solution>
+      </gap>
+      <gap severity="medium">
+        <description>No recency boosting</description>
+        <impact>Recent information doesn't rank higher in results</impact>
+        <solution>Implement configurable recency boost factor</solution>
+      </gap>
+      <gap severity="medium">
+        <description>No search performance monitoring</description>
+        <impact>Cannot track latency targets or identify bottlenecks</impact>
+        <solution>Add metrics collection and monitoring</solution>
+      </gap>
+    </current-search-infrastructure-gaps>
+
+    <performance-requirements>
+      <latency-targets>
+        <query-preprocessing>&lt;5ms</query-preprocessing>
+        <semantic-search>&lt;100ms (Qdrant)</semantic-search>
+        <keyword-search>&lt;50ms (PostgreSQL)</keyword-search>
+        <result-fusion>&lt;20ms</result-fusion>
+        <total-latency>&lt;200ms (95th percentile)</total-latency>
+      </latency-targets>
+      <throughput-requirements>
+        <concurrent-queries>5 parallel searches</concurrent-queries>
+        <queries-per-second>10+ QPS per instance</queries-per-second>
+        <memory-usage>&lt;500MB per search service instance</memory-usage>
+      </throughput-requirements>
+      <quality-metrics>
+        <search-relevance>&gt;95% user satisfaction</search-relevance>
+        <result-diversity>Covers multiple document types</result-diversity>
+        <recency-effectiveness>Recent documents rank higher</recency-effectiveness>
+      </quality-metrics>
+    </performance-requirements>
+
+    <data-model-integration>
+      <qdrant-payload-schema>
+        <field name="doc_id" type="keyword" indexed="true"/>
+        <field name="title" type="text"/>
+        <field name="source_type" type="keyword" indexed="true"/>
+        <field name="source_id" type="keyword" indexed="true"/>
+        <field name="created_at" type="datetime"/>
+        <field name="updated_at" type="datetime"/>
+        <field name="permissions" type="keyword[]" indexed="true"/>
+        <field name="metadata" type="object"/>
+      </qdrant-payload-schema>
+
+      <postgresql-schema-additions>
+        <table name="documents_search">
+          <purpose>Full-text search index for keyword search (BM25)</purpose>
+          <fields>
+            <field name="doc_id" type="VARCHAR(255)" primary-key="true"/>
+            <field name="title" type="TEXT" indexed="true"/>
+            <field name="content" type="TEXT" indexed="true"/>
+            <field name="source_type" type="VARCHAR(50)" indexed="true"/>
+            <field name="source_id" type="VARCHAR(255)" indexed="true"/>
+            <field name="created_at" type="TIMESTAMP"/>
+            <field name="updated_at" type="TIMESTAMP"/>
+            <field name="permissions" type="TEXT[]" indexed="true"/>
+          </fields>
+          <indexes>
+            <index type="GIN">to_tsvector('english', title || ' ' || content)</index>
+            <index type="GIN">permissions array</index>
+          </indexes>
+        </table>
+      </postgresql-schema-additions>
+
+      <document-id-consistency>
+        <requirement>All search engines use identical document IDs</requirement>
+        <format>uuid-based document identifiers across Qdrant and PostgreSQL</format>
+        <synchronization>Document updates synchronized across both indexes</synchronization>
+      </document-id-consistency>
+    </data-model-integration>
+
+    <integration-points>
+      <rag-service-integration>
+        <current-endpoint>/search (semantic only)</current-endpoint>
+        <target-endpoint>/search (hybrid)</target-endpoint>
+        <modifications>
+          <modification>Replace semantic search with hybrid search in RAG service</modification>
+          <modification>Add result fusion and recency boosting logic</modification>
+          <modification>Maintain backward compatibility for API clients</modification>
+        </modifications>
+      </rag-service-integration>
+
+      <document-pipeline-integration>
+        <requirement>All document indexing pipelines update both search engines</requirement>
+        <current-behavior>Only Qdrant receives document embeddings</current-behavior>
+        <target-behavior>Both Qdrant and PostgreSQL receive document updates</target-behavior>
+        <implementation-points>
+          <point>Google Drive sync updates documents_search table</point>
+          <point>Slack indexing updates documents_search table</point>
+          <point>Local file upload updates documents_search table</point>
+        </implementation-points>
+      </document-pipeline-integration>
+
+      <api-layer-integration>
+        <search-endpoints>
+          <endpoint method="GET|POST" path="/search">Hybrid search (default mode)</endpoint>
+          <endpoint method="GET|POST" path="/search/semantic">Semantic-only search</endpoint>
+          <endpoint method="GET|POST" path="/search/keyword">Keyword-only search</endpoint>
+          <endpoint method="GET" path="/search/stats">Search performance metrics</endpoint>
+        </search-endpoints>
+        <response-format>
+          <field name="results" type="array">Top-5 search results with combined scores</field>
+          <field name="query" type="string">Original search query</field>
+          <field name="latency_ms" type="integer">Total search execution time</field>
+          <field name="result_sources" type="object">Breakdown of semantic vs keyword results</field>
+        </response-format>
+      </api-layer-integration>
+    </integration-points>
+
+    <search-configuration>
+      <hybrid-search-config>
+        <semantic-weight>0.7</semantic-weight>
+        <keyword-weight>0.3</keyword-weight>
+        <top-k-semantic>10</top-k-semantic>
+        <top-k-keyword>10</top-k-keyword>
+        <final-results>5</final-results>
+        <recency-days>30</recency-days>
+        <recency-boost>1.10</recency-boost>
+      </hybrid-search-config>
+
+      <semantic-search-config>
+        <embedding-model>OpenAI text-embedding-3-small</embedding-model>
+        <vector-size>1536</vector-size>
+        <distance-metric>Cosine</distance-metric>
+        <score-threshold>0.5</score-threshold>
+        <timeout-ms>100</timeout-ms>
+      </semantic-search-config>
+
+      <keyword-search-config>
+        <search-engine>PostgreSQL BM25</search-engine>
+        <analyzer>English with stemming</analyzer>
+        <stop-words>enabled</stop-words>
+        <title-boost>2.0</title-boost>
+        <timeout-ms>50</timeout-ms>
+      </keyword-search-config>
+    </search-configuration>
+  </technical-context>
+
+  <implementation-guidance>
+    <core-components-to-implement>
+      <component name="HybridSearchService" primary="true">
+        <file>onyx-core/hybrid_search_service.py</file>
+        <purpose>Main hybrid search orchestration and result fusion</purpose>
+        <key-methods>
+          <method name="search">Execute hybrid search with parallel processing</method>
+          <method name="semantic_search">Query Qdrant for semantic results</method>
+          <method name="keyword_search">Query PostgreSQL for BM25 results</method>
+          <method name="fuse_results">Merge and rank results with weighted scoring</method>
+          <method name="apply_recency_boost">Boost recent documents in ranking</method>
+        </key-methods>
+      </component>
+
+      <component name="SearchConfiguration" primary="true">
+        <file>onyx-core/config/search_config.py</file>
+        <purpose>Configuration management for search weights and parameters</purpose>
+        <settings>
+          <setting name="SEMANTIC_WEIGHT">0.7</setting>
+          <setting name="KEYWORD_WEIGHT">0.3</setting>
+          <setting name="RECENCY_BOOST_DAYS">30</setting>
+          <setting name="RECENCY_BOOST_FACTOR">1.10</setting>
+          <setting name="TOP_K_SEMANTIC">10</setting>
+          <setting name="TOP_K_KEYWORD">10</setting>
+        </settings>
+      </component>
+
+      <component name="KeywordSearchService" primary="true">
+        <file>onyx-core/keyword_search_service.py</file>
+        <purpose>PostgreSQL BM25 full-text search implementation</purpose>
+        <dependencies>
+          <dependency>asyncpg (PostgreSQL async driver)</dependency>
+          <dependency>pg_trgm extension</dependency>
+        </dependencies>
+      </component>
+
+      <component name="DatabaseSchemaUpdate" primary="true">
+        <file>docker/migrations/004-hybrid-search.sql</file>
+        <purpose>Create documents_search table for keyword indexing</purpose>
+        <schema-changes>
+          <change>Create documents_search table with full-text indexes</change>
+          <change>Add GIN indexes for BM25 search performance</change>
+          <change>Set up document search synchronization triggers</change>
+        </schema-changes>
+      </component>
+    </core-components-to-implement>
+
+    <database-migration-requirements>
+      <migration name="004-hybrid-search.sql" priority="high">
+        <description>Create keyword search infrastructure in PostgreSQL</description>
+        <steps>
+          <step>Enable pg_trgm extension for fuzzy matching</step>
+          <step>Create documents_search table with proper schema</step>
+          <step>Add full-text search GIN indexes</step>
+          <step>Create document search synchronization triggers</step>
+          <step>Add performance indexes for permission filtering</step>
+        </steps>
+      </migration>
+    </database-migration-requirements>
+
+    <performance-optimization-strategies>
+      <parallel-processing>
+        <strategy>Execute semantic and keyword searches concurrently using asyncio.gather()</strategy>
+        <benefit>Reduces total latency from sequential execution (~150ms savings)</benefit>
+        <implementation>Create both search tasks simultaneously and await completion</implementation>
+      </parallel-processing>
+
+      <query-caching>
+        <strategy>Cache query embeddings and search results for 5 minutes</strategy>
+        <benefit>Reduces API calls for repeated queries</benefit>
+        <implementation>Use Redis cache with query hash as key</implementation>
+      </query-caching>
+
+      <connection-pooling>
+        <strategy>Maintain persistent connections to PostgreSQL and Qdrant</strategy>
+        <benefit>Eliminates connection overhead (~10-20ms savings per query)</benefit>
+        <implementation>Use asyncpg connection pool and Qdrant client reuse</implementation>
+      </connection-pooling>
+
+      <result-streaming>
+        <strategy>Process and stream results as they become available</strategy>
+        <benefit>Reduces memory usage for large result sets</benefit>
+        <implementation>Yield results during fusion process</implementation>
+      </result-streaming>
+    </performance-optimization-strategies>
+
+    <testing-strategy>
+      <unit-tests>
+        <test name="test_hybrid_search_parallel_execution">
+          <purpose>Verify semantic and keyword searches execute in parallel</purpose>
+          <setup>Mock search services and measure execution timing</setup>
+          <assertion>Total time &lt; max(semantic_time, keyword_time) + overhead</assertion>
+        </test>
+        <test name="test_result_fusion_weighted_scoring">
+          <purpose>Verify correct weighted scoring formula</purpose>
+          <setup>Create mock results with known scores</setup>
+          <assertion>Combined score = (semantic × 0.7) + (bm25 × 0.3)</assertion>
+        </test>
+        <test name="test_recency_boost_application">
+          <purpose>Verify recent documents receive 10% boost</purpose>
+          <setup>Create documents with different ages</setup>
+          <assertion>Recent documents have score × 1.10 factor applied</assertion>
+        </test>
+        <test name="test_duplicate_result_merging">
+          <purpose>Verify duplicate documents are properly merged</purpose>
+          <setup>Create overlapping results from both searches</setup>
+          <assertion>Each document appears once with highest score retained</assertion>
+        </test>
+      </unit-tests>
+
+      <integration-tests>
+        <test name="test_end_to_end_search_pipeline">
+          <purpose>Verify complete search workflow from query to results</purpose>
+          <steps>
+            <step>Submit search query to hybrid search service</step>
+            <step>Verify both Qdrant and PostgreSQL are queried</step>
+            <step>Verify results are merged and ranked correctly</step>
+            <step>Verify final results include top-5 documents</step>
+            <step>Verify total latency &lt;200ms</step>
+          </steps>
+        </test>
+        <test name="test_search_permission_filtering">
+          <purpose>Verify search respects user permissions</purpose>
+          <setup>Create documents with different permission sets</setup>
+          <assertion>User only sees documents they have permission to access</assertion>
+        </test>
+      </integration-tests>
+
+      <performance-benchmarks>
+        <benchmark name="search_latency_under_load">
+          <purpose>Verify performance targets under concurrent load</purpose>
+          <method>Execute 100 concurrent searches and measure percentiles</method>
+          <targets>
+            <target>p50 latency &lt;150ms</target>
+            <target>p95 latency &lt;200ms</target>
+            <target>p99 latency &lt;300ms</target>
+          </targets>
+        </benchmark>
+        <benchmark name="scalability_with_document_count">
+          <purpose>Verify performance scales with document count</purpose>
+          <method>Test with 1K, 10K, 100K documents</method>
+          <target>Latency increase &lt;20% at each scale point</target>
+        </benchmark>
+      </performance-benchmarks>
+    </testing-strategy>
+
+    <deployment-considerations>
+      <environment-variables>
+        <var name="OPENAI_API_KEY" required="true">For query embedding generation</var>
+        <var name="POSTGRES_URL" required="true">PostgreSQL connection string</var>
+        <var name="QDRANT_URL" default="http://qdrant:6333">Qdrant service URL</var>
+        <var name="SEARCH_TIMEOUT_MS" default="200">Maximum search latency</var>
+        <var name="SEMANTIC_WEIGHT" default="0.7">Semantic search weight</var>
+        <var name="KEYWORD_WEIGHT" default="0.3">Keyword search weight</var>
+        <var name="RECENCY_BOOST_DAYS" default="30">Days for recency boost</var>
+        <var name="RECENCY_BOOST_FACTOR" default="1.10">Boost factor for recent docs</var>
+      </environment-variables>
+
+      <dependencies-to-add>
+        <dependency name="asyncpg" version="&gt;=0.28.0">PostgreSQL async driver</dependency>
+        <dependency name="rank-bm25" version="&gt;=0.2.2">Alternative BM25 implementation</dependency>
+        <dependency name="scikit-learn" version="&gt;=1.3.0">Text preprocessing utilities</dependency>
+      </dependencies-to-add>
+
+      <infrastructure-updates>
+        <update component="postgres">
+          <action>Ensure pg_trgm extension is enabled</action>
+          <action>Run migration 004-hybrid-search.sql</action>
+          <action>Configure GIN indexes for full-text search</action>
+        </update>
+        <update component="onyx-core">
+          <action>Add new search service modules</action>
+          <action>Update RAG service to use hybrid search</action>
+          <action>Add search performance monitoring</action>
+        </update>
+      </infrastructure-updates>
+    </deployment-considerations>
+
+    <risk-mitigation-strategies>
+      <risk severity="medium">
+        <description>Search latency exceeds 200ms target</description>
+        <mitigation>
+          <strategy>Implement connection pooling and query optimization</strategy>
+          <fallback>Reduce search result count temporarily</fallback>
+          <monitoring>Track latency percentiles and alert on degradation</monitoring>
+        </mitigation>
+      </risk>
+
+      <risk severity="medium">
+        <description>Result fusion produces poor relevance rankings</description>
+        <mitigation>
+          <strategy>Implement A/B testing framework for weight tuning</strategy>
+          <fallback>Revert to semantic-only search with warning</fallback>
+          <monitoring>User satisfaction tracking and result quality metrics</monitoring>
+        </mitigation>
+      </risk>
+
+      <risk severity="high">
+        <description>Index synchronization issues between Qdrant and PostgreSQL</description>
+        <mitigation>
+          <strategy>Implement transaction-based updates with rollback</strategy>
+          <fallback>Resync process with data validation</fallback>
+          <monitoring>Daily consistency checks and automated repair</monitoring>
+        </mitigation>
+      </risk>
+
+      <risk severity="low">
+        <description>PostgreSQL full-text search performance at scale</description>
+        <mitigation>
+          <strategy>Implement incremental indexing and periodic optimization</strategy>
+          <fallback>Consider Elasticsearch migration for large-scale deployments</fallback>
+          <monitoring>Query performance metrics and index health</monitoring>
+        </mitigation>
+      </risk>
+    </risk-mitigation-strategies>
+  </implementation-guidance>
+
+  <existing-code-patterns>
+    <service-pattern-example file="onyx-core/services/search_manager.py">
+      <description>Web search service with fallback, caching, and rate limiting</description>
+      <patterns-to-reuse>
+        <pattern name="unified-interface">Single SearchManager class with multiple provider support</pattern>
+        <pattern name="fallback-mechanism">Automatic fallback between providers with error handling</pattern>
+        <pattern name="caching-layer">Cache key generation and TTL management</pattern>
+        <pattern name="rate-limiting">Token bucket rate limiter for API protection</pattern>
+        <pattern name="async-concurrent-execution">Async/await pattern for I/O operations</pattern>
+      </patterns-to-reuse>
+    </service-pattern-example>
+
+    <rag-service-pattern file="onyx-core/rag_service.py">
+      <description>Existing RAG service with Qdrant integration and permission filtering</description>
+      <integration-points>
+        <point>Reuse Qdrant client initialization and connection management</point>
+        <point>Adapt permission filtering logic for hybrid search</point>
+        <point>Leverage existing embedding generation with OpenAI API</point>
+        <point>Extend health check system to include keyword search</point>
+      </integration-points>
+    </rag-service-pattern>
+
+    <database-pattern file="docker/migrations/003-message-citations.sql">
+      <description>Migration pattern for schema updates with RLS policies</description>
+      <patterns-to-reuse>
+        <pattern name="migration-scripting">Structured SQL migrations with version numbers</pattern>
+        <pattern name="rls-policies">Row-level security for user data protection</pattern>
+        <pattern name="index-creation">Performance-optimized indexes for common queries</pattern>
+        <pattern name="jsonb-usage">Flexible metadata storage with GIN indexing</pattern>
+      </patterns-to-reuse>
+    </database-pattern>
+
+    <docker-composition-pattern file="docker-compose.yaml">
+      <description>Service orchestration with health checks and networking</description>
+      <configuration-patterns>
+        <pattern>Environment variable management without secrets exposure</pattern>
+        <pattern>Service dependencies and startup ordering</pattern>
+        <pattern>Health check configuration with retry logic</pattern>
+        <pattern>Resource limits and logging configuration</pattern>
+      </configuration-patterns>
+    </docker-composition-pattern>
+  </existing-code-patterns>
+
+  <definition-of-ready-for-dev>
+    <completeness-criteria>
+      <item status="complete">Story requirements fully defined and understood</item>
+      <item status="complete">All dependencies completed (Stories 3-1, 3-2, 3-3, 3-4)</item>
+      <item status="complete">Technical architecture and integration points documented</item>
+      <item status="complete">Implementation guidance and code patterns identified</item>
+      <item status="complete">Database schema migration requirements specified</item>
+      <item status="complete">Performance targets and optimization strategies defined</item>
+      <item status="complete">Testing strategy and acceptance criteria documented</item>
+      <item status="complete">Risk mitigation and deployment considerations outlined</item>
+    </completeness-criteria>
+
+    <readiness-indicators>
+      <indicator>Qdrant operational with documents collection containing indexed content</indicator>
+      <indicator>PostgreSQL operational with required extensions and existing schema</indicator>
+      <indicator>All document indexing services (Google Drive, Slack, Local files) operational</indicator>
+      <indicator>RAG service functional with semantic search capability</indicator>
+      <indicator>Docker environment ready for new service deployment</indicator>
+      <indicator>Development team can begin implementation immediately</indicator>
+    </readiness-indicators>
+
+    <blocking-issues>
+      <issue>None - all prerequisites completed and infrastructure ready</issue>
+    </blocking-issues>
+  </definition-of-ready-for-dev>
+
+  <notes>
+    <note type="architecture-decision">
+      Weight Selection Rationale (70% Semantic, 30% Keyword):
+      - Semantic search provides better understanding of user intent and conceptual relationships
+      - Keyword search excels at exact matches (names, IDs, technical terms, specific phrases)
+      - 70/30 balance based on information retrieval best practices for enterprise search
+      - Weighting prioritizes semantic understanding while maintaining keyword precision
+      - Configurable weights allow tuning based on user feedback and query analysis
+    </note>
+
+    <note type="implementation-approach">
+      Phased Implementation Strategy:
+      1. Phase 1: Implement core HybridSearchService with basic parallel execution
+      2. Phase 2: Add result fusion and recency boosting algorithms
+      3. Phase 3: Integrate with existing RAG service and update API endpoints
+      4. Phase 4: Add performance monitoring and optimization features
+      5. Phase 5: Comprehensive testing and performance validation
+    </note>
+
+    <note type="performance-considerations">
+      Latency Budget Allocation:
+      - Query preprocessing: 5ms (2.5% of total)
+      - Semantic search: 100ms (50% of total)
+      - Keyword search: 50ms (25% of total)
+      - Result fusion: 20ms (10% of total)
+      - Overhead/buffer: 25ms (12.5% of total)
+      - Total target: 200ms (95th percentile)
+    </note>
+
+    <note type="future-enhancements">
+      Post-MVP Features (Out of Scope for Story 3-5):
+      - Learning-to-rank with user feedback data
+      - Advanced query expansion with synonyms and related terms
+      - Multi-language search support with language detection
+      - Real-time search result streaming for large result sets
+      - Search analytics and user behavior tracking
+      - Personalized search based on query history and preferences
+      - Advanced faceted search with filter combinations
+    </note>
+  </notes>
+
+  <references>
+    <document type="story-context" path="/docs/stories/3-1-qdrant-vector-database-setup.context.xml">
+      Qdrant vector database setup and configuration details
+    </document>
+    <document type="implementation" path="/onyx-core/rag_service.py">
+      Current RAG service implementation with Qdrant integration
+    </document>
+    <document type="infrastructure" path="/docker-compose.yaml">
+      Complete Docker service configuration and networking
+    </document>
+    <document type="database-schema" path="/docker/init-postgres.sql">
+      PostgreSQL database schema and initial setup
+    </document>
+    <document type="external-link" url="https://qdrant.tech/documentation/">
+      Qdrant vector search documentation and best practices
+    </document>
+    <document type="external-link" url="https://www.postgresql.org/docs/current/textsearch.html">
+      PostgreSQL full-text search and BM25 implementation guide
+    </document>
+  </references>
+</story-context>
