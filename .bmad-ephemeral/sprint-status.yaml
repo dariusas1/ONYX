@@ -62,7 +62,7 @@ development_status:
   3-2-google-drive-connector-auto-sync: done
   3-3-slack-connector-message-indexing: backlog
   3-4-local-file-upload-parsing: backlog
-  3-5-hybrid-search-semantic-keyword: backlog
+  3-5-hybrid-search-semantic-keyword: review
   3-6-citation-source-link-generation: backlog
   epic-3-retrospective: optional
 
