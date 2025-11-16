@@ -2,6 +2,35 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { storage } from '../utils/storage';
 import { SettingsService } from '../services/settingsService';
 
+// Type definitions
+type Mode = 'chat' | 'agent';
+type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
+
+interface ModeState {
+  currentMode: Mode;
+  isLoading: boolean;
+  syncStatus: SyncStatus;
+  error: string | null;
+  lastSyncTime: string | null;
+}
+
+interface ModeContextValue extends ModeState {
+  isAgentMode: boolean;
+  isChatMode: boolean;
+  canSync: boolean;
+  toggleMode: () => void;
+  setMode: (mode: Mode) => void;
+  clearError: () => void;
+}
+
+type ModeAction =
+  | { type: 'TOGGLE_MODE' }
+  | { type: 'SET_MODE'; payload: Mode }
+  | { type: 'MODE_CHANGE_SUCCESS' }
+  | { type: 'MODE_CHANGE_ERROR'; payload: string }
+  | { type: 'SYNC_SUCCESS' }
+  | { type: 'SYNC_ERROR'; payload: string };
+
 // Action types for mode management
 const MODE_ACTIONS = {
   TOGGLE_MODE: 'TOGGLE_MODE',
@@ -13,16 +42,16 @@ const MODE_ACTIONS = {
 };
 
 // Initial state
-const initialState = {
-  currentMode: 'chat', // 'chat' | 'agent'
+const initialState: ModeState = {
+  currentMode: 'chat',
   isLoading: false,
-  syncStatus: 'idle', // 'idle' | 'syncing' | 'success' | 'error'
+  syncStatus: 'idle',
   error: null,
   lastSyncTime: null
 };
 
 // Reducer for mode state management
-const modeReducer = (state, action) => {
+const modeReducer = (state: ModeState, action: ModeAction): ModeState => {
   switch (action.type) {
     case MODE_ACTIONS.TOGGLE_MODE:
       return {
@@ -75,10 +104,10 @@ const modeReducer = (state, action) => {
 };
 
 // Context creation
-const ModeContext = createContext();
+const ModeContext = createContext<ModeContextValue | undefined>(undefined);
 
 // Custom provider component
-export const ModeProvider = ({ children }) => {
+export const ModeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(modeReducer, initialState);
 
   // Load mode from localStorage on mount
@@ -141,7 +170,7 @@ export const ModeProvider = ({ children }) => {
     dispatch({ type: MODE_ACTIONS.TOGGLE_MODE });
   };
 
-  const setMode = (mode) => {
+  const setMode = (mode: Mode) => {
     if (['chat', 'agent'].includes(mode)) {
       dispatch({ type: MODE_ACTIONS.SET_MODE, payload: mode });
     }
@@ -179,7 +208,7 @@ export const ModeProvider = ({ children }) => {
 };
 
 // Custom hook for using mode context
-export const useMode = () => {
+export const useMode = (): ModeContextValue => {
   const context = useContext(ModeContext);
 
   if (!context) {

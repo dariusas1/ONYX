@@ -1,0 +1,40 @@
+<story-context id="{bmad_folder}/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>2</storyId>
+    <title>Standing Instructions Management</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-16</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/4-2-standing-instructions-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a user of Manus</asA>
+    <iWant>to set up standing instructions that guide Manus behavior in all conversations</iWant>
+    <soThat>I can customize how Manus responds, makes decisions, and interacts based on my preferences and requirements</soThat>
+    <tasks>Implement standing instructions database schema, API endpoints, comprehensive UI with full CRUD operations, instruction categorization system with 5 categories, priority-based instruction ordering and conflict resolution, context-aware instruction evaluation and application, usage analytics and effectiveness tracking, and achieve performance targets for instruction operations.</tasks>
+  </story>
+
+  <acceptanceCriteria>AC4.2.1: Standing instructions database table and API endpoints implemented
+AC4.2.2: Comprehensive instruction management UI with full CRUD operations
+AC4.2.3: Instruction categorization system with 5 categories and icons
+AC4.2.4: Priority-based instruction ordering and conflict resolution
+AC4.2.5: Context-aware instruction evaluation and application
+AC4.2.6: Usage analytics and effectiveness tracking implemented
+AC4.2.7: Performance targets achieved for instruction operations</acceptanceCriteria>
+
+  <artifacts>
+    <docs></docs>
+    <code></code>
+    <dependencies></dependencies>
+  </artifacts>
+
+  <constraints></constraints>
+  <interfaces></interfaces>
+  <tests>
+    <standards></standards>
+    <locations></locations>
+    <ideas></ideas>
+  </tests>
+</story-context>
