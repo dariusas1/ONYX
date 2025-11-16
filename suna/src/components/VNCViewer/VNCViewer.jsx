@@ -1,20 +1,24 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Monitor, Wifi, WifiOff, Loader2, Maximize2, Minimize2 } from 'lucide-react';
+import { Monitor, Wifi, WifiOff, Loader2, Maximize2, Minimize2, Settings } from 'lucide-react';
 import { InputManager } from '../../services/input/InputManager';
+import RFB from '@novnc/novnc/lib/rfb.js';
 
 export const VNCViewer = ({
-  url = 'ws://localhost:6080',
+  url = process.env.NEXT_PUBLIC_VNC_URL || 'ws://localhost:6080',
   onConnect,
   onDisconnect,
   onError,
   className = '',
   scale = true,
-  quality = 6,
-  compression = 1
+  quality = parseInt(process.env.NEXT_PUBLIC_VNC_QUALITY) || 6,
+  compression = parseInt(process.env.NEXT_PUBLIC_VNC_COMPRESSION) || 1,
+  shared = true,
+  localCursor = true,
+  viewOnly = false
 }) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  const wsRef = useRef(null);
+  const rfbRef = useRef(null);
   const inputManagerRef = useRef<InputManager | null>(null);
 
   const [connectionState, setConnectionState] = useState('disconnected'); // disconnected, connecting, connected, error
@@ -22,6 +26,8 @@ export const VNCViewer = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [inputMetrics, setInputMetrics] = useState(null);
+  const [rfbState, setRfbState] = useState('disconnected');
+  const [showSettings, setShowSettings] = useState(false);
 
   // Initialize Input Manager
   const initializeInputManager = useCallback(() => {
@@ -80,7 +86,7 @@ export const VNCViewer = ({
 
   }, []);
 
-  // Initialize VNC connection
+  // Initialize VNC connection with real noVNC client
   const connectVNC = useCallback(async () => {
     if (!canvasRef.current) return;
 
@@ -102,43 +108,67 @@ export const VNCViewer = ({
         inputManagerRef.current.requestFocus(containerRef.current);
       }
 
-      // Create WebSocket connection for VNC display data
-      const ws = new WebSocket(url);
-      wsRef.current = ws;
+      // Create RFB (Remote Frame Buffer) connection using noVNC
+      const rfb = new RFB(canvasRef.current, url, {
+        shared: shared,
+        localCursor: localCursor,
+        viewOnly: viewOnly,
+        credentials: { password: process.env.NEXT_PUBLIC_VNC_PASSWORD || '' }
+      });
 
-      ws.binaryType = 'arraybuffer';
+      rfbRef.current = rfb;
 
-      ws.onopen = () => {
-        console.log('VNC WebSocket connection opened');
+      // RFB event handlers
+      rfb.addEventListener('connect', () => {
+        console.log('VNC connection established via noVNC');
         setConnectionState('connected');
+        setRfbState('connected');
         onConnect?.();
-      };
+      });
 
-      ws.onmessage = (event) => {
-        // Handle VNC protocol messages for display updates
-        console.log('VNC display message received');
-        renderVNCFrame(event.data);
-      };
-
-      ws.onclose = (event) => {
-        console.log('VNC connection closed');
+      rfb.addEventListener('disconnect', (e) => {
+        console.log('VNC connection disconnected:', e.detail.reason);
         setConnectionState('disconnected');
-        onDisconnect?.(event.reason || 'Connection closed');
+        setRfbState('disconnected');
+        onDisconnect?.(e.detail.reason || 'Connection closed');
 
         // Cleanup input manager on disconnect
         cleanupInput?.();
-      };
+      });
 
-      ws.onerror = (error) => {
-        console.error('VNC WebSocket error:', error);
-        const errorMsg = 'WebSocket connection failed';
+      rfb.addEventListener('credentialsrequired', () => {
+        console.log('VNC credentials required');
+        setError('VNC password required');
+        setConnectionState('error');
+      });
+
+      rfb.addEventListener('securityfailure', (e) => {
+        console.error('VNC security failure:', e.detail.reason);
+        const errorMsg = `Security failure: ${e.detail.reason}`;
         setError(errorMsg);
         setConnectionState('error');
         onError?.(errorMsg);
-
-        // Cleanup input manager on error
         cleanupInput?.();
-      };
+      });
+
+      rfb.addEventListener('bell', () => {
+        console.log('VNC bell received');
+        // Handle server bell if needed
+      });
+
+      rfb.addEventListener('clipboard', (e) => {
+        console.log('VNC clipboard data received:', e.detail.text);
+        // Handle clipboard sync if needed
+      });
+
+      // Handle resize events from VNC server
+      rfb.addEventListener('desktopname', (e) => {
+        console.log('VNC desktop name:', e.detail.name);
+      });
+
+      // Configure quality and compression
+      rfb.quality = quality;
+      rfb.compression = compression;
 
     } catch (err) {
       const errorMsg = `Failed to connect: ${err.message}`;
@@ -146,38 +176,31 @@ export const VNCViewer = ({
       setConnectionState('error');
       onError?.(errorMsg);
     }
-  }, [url, onConnect, onDisconnect, onError, initializeInputManager]);
+  }, [url, onConnect, onDisconnect, onError, initializeInputManager, shared, localCursor, viewOnly, quality, compression]);
 
-  // Simple VNC frame rendering (placeholder)
-  const renderVNCFrame = useCallback((data) => {
-    if (!canvasRef.current) return;
+  // VNC display quality control
+  const updateQuality = useCallback((newQuality) => {
+    if (rfbRef.current && rfbRef.current.state === 'connected') {
+      rfbRef.current.quality = newQuality;
+      console.log(`VNC quality updated to: ${newQuality}`);
+    }
+  }, []);
 
-    const ctx = canvasRef.current.getContext('2d');
-    if (!ctx) return;
+  // VNC compression control
+  const updateCompression = useCallback((newCompression) => {
+    if (rfbRef.current && rfbRef.current.state === 'connected') {
+      rfbRef.current.compression = newCompression;
+      console.log(`VNC compression updated to: ${newCompression}`);
+    }
+  }, []);
 
-    // This is a placeholder for actual VNC rendering
-    // In a real implementation, this would decode VNC protocol messages
-    // and render the remote desktop to the canvas
-
-    // For demo purposes, create a simple gradient
-    const width = canvasRef.current.width;
-    const height = canvasRef.current.height;
-
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, '#1a1a2e');
-    gradient.addColorStop(0.5, '#16213e');
-    gradient.addColorStop(1, '#0f3460');
-
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-
-    // Add some demo text
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '20px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('VNC Workspace View', width / 2, height / 2);
-    ctx.fillText(`Connected to: ${url}`, width / 2, height / 2 + 30);
-  }, [url]);
+  // VNC scaling control
+  const toggleScaling = useCallback(() => {
+    if (rfbRef.current) {
+      rfbRef.current.scaleViewport = !rfbRef.current.scaleViewport;
+      console.log(`VNC scaling: ${rfbRef.current.scaleViewport ? 'enabled' : 'disabled'}`);
+    }
+  }, []);
 
   // Disconnect VNC connection
   const disconnectVNC = useCallback(() => {
@@ -187,11 +210,14 @@ export const VNCViewer = ({
       inputManagerRef.current = null;
     }
 
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
+    // Disconnect RFB connection
+    if (rfbRef.current) {
+      rfbRef.current.disconnect();
+      rfbRef.current = null;
     }
+
     setConnectionState('disconnected');
+    setRfbState('disconnected');
     setError(null);
     setInputMetrics(null);
   }, []);
@@ -213,6 +239,11 @@ export const VNCViewer = ({
     }
   }, []);
 
+  // Toggle settings panel
+  const toggleSettings = useCallback(() => {
+    setShowSettings(prev => !prev);
+  }, []);
+
   // Auto-connect on mount
   useEffect(() => {
     connectVNC();
@@ -223,14 +254,8 @@ export const VNCViewer = ({
         const { clientWidth, clientHeight } = containerRef.current;
         setDimensions({ width: clientWidth, height: clientHeight });
 
-        // Set canvas dimensions
-        canvasRef.current.width = clientWidth;
-        canvasRef.current.height = clientHeight;
-
-        // Re-render frame if connected
-        if (connectionState === 'connected') {
-          renderVNCFrame(new ArrayBuffer(0));
-        }
+        // RFB client handles canvas resizing automatically
+        // No need to manually set canvas dimensions
       }
     };
 
@@ -243,22 +268,10 @@ export const VNCViewer = ({
     };
   }, []);
 
-  // Handle keyboard events when in focus
-  const handleKeyDown = useCallback((e) => {
-    if (connectionState === 'connected' && wsRef.current) {
-      // Send keyboard events to VNC server
-      const keyCode = e.keyCode;
-      const keyData = new Uint8Array([keyCode]);
-      wsRef.current.send(keyData);
-    }
-  }, [connectionState]);
-
   return (
     <div
       ref={containerRef}
       className={`relative w-full h-full bg-black ${className}`}
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
     >
       {/* Connection Status Overlay */}
       {connectionState !== 'connected' && (
@@ -329,6 +342,13 @@ export const VNCViewer = ({
       {/* Controls */}
       <div className="absolute top-4 right-4 flex items-center gap-2">
         <button
+          onClick={toggleSettings}
+          className="p-2 bg-black/50 backdrop-blur-sm rounded-lg text-white hover:bg-black/70 transition-colors"
+          title="VNC Settings"
+        >
+          <Settings className="w-4 h-4" />
+        </button>
+        <button
           onClick={toggleFullscreen}
           className="p-2 bg-black/50 backdrop-blur-sm rounded-lg text-white hover:bg-black/70 transition-colors"
           title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
@@ -340,6 +360,73 @@ export const VNCViewer = ({
           )}
         </button>
       </div>
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="absolute top-16 right-4 bg-black/90 backdrop-blur-sm rounded-lg p-4 space-y-3 z-20 min-w-64">
+          <h3 className="text-white text-sm font-medium mb-3">VNC Settings</h3>
+
+          {/* Quality Control */}
+          <div className="space-y-2">
+            <label className="text-gray-300 text-xs">Quality (0-9)</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min="0"
+                max="9"
+                value={quality}
+                onChange={(e) => updateQuality(parseInt(e.target.value))}
+                className="flex-1"
+              />
+              <span className="text-white text-xs w-4">{quality}</span>
+            </div>
+          </div>
+
+          {/* Compression Control */}
+          <div className="space-y-2">
+            <label className="text-gray-300 text-xs">Compression (0-9)</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min="0"
+                max="9"
+                value={compression}
+                onChange={(e) => updateCompression(parseInt(e.target.value))}
+                className="flex-1"
+              />
+              <span className="text-white text-xs w-4">{compression}</span>
+            </div>
+          </div>
+
+          {/* Scaling Toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-gray-300 text-xs">Scale to Fit</span>
+            <button
+              onClick={toggleScaling}
+              className={`px-2 py-1 text-xs rounded ${scale ? 'bg-blue-500 text-white' : 'bg-gray-600 text-gray-300'}`}
+            >
+              {scale ? 'On' : 'Off'}
+            </button>
+          </div>
+
+          {/* Connection Info */}
+          <div className="pt-2 border-t border-gray-600">
+            <div className="text-gray-400 text-xs">
+              <div>Server: {url}</div>
+              <div>RFB State: {rfbState}</div>
+              <div>View Only: {viewOnly ? 'Yes' : 'No'}</div>
+            </div>
+          </div>
+
+          {/* Close Button */}
+          <button
+            onClick={toggleSettings}
+            className="w-full px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-500 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      )}
 
       {/* Workspace Info */}
       <div className="absolute bottom-4 left-4 space-y-2">
