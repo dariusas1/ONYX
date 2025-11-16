@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="{bmad_folder}/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>epic-6</epicId>
+    <storyId>6-5</storyId>
+    <title>Google Sheets Editing Capabilities</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-15T22:00:00Z</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/6-5-google-sheets-editing-capabilities.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an AI agent in Agent Mode</asA>
+    <iWant>edit existing Google Sheets with data updates, formula insertion, and range operations</iWant>
+    <soThat>I can maintain and modify spreadsheet data dynamically during task execution, enabling comprehensive workflow automation across Google Workspace</soThat>
+    <tasks>- Task 1: Google Sheets API v4 Integration (AC: #1, #11, #13)
+  - [ ] Subtask 1.1: Implement Google Sheets API v4 client service with edit operations
+  - [ ] Subtask 1.2: Extend OAuth2 scopes for Sheets editing (https://www.googleapis.com/auth/spreadsheets)
+  - [ ] Subtask 1.3: Create edit_google_sheet tool interface with comprehensive validation
+  - [ ] Subtask 1.4: Implement rate limiting and exponential backoff for API quotas
+  - [ ] Subtask 1.5: Add comprehensive error handling for permission and API failures
+
+- Task 2: Core Editing Operations (AC: #2, #3, #4, #5)
+  - [ ] Subtask 2.1: Implement updateCellData method for single cell modifications
+  - [ ] Subtask 2.2: Create insertFormulas method with Google Sheets formula validation
+  - [ ] Subtask 2.3: Develop batchRangeOperations for multi-cell updates (up to 100 cells)
+  - [ ] Subtask 2.4: Implement clearCells operation with configurable clear types
+  - [ ] Subtask 2.5: Add data type preservation for numbers, text, dates, booleans
+
+- Task 3: Formula Engine & Validation (AC: #3, #6)
+  - [ ] Subtask 3.1: Build Google Sheets formula syntax validator with comprehensive error messages
+  - [ ] Subtask 3.2: Implement formula compilation and optimization engine
+  - [ ] Subtask 3.3: Create cell reference validation (ranges, sheet names, cross-sheet references)
+  - [ ] Subtask 3.4: Develop mathematical correctness validation with edge case handling
+  - [ ] Subtask 3.5: Add formula error generation and meaningful user feedback
+
+- Task 4: Batch Operations & Performance (AC: #4, #7, #12)
+  - [ ] Subtask 4.1: Implement chunking algorithm for large range updates (100-cell limit)
+  - [ ] Subtask 4.2: Create transaction management with rollback capability on failures
+  - [ ] Subtask 4.3: Develop progress tracking for multi-cell operations
+  - [ ] Subtask 4.4: Optimize performance to meet &lt;2s single edit, &lt;5s batch targets
+  - [ ] Subtask 4.5: Add performance monitoring and benchmarking tools
+
+- Task 5: Advanced Features & Formatting (AC: #8, #9, #10)
+  - [ ] Subtask 5.1: Implement conditional formatting updates without breaking existing rules
+  - [ ] Subtask 5.2: Create comment and note insertion system for contextual information
+  - [ ] Subtask 5.3: Develop data type formatting preservation (currency, dates, percentages)
+  - [ ] Subtask 5.4: Add cell styling operations while maintaining visual design
+  - [ ] Subtask 5.5: Implement A1 notation parser for range specification validation
+
+- Task 6: Integration & Memory System (AC: #14)
+  - [ ] Subtask 6.1: Integrate with Memory System (Epic 4) for edit pattern storage
+  - [ ] Subtask 6.2: Create user editing preferences and pattern learning system
+  - [ ] Subtask 6.3: Implement audit logging with timestamp, agent context, change summaries
+  - [ ] Subtask 6.4: Add edit history tracking for optimization and rollback
+  - [ ] Subtask 6.5: Cache frequently used formulas and editing templates
+
+- Task 7: Error Handling & Monitoring (AC: #11, #13, #15)
+  - [ ] Subtask 7.1: Implement comprehensive error handling for all failure scenarios
+  - [ ] Subtask 7.2: Create rate limiting with 1s, 2s, 4s, 8s exponential backoff
+  - [ ] Subtask 7.3: Develop undo integration with Google Sheets native version history
+  - [ ] Subtask 7.4: Add monitoring and alerting for operation failures and performance
+  - [ ] Subtask 7.5: Create debugging and troubleshooting tools for edit operations
+
+- Task 8: Testing & Validation (All AC)
+  - [ ] Subtask 8.1: Create comprehensive test suite for GoogleSheetsEditService
+  - [ ] Subtask 8.2: Implement integration tests with Google Sheets API v4 test environment
+  - [ ] Subtask 8.3: Develop performance tests to validate &lt;2s/&lt;5s targets
+  - [ ] Subtask 8.4: Create end-to-end agent workflow testing with real spreadsheets
+  - [ ] Subtask 8.5: Add security tests for token encryption and user authorization</tasks>
+  </story>
+
+  <acceptanceCriteria>1. **AC6.5.1**: Agent can invoke edit_google_sheet tool with spreadsheet_id, action_type, and action parameters
+2. **AC6.5.2**: Data update functionality modifies existing cell values while preserving formatting and structure
+3. **AC6.5.3**: Formula insertion creates valid Google Sheets formulas with proper validation and error handling
+4. **AC6.5.4**: Range operations support batch updates across multiple cells with consistent formatting
+5. **AC6.5.5**: Cell clearing operations remove data and formulas while preserving cell structure
+6. **AC6.5.6**: Formula validation ensures mathematical correctness before insertion with meaningful error messages
+7. **AC6.5.7**: Batch operations process up to 100 cells efficiently with rollback capability on failures
+8. **AC6.5.8**: Data type preservation maintains number, text, date, and boolean formatting during updates
+9. **AC6.5.9**: Conditional formatting updates work with existing rules without breaking visual design
+10. **AC6.5.10**: Comment and note insertion adds contextual information to edited cells
+11. **AC6.5.11**: Comprehensive error handling for invalid spreadsheet IDs, permission issues, and API failures
+12. **AC6.5.12**: Performance target: editing operations complete in &lt;2 seconds for single cells, &lt;5 seconds for batch operations
+13. **AC6.5.13**: Rate limiting respects Google Sheets API quotas with exponential backoff for retry operations
+14. **AC6.5.14**: Audit logging tracks all edits with timestamp, agent context, and change summaries
+15. **AC6.5.15**: Undo integration supports Google Sheets native version history for change tracking</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/stories/6-1-oauth2-setup-integration.context.xml</path>
+        <title>OAuth2 Setup &amp; Integration Context</title>
+        <section>OAuth2 Foundation</section>
+        <snippet>Complete OAuth2 implementation with GoogleOAuthService class, AES-256 encryption, database schema, API endpoints, and 95% completion status. Provides authentication foundation for all Google Workspace integrations including Sheets API v4 editing operations with extended scopes.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/6-2-google-docs-creation-tools.context.xml</path>
+        <title>Google Docs Creation Tools Context</title>
+        <section>Document Creation Patterns</section>
+        <snippet>Comprehensive Google Docs creation patterns with OAuth2 integration, Markdown conversion, and agent tool patterns. Provides foundation for Google Sheets editing operations with existing API client setup and authentication flows.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/6-3-google-docs-editing-capabilities.context.xml</path>
+        <title>Google Docs Editing Capabilities Context</title>
+        <section>Document Editing Patterns</section>
+        <snippet>Advanced Google Docs editing patterns with batchUpdate operations, content insertion, replacement, and formatting preservation. Provides template for Google Sheets range operations and batch editing workflows.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/6-4-google-sheets-creation-tools.md</path>
+        <title>Google Sheets Creation Tools</title>
+        <section>Spreadsheet Creation Foundation</section>
+        <snippet>Google Sheets creation tools with data processing, formatting, and API integration patterns. Provides foundation for editing operations with existing Sheets API v4 client setup and spreadsheet management patterns.</snippet>
+      </doc>
+      <doc>
+        <path>.bmad-ephemeral/stories/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification</title>
+        <section>Google Workspace Tools Architecture</section>
+        <snippet>Comprehensive technical specification for Epic 6 covering Google Workspace tools integration, OAuth2 setup, Sheets API v4 integration patterns, and detailed implementation architecture for spreadsheet editing operations including range updates and formula validation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Documentation</title>
+        <section>System Architecture</section>
+        <snippet>Complete ONYX system architecture including microservices, authentication, database schema, API routing, and agent integration patterns. Provides foundation for Google Sheets editing service integration with existing service patterns.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <code>
+        <path>onyx-core/services/google_oauth.py</path>
+        <kind>service</kind>
+        <symbol>GoogleOAuthService</symbol>
+        <lines>21-313</lines>
+        <reason>Foundation OAuth2 service for Google Workspace authentication. Must be extended with Sheets API editing scopes (https://www.googleapis.com/auth/spreadsheets). Provides get_credentials() method for secure API access with automatic token refresh.</reason>
+      </code>
+      <code>
+        <path>onyx-core/api/google_drive.py</path>
+        <kind>router</kind>
+        <symbol>APIRouter</symbol>
+        <lines>19-511</lines>
+        <reason>FastAPI router with OAuth endpoints and API patterns. Template for adding Google Sheets editing endpoints (/sheets/edit) alongside existing OAuth infrastructure with proper authentication and error handling.</reason>
+      </code>
+      <code>
+        <path>onyx-core/services/content_extractor.py</path>
+        <kind>service</kind>
+        <symbol>ContentExtractor</symbol>
+        <lines>21-242</lines>
+        <reason>Existing Google API integration patterns with googleapiclient.discovery.build and service usage. Shows API client setup, error handling, and authentication patterns that can be adapted for Google Sheets API v4 editing operations.</reason>
+      </code>
+      <code>
+        <path>onyx-core/api/web_tools.py</path>
+        <kind>router</kind>
+        <symbol>APIRouter</symbol>
+        <lines>30-528</lines>
+        <reason>Agent tool integration pattern with FastAPI router. Shows tool registration, parameter validation, authentication, and structured responses. Template for edit_google_sheet tool implementation with proper agent workflow integration.</reason>
+      </code>
+      <code>
+        <path>onyx-core/services/google_drive_sync.py</path>
+        <kind>service</kind>
+        <symbol>GoogleDriveSync</symbol>
+        <lines>24-100</lines>
+        <reason>Google Drive API integration patterns showing file management, folder operations, and permission handling. Provides foundation for Google Sheets file access validation and permission checking before editing operations.</reason>
+      </code>
+    </code>
+    <dependencies>
+      <python>
+        <package name="google-api-python-client" version="2.108.0">Google API client library for Sheets API v4 edit operations (values.update, values.batchUpdate, values.clear)</package>
+        <package name="google-auth" version="2.25.2">Google authentication library for OAuth2 credentials and Sheets API access with editing scopes</package>
+        <package name="google-auth-oauthlib" version="1.2.0">OAuth2 flow handling for Google Sheets API permissions and token management</package>
+        <package name="google-auth-httplib2" version="0.2.0">HTTP transport for Google Sheets API requests with retry logic and rate limiting</package>
+        <package name="fastapi" version="0.104.1">Web framework for edit_google_sheet tool API endpoints and agent integration</package>
+        <package name="cryptography" version="42.0.8">AES-256 encryption for secure token storage in OAuth2 integration for Sheets API</package>
+        <package name="psycopg2-binary" version="2.9.9">PostgreSQL database for edit history tracking, audit trails, and user preferences storage</package>
+        <package name="pydantic" version="2.5.0">Data validation and serialization for edit operation parameters and response formatting</package>
+        <package name="redis" version="5.0.1">Caching layer for performance optimization and session management during batch operations</package>
+      </python>
+      <javascript>
+        <package name="next" version="^14.0.0">Frontend framework for UI components displaying edit operations and progress tracking</package>
+        <package name="react" version="^18.0.0">Component library for agent interface with edit tool integration and status display</package>
+        <package name="typescript" version="^5.3.0">Type safety for edit_google_sheet tool interfaces and parameter validation</package>
+      </javascript>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>OAuth2 Authentication: Must use existing GoogleOAuthService from Story 6.1 for authentication. Must extend OAuth scopes to include https://www.googleapis.com/auth/spreadsheets for editing operations.</constraint>
+    <constraint>Google Sheets API v4: Must use Google Sheets API v4 with values.update, values.batchUpdate, and values.clear endpoints for all editing operations. Follow existing ContentExtractor patterns for API client setup.</constraint>
+    <constraint>Scopes Extension: Must extend existing OAuth2 configuration with Google Sheets editing scopes: https://www.googleapis.com/auth/spreadsheets for read/write access to spreadsheet data.</constraint>
+    <constraint>Performance: Single cell editing must complete in &lt;2 seconds, batch operations (up to 100 cells) in &lt;5 seconds including API calls, processing, and response generation. Implement chunking for larger operations.</constraint>
+    <constraint>Rate Limiting: Must implement exponential backoff (1s, 2s, 4s, 8s intervals) for Google Sheets API quota management. Respect API limits of 100 requests per 100 seconds per project.</constraint>
+    <constraint>Batch Operations: Must process up to 100 cells efficiently with transaction support and rollback capability on failures. Implement chunking for larger ranges and progress tracking.</constraint>
+    <constraint>Formula Validation: Must implement comprehensive Google Sheets formula validation before insertion with meaningful error messages. Support cell references, ranges, and mathematical functions.</constraint>
+    <constraint>Database Integration: Must extend existing database schema with edit operation tracking. Use same PostgreSQL patterns as OAuth2 implementation for audit trails and user preferences.</constraint>
+    <constraint>Agent Tool Pattern: Must follow existing agent tool patterns from web_tools.py. Include authentication, parameter validation, structured responses, and audit logging with agent context.</constraint>
+    <constraint>Error Handling: Must follow existing OAuth2 error handling patterns. Include specific Google Sheets API error codes, permission validation, and comprehensive failure recovery.</constraint>
+    <constraint>Memory System Integration: Must integrate with Epic 4 Memory System for storing edit patterns, user preferences, and audit trails. Use existing memory service patterns for data persistence.</constraint>
+    <constraint>Version History Integration: Must integrate with Google Sheets native version history for change tracking and undo functionality. All edits must be traceable through Google's revision system.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>GoogleOAuthService.get_credentials()</name>
+      <kind>method</kind>
+      <signature>get_credentials(user_id: str) -&gt; Optional[Credentials]</signature>
+      <path>onyx-core/services/google_oauth.py</path>
+      <description>Retrieves authenticated Google credentials for Sheets API v4 access. Provides automatic token refresh and decryption. Essential for secure spreadsheet editing operations with extended scopes.</description>
+    </interface>
+    <interface>
+      <name>Google Sheets API v4 values.update</name>
+      <kind>api</kind>
+      <signature>sheets_service.spreadsheets().values().update(spreadsheetId, range, {'values': [[]]}, valueInputOption='USER_ENTERED')</signature>
+      <path>Google Sheets API v4</path>
+      <description>Primary interface for updating cell values and data. Supports single cells and ranges with formatting preservation and data type handling.</description>
+    </interface>
+    <interface>
+      <name>Google Sheets API v4 values.batchUpdate</name>
+      <kind>api</kind>
+      <signature>sheets_service.spreadsheets().values().batchUpdate(spreadsheetId, {'data': [{'range': '', 'values': [[]]}]})</signature>
+      <path>Google Sheets API v4</path>
+      <description>Batch interface for updating multiple ranges efficiently. Supports up to 100 cells in single operation for performance optimization.</description>
+    </interface>
+    <interface>
+      <name>Google Sheets API v4 values.clear</name>
+      <kind>api</kind>
+      <signature>sheets_service.spreadsheets().values().clear(spreadsheetId, range)</signature>
+      <path>Google Sheets API v4</path>
+      <description>Interface for clearing cell contents and formulas while preserving cell structure and formatting. Supports configurable clear operations.</description>
+    </interface>
+    <interface>
+      <name>Agent Tool Registry Pattern</name>
+      <kind>interface</kind>
+      <signature>register_tool(name: str, tool_definition: Dict) -&gt; void</signature>
+      <path>onyx-core/api/web_tools.py</path>
+      <description>Agent tool registration pattern with parameter validation, authentication, and structured responses. Used for edit_google_sheet tool implementation with proper agent workflow integration.</description>
+    </interface>
+    <interface>
+      <name>FastAPI Router Pattern</name>
+      <kind>interface</kind>
+      <signature>@router.post("/endpoint", response_model=ResponseModel)</signature>
+      <path>onyx-core/api/google_drive.py</path>
+      <description>API endpoint pattern with authentication, request/response models, and error handling. Template for Google Sheets editing endpoints with OAuth2 integration.</description>
+    </interface>
+    <interface>
+      <name>Google Drive Permission Validation</name>
+      <kind>method</kind>
+      <signature>validate_spreadsheet_access(spreadsheet_id: str) -&gt; bool</signature>
+      <path>onyx-core/services/google_drive_sync.py</path>
+      <description>Permission validation interface using existing Drive API integration patterns. Ensures user has edit access before performing spreadsheet modifications.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Follow existing test patterns from OAuth2 implementation and Google Docs editing tools. Unit tests for GoogleSheetsEditService class with mocking of Google Sheets API v4 operations. Integration tests with Google Sheets API test environment for editing operations. Performance tests to ensure &lt;2s single edit, &lt;5s batch operation targets. Agent tool integration tests for end-to-end edit workflows. Error handling tests for permission issues, invalid spreadsheet IDs, quota limits, and API failures. Formula validation tests with comprehensive mathematical and syntax checking. Security tests for token encryption and user authorization validation. Use pytest with asyncio support. Mock Google Sheets API responses to avoid dependency on external services. Test both successful editing operations and comprehensive error scenarios. Validate A1 notation parsing and range specification accuracy.</standards>
+    <locations>
+      <location>tests/unit/test_google_sheets_edit_service.py</location>
+      <location>tests/integration/test-google-sheets-editing.sh</location>
+      <location>tests/test_api/test_google_sheets_edit.py</location>
+      <location>tests/performance/test_sheets_editing_speed.py</location>
+      <location>tests/security/test_google_sheets_edit_auth.py</location>
+      <location>tests/unit/test_formula_validation.py</location>
+      <location>tests/integration/test_batch_update_operations.py</location>
+      <location>tests/unit/test_a1_notation_parser.py</location>
+    </locations>
+    <ideas>
+      <idea ac="AC6.5.1">Test edit_google_sheet tool with valid spreadsheet_id and various action_type parameters (update_data, insert_formulas, batch_range, clear_cells)</idea>
+      <idea ac="AC6.5.2">Test data update operations with single cells and ranges, verifying formatting preservation and structure maintenance</idea>
+      <idea ac="AC6.5.3">Test formula insertion with Google Sheets syntax validation, error handling, and meaningful error messages for invalid formulas</idea>
+      <idea ac="AC6.5.4">Test batch range operations with up to 100 cells, consistent formatting, and rollback capability on failures</idea>
+      <idea ac="AC6.5.5">Test cell clearing operations with configurable clear types (all, data, format) and structure preservation</idea>
+      <idea ac="AC6.5.6">Test formula validation engine with mathematical correctness checking, reference validation, and error message generation</idea>
+      <idea ac="AC6.5.7">Test batch operations with transaction management, rollback on failures, and progress tracking for large updates</idea>
+      <idea ac="AC6.5.8">Test data type preservation for numbers, text, dates, booleans during updates with proper formatting maintenance</idea>
+      <idea ac="AC6.5.9">Test conditional formatting updates to ensure existing rules are preserved and not broken by edit operations</idea>
+      <idea ac="AC6.5.10">Test comment and note insertion with contextual information and proper cell association</idea>
+      <idea ac="AC6.5.11">Test error handling for invalid spreadsheet IDs, permission issues, API failures, and network problems</idea>
+      <idea ac="AC6.5.12">Performance test with timing assertions for single edits (&lt;2s) and batch operations (&lt;5s)</idea>
+      <idea ac="AC6.5.13">Test rate limiting with exponential backoff (1s, 2s, 4s, 8s) and Google Sheets API quota management</idea>
+      <idea ac="AC6.5.14">Test audit logging with timestamp tracking, agent context recording, and comprehensive change summaries</idea>
+      <idea ac="AC6.5.15">Test undo integration with Google Sheets native version history and change tracking capabilities</idea>
+    </ideas>
+  </tests>
+</story-context>
