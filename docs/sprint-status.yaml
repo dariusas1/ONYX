@@ -33,14 +33,14 @@ epics:
     stories:
       - story_id: "4-1-memory-schema-storage-system"
         title: "Memory Schema & Storage System"
-        status: "in_progress"
+        status: "in_review"
         priority: "P0"
         estimated_points: 8
         assigned_to: "Dev Team"
         sprint: "Sprint 8"
         created_date: "2025-11-15"
         started_date: "2025-11-15"
-        completed_date: null
+        completed_date: "2025-11-15"
         blocked_reason: null
         notes: "Foundation story for memory system. Database schema, CRUD operations, and memory management functionality. Blocks stories 4-2, 4-3, 4-4. Complete technical specification with 7 acceptance criteria."
         dependencies: ["epic-1"]
@@ -153,8 +153,8 @@ epics:
   - epic_id: "epic-6"
     name: "Google Workspace Tools"
     status: "in_progress"
-    completion_percentage: 75
-    notes: "OAuth2 setup complete and ready for development. Missing full Doc/Sheet creation and editing tools implementation (Stories 6.2-6.5)."
+    completion_percentage: 80
+    notes: "OAuth2 setup complete and first Google Docs tool drafted. Ready for development of Stories 6.2-6.5 Google Workspace API integrations."
     stories:
       - story_id: "6-1-oauth2-setup-integration"
         title: "OAuth2 Setup & Integration"
@@ -175,6 +175,31 @@ epics:
           - "AC6.1.3: User can revoke access at any time"
           - "AC6.1.4: Permissions validated before all operations"
           - "AC6.1.5: No credentials stored in plaintext or logs"
+
+      - story_id: "6-2-google-docs-creation-tools"
+        title: "Google Docs Creation Tools"
+        status: "drafted"
+        priority: "P0"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 8"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Google Docs creation tool drafted with comprehensive specification. Agent tool interface for creating formatted documents from Markdown content. Builds on OAuth2 foundation from Story 6.1. Includes 10 acceptance criteria covering document creation, formatting, permissions, and performance targets. Ready for development with 5 main tasks and 25 subtasks."
+        dependencies: ["6-1-oauth2-setup-integration"]
+        acceptance_criteria:
+          - "AC6.2.1: Agent can invoke create_google_doc tool with title and content parameters"
+          - "AC6.2.2: Google Doc created successfully in user's Google Drive with proper permissions"
+          - "AC6.2.3: Content formatting preserved (headings, lists, bold, italics, links)"
+          - "AC6.2.4: Markdown content properly converted to Google Docs format"
+          - "AC6.2.5: Document accessible via shareable Google Docs URL returned to user"
+          - "AC6.2.6: Document creation respects user's Google Drive folder structure"
+          - "AC6.2.7: Error handling for permission issues, quota limits, and API failures"
+          - "AC6.2.8: Performance target: document creation completes in <2 seconds"
+          - "AC6.2.9: Document metadata tracked (creation time, agent, task context)"
+          - "AC6.2.10: Integration with existing OAuth2 foundation for authentication"
 
   - epic_id: "epic-7"
     name: "Web Automation & Search"
@@ -463,9 +488,9 @@ sprint_summary:
     - "Integrate browser automation, web search, content extraction"
 
   story_count:
-    total: 17  # Updated: added 4 stories for Epic 4 + Story 5.1
+    total: 18  # Updated: added 4 stories for Epic 4 + Story 5.1 + Story 6.2
     todo: 9
-    drafted: 6  # Updated: added 4 stories for Epic 4 + Story 5.1 + 1 for Epic 9
+    drafted: 7  # Updated: added 4 stories for Epic 4 + Story 5.1 + Story 6.2 + 1 for Epic 9
     ready: 0
     in_progress: 0
     in_review: 0

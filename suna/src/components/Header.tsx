@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Menu } from 'lucide-react';
+import { ToggleSwitch } from './ToggleSwitch/ToggleSwitch';
 
 export interface HeaderProps {
   className?: string;
@@ -23,9 +24,14 @@ export function Header({ className = '' }: HeaderProps) {
         </h1>
       </div>
 
-      {/* Navigation/Actions - Placeholder for future features */}
-      <div className="flex items-center gap-2">
-        {/* User menu placeholder */}
+      {/* Navigation/Actions */}
+      <div className="flex items-center gap-3">
+        {/* Agent Mode Toggle */}
+        <div className="flex items-center">
+          <ToggleSwitch size="sm" showLabel={false} />
+        </div>
+
+        {/* User menu */}
         <button
           type="button"
           className="p-2 rounded-lg hover:bg-manus-bg transition-colors duration-200"

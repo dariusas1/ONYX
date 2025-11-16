@@ -302,6 +302,75 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # noVNC remote desktop service
+  novnc:
+    image: fredblgr/no-vnc:latest
+    container_name: onyx-novnc
+    ports:
+      - "6080:6080"
+      - "5900:5900"
+      - "9091:9091"  # Prometheus metrics
+    env_file:
+      - ${ENV_FILE:-.env.local}
+    environment:
+      # Display configuration
+      DISPLAY_WIDTH: 1920
+      DISPLAY_HEIGHT: 1080
+      DISPLAY_DEPTH: 24
+      DISPLAY_NUM: 1
+
+      # VNC configuration
+      VNC_PORT: 5900
+      NO_VNC_PORT: 6080
+
+      # Performance settings
+      VNC_COL_DEPTH: 24
+      VNC_RESOLUTION: 1920x1080
+      VNC_REFRESH_RATE: 30
+
+      # Compression settings
+      VNC_COMPRESS_LEVEL: 6
+      VNC_QUALITY: 8
+      VNC_PIXFORMAT: rgb888
+
+      # Security
+      VNC_PASSWORD: ${VNC_PASSWORD:-onyx-vnc-2024}
+      VNC_PASSWORD_FILE: /tmp/vnc-passwd
+
+      # Metrics
+      METRICS_PORT: 9091
+
+      # Logging configuration
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      SERVICE_NAME: onyx-novnc
+
+      # Network settings
+      WEBSOCKET_READ_BUFFER_SIZE: 65536
+      WEBSOCKET_WRITE_BUFFER_SIZE: 65536
+    volumes:
+      - ./novnc:/home/novncuser
+      - novnc_home:/root
+      - ./logs/novnc:/var/log/onyx
+    networks:
+      - manus-network
+    mem_limit: 1g
+    cpus: 1.0
+    command: /home/novncuser/startup.sh
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=novnc,environment=development"
+    healthcheck:
+      test: ["CMD", "python3", "/home/novncuser/metrics-endpoint.py", "--health-check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
 networks:
   manus-network:
     driver: bridge
@@ -321,4 +390,6 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  novnc_home:
     driver: local

@@ -7,9 +7,12 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from health import router as health_router
 from api.google_drive import router as google_drive_router
+from api.memories import router as memories_router
+from api.web_tools import router as web_tools_router, startup_event as web_tools_startup, shutdown_event as web_tools_shutdown
 from contextlib import asynccontextmanager
 from rag_service import get_rag_service
 from services.sync_scheduler import start_scheduler, stop_scheduler
+from services.memory_service import get_memory_service
 from utils.auth import require_authenticated_user
 import logging
 
@@ -42,6 +45,20 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"❌ Failed to start sync scheduler: {e}")
 
+    # Initialize memory service
+    try:
+        await get_memory_service()
+        logger.info("✅ Memory service initialized successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize memory service: {e}")
+
+    # Initialize web tools services
+    try:
+        await web_tools_startup()
+        logger.info("✅ Web tools services initialized successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize web tools services: {e}")
+
     yield
 
     # Shutdown
@@ -53,6 +70,13 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Sync scheduler stopped successfully")
     except Exception as e:
         logger.error(f"❌ Failed to stop sync scheduler: {e}")
+
+    # Shutdown web tools services
+    try:
+        await web_tools_shutdown()
+        logger.info("✅ Web tools services shut down successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to shutdown web tools services: {e}")
 
 
 # Create FastAPI application
@@ -81,6 +105,8 @@ app.add_middleware(
 # Include routers
 app.include_router(health_router, tags=["Health"])
 app.include_router(google_drive_router, tags=["Google Drive"])
+app.include_router(memories_router, tags=["Memories"])
+app.include_router(web_tools_router, tags=["Web Tools"])
 
 
 # Root endpoint

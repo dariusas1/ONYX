@@ -1,7 +1,7 @@
 # Story 8-1: noVNC Server Setup
 
 **Epic:** Epic 8 - Live Workspace (noVNC)
-**Status:** drafted
+**Status:** ready-for-dev
 **Priority:** P0
 **Estimated Points:** 8
 **Sprint:** Sprint 7
@@ -92,7 +92,7 @@
 ## Dev Agent Record
 
 ### Context Reference
-- [ ] Context file will be generated upon story-context workflow execution
+- [x] Context file generated: docs/stories/8-1-novnc-server-setup.context.xml
 
 ### Implementation Notes
 - Foundation story for Epic 8 - blocks all subsequent workspace stories

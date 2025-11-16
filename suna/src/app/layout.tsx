@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
+import { ModeProvider } from '@/contexts/ModeContext';
 
 // Configure Inter font with Next.js Font Optimization
 // For environments without network access, set NEXT_PUBLIC_SKIP_FONTS=true
@@ -47,7 +48,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} font-sans`}>
-        {children}
+        <ModeProvider>
+          {children}
+        </ModeProvider>
       </body>
     </html>
   );
