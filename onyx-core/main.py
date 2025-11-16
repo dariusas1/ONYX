@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 import os
+import asyncio
+import signal
+import sys
 from datetime import datetime
 from typing import Optional, Dict, Any
 from health import router as health_router
@@ -16,12 +19,31 @@ from services.memory_service import get_memory_service
 from utils.auth import require_authenticated_user
 import logging
 
+# Import summarization services
+try:
+    from services.summarization.trigger_service import create_summarization_trigger_service
+    from services.summarization.storage import create_summary_memory_storage
+    from workers.summarization_worker import create_summarization_worker, WorkerConfig
+    from api.summarization import router as summarization_router
+    SUMMARIZATION_AVAILABLE = True
+except ImportError as error:
+    logging.warning(f"Summarization services not available: {error}")
+    SUMMARIZATION_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Store application state
 app_state = {}
+
+# Store summarization services
+summarization_services = {
+    'trigger_service': None,
+    'storage_service': None,
+    'worker': None,
+    'initialized': False
+}
 
 
 @asynccontextmanager
@@ -59,6 +81,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"❌ Failed to initialize web tools services: {e}")
 
+    # Initialize summarization pipeline
+    if SUMMARIZATION_AVAILABLE:
+        try:
+            await initialize_summarization_services()
+            logger.info("✅ Summarization pipeline initialized successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize summarization pipeline: {e}")
+    else:
+        logger.info("ℹ️ Summarization pipeline not available - skipping initialization")
+
     yield
 
     # Shutdown
@@ -77,6 +109,91 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Web tools services shut down successfully")
     except Exception as e:
         logger.error(f"❌ Failed to shutdown web tools services: {e}")
+
+    # Shutdown summarization pipeline
+    if SUMMARIZATION_AVAILABLE and summarization_services['initialized']:
+        try:
+            await shutdown_summarization_services()
+            logger.info("✅ Summarization pipeline shut down successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to shutdown summarization pipeline: {e}")
+
+
+# Summarization service functions
+async def initialize_summarization_services():
+    """Initialize the auto-summarization pipeline services."""
+    global summarization_services
+
+    if not SUMMARIZATION_AVAILABLE:
+        raise ImportError("Summarization services not available")
+
+    # Get database and Redis connections (assuming they're available in memory_service)
+    try:
+        from services.memory_service import get_memory_service
+        memory_service = await get_memory_service()
+
+        # Get database pool from memory service
+        db_pool = getattr(memory_service, 'db_pool', None)
+        redis_client = getattr(memory_service, 'redis_client', None)
+
+        if not db_pool:
+            raise ValueError("Database pool not available from memory service")
+        if not redis_client:
+            raise ValueError("Redis client not available from memory service")
+
+        # Initialize trigger service
+        summarization_services['trigger_service'] = await create_summarization_trigger_service(db_pool, redis_client)
+
+        # Initialize storage service
+        summarization_services['storage_service'] = create_summary_memory_storage(db_pool)
+
+        # Initialize and start worker
+        worker_config = WorkerConfig(
+            concurrency=int(os.getenv('SUMMARY_WORKER_CONCURRENCY', 2)),
+            max_retries=int(os.getenv('SUMMARY_WORKER_MAX_RETRIES', 3))
+        )
+
+        summarization_services['worker'] = create_summarization_worker(db_pool, redis_client, worker_config)
+        await summarization_services['worker'].start()
+
+        summarization_services['initialized'] = True
+
+        logger.info("✅ Summarization pipeline services initialized successfully")
+
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize summarization services: {e}")
+        raise
+
+
+async def shutdown_summarization_services():
+    """Shutdown the auto-summarization pipeline services."""
+    global summarization_services
+
+    if not summarization_services['initialized']:
+        return
+
+    try:
+        # Stop worker
+        if summarization_services['worker']:
+            await summarization_services['worker'].stop()
+            summarization_services['worker'] = None
+            logger.info("✅ Summarization worker stopped")
+
+        # Close trigger service
+        if summarization_services['trigger_service']:
+            await summarization_services['trigger_service'].close()
+            summarization_services['trigger_service'] = None
+            logger.info("✅ Summarization trigger service closed")
+
+        # Reset storage service
+        summarization_services['storage_service'] = None
+
+        summarization_services['initialized'] = False
+
+        logger.info("✅ Summarization pipeline services shut down successfully")
+
+    except Exception as e:
+        logger.error(f"❌ Failed to shutdown summarization services: {e}")
 
 
 # Create FastAPI application
@@ -107,6 +224,14 @@ app.include_router(health_router, tags=["Health"])
 app.include_router(google_drive_router, tags=["Google Drive"])
 app.include_router(memories_router, tags=["Memories"])
 app.include_router(web_tools_router, tags=["Web Tools"])
+
+# Include summarization router if available
+if SUMMARIZATION_AVAILABLE:
+    try:
+        app.include_router(summarization_router, tags=["Summarization"])
+        logger.info("✅ Summarization API routes included")
+    except Exception as e:
+        logger.warning(f"Could not include summarization API routes: {e}")
 
 
 # Root endpoint
