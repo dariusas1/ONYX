@@ -19,6 +19,7 @@ import json
 from ..services.summarization.trigger_service import create_summarization_trigger_service
 from ..services.summarization.storage import create_summary_memory_storage
 from ..workers.summarization_worker import create_summarization_worker
+from ..services.summarization.health_checker import health_checker
 
 logger = logging.getLogger(__name__)
 

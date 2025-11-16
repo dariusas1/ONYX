@@ -16,6 +16,7 @@ import httpx
 from dataclasses import dataclass
 
 from .config import config
+from .health_checker import health_checker
 
 logger = logging.getLogger(__name__)
 
@@ -223,10 +224,33 @@ Example format: ["topic1", "topic2", "topic3"]"""
         return '\n\n'.join(formatted_messages)
 
     async def _call_llm_summarization(self, conversation_text: str) -> Dict[str, Any]:
-        """Call DeepSeek LLM for summarization."""
+        """Call DeepSeek LLM for summarization with circuit breaker."""
         try:
+            # Check circuit breaker status
+            circuit_breaker = health_checker.get_circuit_breaker('litellm')
+            if circuit_breaker and circuit_breaker.state == 'OPEN':
+                raise ValueError("LiteLLM circuit breaker is OPEN - service unavailable")
+
             prompt = self.summary_prompt.format(conversation_text=conversation_text)
 
+            # Use circuit breaker pattern if available
+            if circuit_breaker:
+                result = await circuit_breaker(self._make_llm_request)(prompt)
+            else:
+                result = await self._make_llm_request(prompt)
+
+            return {
+                'summary': result['summary'],
+                'confidence': 0.9  # High confidence for auto-generated summaries
+            }
+
+        except Exception as error:
+            logger.error(f"LLM summarization failed: {error}")
+            raise ValueError(f"Failed to generate LLM summary: {error}")
+
+    async def _make_llm_request(self, prompt: str) -> Dict[str, Any]:
+        """Make actual LLM API request."""
+        try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
                     f"{self.litellm_base_url}/chat/completions",
@@ -249,17 +273,14 @@ Example format: ["topic1", "topic2", "topic3"]"""
                 result = response.json()
                 summary = result['choices'][0]['message']['content'].strip()
 
-                return {
-                    'summary': summary,
-                    'confidence': 0.9  # High confidence for auto-generated summaries
-                }
+                return {'summary': summary}
 
         except httpx.TimeoutException:
             raise ValueError("LLM request timed out")
         except httpx.HTTPStatusError as error:
             raise ValueError(f"LLM API error: {error.response.status_code} {error.response.text}")
         except Exception as error:
-            raise ValueError(f"Failed to generate LLM summary: {error.message}")
+            raise ValueError(f"Failed to generate LLM summary: {error}")
 
     def _validate_summary_length(self, summary: str, request: SummarizationRequest) -> bool:
         """Validate that summary meets length requirements."""
@@ -425,17 +446,17 @@ Example format: ["topic1", "topic2", "topic3"]"""
         }
 
     async def test_connection(self) -> bool:
-        """Test connection to LiteLLM proxy."""
+        """Test connection to LiteLLM proxy using health checker."""
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
-                response = await client.get(f"{self.litellm_base_url}/health")
-                return response.status_code == 200
+            # Use health checker for comprehensive health status
+            health_status = await health_checker.check_litellm_health()
+            return health_status.is_healthy
         except Exception as error:
             logger.error(f"LiteLLM connection test failed: {error}")
             return False
 
 
 # Factory function for easy instantiation
-def create_conversation_summarizer(litellm_base_url: str = "http://litellm-proxy:4000") -> ConversationSummarizer:
+def create_conversation_summarizer(litellm_base_url: str = None) -> ConversationSummarizer:
     """Create and initialize ConversationSummarizer."""
     return ConversationSummarizer(litellm_base_url)
