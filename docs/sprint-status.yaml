@@ -77,7 +77,7 @@ epics:
 
       - story_id: "4-3-memory-injection-agent-integration"
         title: "Memory Injection & Agent Integration"
-        status: "ready-for-dev"
+        status: "blocked"
         priority: "P0"
         estimated_points: 7
         assigned_to: "TBD"
@@ -85,7 +85,7 @@ epics:
         created_date: "2025-11-15"
         started_date: null
         completed_date: null
-        blocked_reason: null
+        blocked_reason: "Story 4-1 foundation incomplete - missing database schema and API endpoints"
         notes: "Memory injection system for chat and Agent Mode. Sub-50ms injection with intelligent caching. Memory-aware agent execution with extraction from actions."
         dependencies: ["4-1-memory-schema-storage-system", "4-2-standing-instructions-management"]
         acceptance_criteria:
@@ -99,7 +99,7 @@ epics:
 
       - story_id: "4-4-auto-summarization-pipeline"
         title: "Auto-Summarization Pipeline"
-        status: "ready-for-dev"
+        status: "blocked"
         priority: "P1"
         estimated_points: 8
         assigned_to: "TBD"
@@ -107,7 +107,7 @@ epics:
         created_date: "2025-11-15"
         started_date: null
         completed_date: null
-        blocked_reason: null
+        blocked_reason: "Story 4-1 foundation incomplete - missing database schema and API endpoints"
         notes: "Critical missing 25% component. Auto-generates summaries every 10 messages using DeepSeek LLM. Background processing with BullMQ, >95% success rate target. Complete pipeline specification with error handling."
         dependencies: ["4-1-memory-schema-storage-system", "4-3-memory-injection-agent-integration"]
         acceptance_criteria:
