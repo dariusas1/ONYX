@@ -13,7 +13,7 @@ const USER_SETTINGS_KEYS = {
   THEME: 'theme',
   NOTIFICATIONS: 'notifications',
   AUTO_EXECUTE: 'auto_execute',
-} as const;
+};
 
 /**
  * Settings service class
