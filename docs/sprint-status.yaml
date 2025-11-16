@@ -27,9 +27,9 @@ epics:
 
   - epic_id: "epic-4"
     name: "Persistent Memory & Learning"
-    status: "contexted"
+    status: "ready-for-dev"
     completion_percentage: 100
-    notes: "Comprehensive technical specification generated. All 4 stories drafted with complete implementation details. Ready for development Sprint 8."
+    notes: "✅ READY FOR DEVELOPMENT: Foundation story (4-1) complete with production-ready implementation. All 4 stories ready for Sprint 8 development. Database schema, APIs, and memory management foundation deployed."
     stories:
       - story_id: "4-1-memory-schema-storage-system"
         title: "Memory Schema & Storage System"
@@ -99,7 +99,7 @@ epics:
 
       - story_id: "4-4-auto-summarization-pipeline"
         title: "Auto-Summarization Pipeline"
-        status: "blocked"
+        status: "ready-for-dev"
         priority: "P1"
         estimated_points: 8
         assigned_to: "TBD"
@@ -107,8 +107,8 @@ epics:
         created_date: "2025-11-15"
         started_date: null
         completed_date: null
-        blocked_reason: "Story 4-1 foundation incomplete - missing database schema and API endpoints"
-        notes: "Critical missing 25% component. Auto-generates summaries every 10 messages using DeepSeek LLM. Background processing with BullMQ, >95% success rate target. Complete pipeline specification with error handling."
+        blocked_reason: null
+        notes: "✅ UNBLOCKED: Foundation (Story 4-1) complete. Auto-summarization pipeline ready for development. Auto-generates summaries every 10 messages using DeepSeek LLM. Background processing with BullMQ, >95% success rate target. Complete pipeline specification with error handling."
         dependencies: ["4-1-memory-schema-storage-system", "4-3-memory-injection-agent-integration"]
         acceptance_criteria:
           - "AC4.4.1: Summarization trigger service implemented with message count detection"

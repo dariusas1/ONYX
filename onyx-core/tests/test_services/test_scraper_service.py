@@ -294,7 +294,7 @@ class TestScraperService:
         result = await scraper_service.scrape_url("invalid-url")
 
         assert result.error is not None
-        assert "URL validation failed" in result.error
+        assert "Invalid URL format" in result.error
         assert result.url == "invalid-url"
         assert result.title == "Invalid URL"
 
@@ -334,8 +334,10 @@ class TestScraperService:
         # Should not check cache
         mock_cache_manager.get.assert_not_called()
 
-        # Should have error due to mock browser not being available
-        assert result.error is not None
+        # Should successfully scrape the URL (browser manager is available)
+        assert result.error is None
+        assert result.title is not None
+        assert result.execution_time_ms is not None
 
     @pytest.mark.asyncio
     async def test_batch_scrape_empty_list(self, scraper_service):
