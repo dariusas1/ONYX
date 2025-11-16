@@ -167,10 +167,138 @@ epics:
 
   - epic_id: "epic-9"
     name: "Monitoring & DevOps"
-    status: "todo"
-    completion_percentage: 0
-    notes: "Monitoring foundation present (Prometheus/Grafana). Missing comprehensive monitoring and alerting setup."
-    stories: []
+    status: "contexted"
+    completion_percentage: 100
+    notes: "Comprehensive technical specification generated. Monitoring foundation present (Prometheus/Grafana). Complete technical specification covers metrics infrastructure, error tracking, backup automation, incident response, load testing, and launch readiness. Ready for development with 24 acceptance criteria and detailed implementation approach."
+    stories:
+      - story_id: "9-1-prometheus-metrics-grafana-dashboards"
+        title: "Prometheus Metrics & Grafana Dashboards"
+        status: "todo"
+        priority: "P0"
+        estimated_points: 5
+        assigned_to: "TBD"
+        sprint: "TBD"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Enhance existing Prometheus/Grafana setup with comprehensive metrics collection and dashboards for all services."
+        dependencies: ["epic-1"]
+        acceptance_criteria:
+          - "AC9.1.1: Prometheus successfully scrapes metrics from all 6 core services (Suna, Onyx, Qdrant, Supabase, Redis, LiteLLM) at 15-second intervals"
+          - "AC9.1.2: Grafana displays 5 operational dashboards (System Overview, Application Performance, LLM Metrics, RAG Performance, Infrastructure Health) updating every 10 seconds"
+          - "AC9.1.3: Metrics endpoint response time <10ms (p95) across all services"
+          - "AC9.1.4: Grafana dashboards accessible at http://localhost:3001 with authentication"
+
+      - story_id: "9-2-sentry-error-tracking-alerts"
+        title: "Sentry Error Tracking & Alerts"
+        status: "todo"
+        priority: "P0"
+        estimated_points: 5
+        assigned_to: "TBD"
+        sprint: "TBD"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Implement comprehensive error tracking with Sentry integration, context capture, and alerting."
+        dependencies: ["epic-1"]
+        acceptance_criteria:
+          - "AC9.2.1: Sentry captures errors from both Node.js (Suna) and Python (Onyx) services with full stack traces"
+          - "AC9.2.2: Error context includes user_id, session_id, request details, and system breadcrumbs"
+          - "AC9.2.3: Critical errors trigger immediate Slack notifications; daily email digests sent at 9 AM UTC"
+          - "AC9.2.4: Error rate calculation excludes 404s and rate limit errors (configurable ignore list)"
+
+      - story_id: "9-3-daily-backup-automation"
+        title: "Daily Backup Automation"
+        status: "todo"
+        priority: "P1"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "TBD"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Automate daily backups of PostgreSQL, Qdrant, and Docker volumes with retention policy."
+        dependencies: ["epic-1"]
+        acceptance_criteria:
+          - "AC9.3.1: Automated daily backup job executes at 2 AM UTC with 99%+ success rate"
+          - "AC9.3.2: Backup includes PostgreSQL dump, Qdrant snapshot, and Docker volume archives"
+          - "AC9.3.3: Backup retention policy enforced: 7 daily + 4 weekly + 12 monthly backups"
+          - "AC9.3.4: Backup completion/failure notifications sent via Slack with detailed status"
+
+      - story_id: "9-4-backup-restoration-procedures"
+        title: "Backup Restoration Procedures"
+        status: "todo"
+        priority: "P1"
+        estimated_points: 5
+        assigned_to: "TBD"
+        sprint: "TBD"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Document and test backup restoration procedures for emergency recovery."
+        dependencies: ["9-3-daily-backup-automation"]
+        acceptance_criteria:
+          - "AC9.4.1: Backup restoration procedure documented and tested monthly (dry run)"
+          - "AC9.4.2: Full system restoration from backup completes in <60 minutes"
+          - "AC9.4.3: Restoration procedure includes data integrity verification steps"
+
+      - story_id: "9-5-incident-response-playbooks"
+        title: "Incident Response Playbooks"
+        status: "todo"
+        priority: "P1"
+        estimated_points: 6
+        assigned_to: "TBD"
+        sprint: "TBD"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Create comprehensive incident response playbooks for common failure scenarios."
+        dependencies: ["epic-1", "9-2-sentry-error-tracking-alerts"]
+        acceptance_criteria:
+          - "AC9.5.1: Incident response playbooks documented for 6 common scenarios (LLM service down, database failure, high resource usage, vector DB corruption, SSL expiry, sync job failure)"
+          - "AC9.5.2: Each playbook includes symptoms, diagnosis steps, resolution procedures, and prevention measures"
+          - "AC9.5.3: Playbooks stored in INCIDENTS.md with decision tree navigation"
+
+      - story_id: "9-6-load-testing-performance-baseline"
+        title: "Load Testing & Performance Baseline"
+        status: "todo"
+        priority: "P2"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "TBD"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Execute load testing to validate system performance and establish baseline metrics."
+        dependencies: ["epic-1", "9-1-prometheus-metrics-grafana-dashboards"]
+        acceptance_criteria:
+          - "AC9.6.1: Load test successfully simulates 20 concurrent users with 100 total messages"
+          - "AC9.6.2: Performance baseline established: chat latency <1.5s (p95), RAG retrieval <200ms, memory usage <12GB peak"
+          - "AC9.6.3: Load test results documented with bottleneck identification and remediation plan"
+
+      - story_id: "9-7-launch-checklist-go-live-procedures"
+        title: "Launch Checklist & Go-Live Procedures"
+        status: "todo"
+        priority: "P0"
+        estimated_points: 5
+        assigned_to: "TBD"
+        sprint: "TBD"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Comprehensive launch preparation with checklist and go-live procedures for December 15 launch."
+        dependencies: ["9-1-prometheus-metrics-grafana-dashboards", "9-2-sentry-error-tracking-alerts", "9-3-daily-backup-automation", "9-4-backup-restoration-procedures", "9-5-incident-response-playbooks", "9-6-load-testing-performance-baseline"]
+        acceptance_criteria:
+          - "AC9.7.1: Launch checklist completed with all 10 sections verified (code, deployment, infrastructure, data, monitoring, security, documentation, testing, onboarding, communications)"
+          - "AC9.7.2: Go-live procedures documented with owner assignments and sign-off requirements"
+          - "AC9.7.3: Launch readiness confirmed by engineering, operations, and product management leads"
 
 # Sprint Summary
 sprint_summary:
@@ -184,8 +312,8 @@ sprint_summary:
     - "Integrate browser automation, web search, content extraction"
 
   story_count:
-    total: 5
-    todo: 3
+    total: 12
+    todo: 10
     drafted: 0
     ready: 0
     in_progress: 0
@@ -197,6 +325,7 @@ sprint_summary:
     total_epics: 9
     complete: 3
     in_progress: 3
+    contexted: 1
     todo: 2
     blocked: 0
 
