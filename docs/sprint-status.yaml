@@ -99,16 +99,16 @@ epics:
 
       - story_id: "4-4-auto-summarization-pipeline"
         title: "Auto-Summarization Pipeline"
-        status: "ready-for-dev"
+        status: "in_progress"
         priority: "P1"
         estimated_points: 8
-        assigned_to: "TBD"
+        assigned_to: "Dev Team"
         sprint: "Sprint 8"
         created_date: "2025-11-15"
-        started_date: null
+        started_date: "2025-11-15"
         completed_date: null
         blocked_reason: null
-        notes: "✅ READY-FOR-DEV: Auto-summarization pipeline story context workflow completed. Comprehensive technical specifications with detailed implementation requirements including trigger service, LLM integration with DeepSeek via LiteLLM proxy, topic extraction, sentiment analysis, background job processing with BullMQ and Redis, and complete memory system integration. All 7 acceptance criteria defined with detailed code examples, performance targets (>95% success rate), and architecture. Context.xml generated with all relevant project artifacts. Dependencies (Stories 4-1, 4-3) complete. Ready for development assignment."
+        notes: "🔄 IN-PROGRESS: Auto-summarization pipeline implementation started. All 7 acceptance criteria being implemented with comprehensive technical specifications. Database schema creation, trigger service, LLM integration with DeepSeek, topic extraction, sentiment analysis, background job processing with BullMQ and Redis, and complete memory system integration all in development. Dependencies (Stories 4-1, 4-3) complete and providing foundation."
         dependencies: ["4-1-memory-schema-storage-system", "4-3-memory-injection-agent-integration"]
         acceptance_criteria:
           - "AC4.4.1: Summarization trigger service implemented with message count detection"
