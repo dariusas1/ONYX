@@ -1,0 +1,267 @@
+<story-context id="4-2-memory-injection-chat-start" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>2</storyId>
+    <title>Memory Injection at Chat Start</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-16</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/4-2-memory-injection-chat-start.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>my standing instructions and top-5 memories auto-injected at the start of each chat</iWant>
+    <soThat>Manus remembers context without me repeating information</soThat>
+    <tasks>Memory Retrieval Service implementation, Injection Integration, Memory Database Schema Enhancement, Chat Initialization Flow, UI Notification Component, Database Migration, Performance Optimization, Analytics and Tracking</tasks>
+  </story>
+
+  <acceptanceCriteria>AC4.2.1: Memory retrieval service implemented with intelligent scoring - MemoryRetriever service with getTopMemories() and getStandingInstructions() methods, Confidence-based scoring algorithm (confidence * 0.7 + recency * 0.3), Category balancing to ensure diverse memory representation, Performance: Retrieval completes in <50ms for typical user
+
+AC4.2.2: Automatic memory injection at chat initialization - New chat sessions automatically fetch and inject memories, Standing instructions retrieved and applied to all conversations, Memory injection shown to user via UI notification, Injection happens before first user message processing
+
+AC4.2.3: Enhanced system prompt with user context - System prompt template includes dedicated sections for memories and instructions, Memories displayed with confidence scores and sources, Instructions displayed with priority and categories, Context injection maintained throughout conversation
+
+AC4.2.4: Memory database schema enhanced with scoring - Added confidence, recency_score, and composite_score columns, Performance-optimized indexes on user_id and composite_score, Automatic score calculation using PostgreSQL generated columns, Support for memory confidence updates and decay
+
+AC4.2.5: User-facing memory injection notification - "Recalling 5 facts..." notification shows on chat start, Notification includes brief preview of injected context, Option to "View All Memories" for detailed management, Smooth animation and non-intrusive placement
+
+AC4.2.6: Performance targets achieved for memory operations - Memory retrieval <30ms (cached common queries), Context injection <20ms (template rendering), Total initialization overhead <100ms, Support for 1000+ memories per user without degradation
+
+AC4.2.7: Memory confidence and usage tracking - Memory confidence scores updated based on usage feedback, Track which memories are referenced in LLM responses, Automatic confidence decay for unused memories over time, Analytics dashboard for memory effectiveness</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epics/epic-4-tech-spec.md">
+        <title>Epic 4: Persistent Memory & Learning - Technical Specification</title>
+        <section>Memory System Architecture and Database Schema</section>
+        <snippet>Auto-summarization pipeline with memory storage, retrieval, and injection capabilities. Performance targets: &lt;50ms retrieval, &lt;100ms creation, 1000+ memories per user support.</snippet>
+      </doc>
+      <doc path="docs/architecture.md">
+        <title>ONYX System Architecture</title>
+        <section>Technology Stack and Integration Patterns</section>
+        <snippet>Next.js 14 frontend, FastAPI backend, PostgreSQL database, Qdrant vector database, Redis caching, Docker Compose orchestration. Memory injection system integrated with chat initialization flow.</snippet>
+      </doc>
+      <doc path="docs/stories/4-1-memory-schema-storage-system.context.xml">
+        <title>Story 4-1: Memory Schema & Storage System</title>
+        <section>Database Schema and API Implementation</section>
+        <snippet>PostgreSQL tables for user_memories with confidence scoring, categorization, and source tracking. API endpoints for CRUD operations, search functionality, and performance optimization.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="onyx-core/services/memory_injection_service.py">
+        <kind>Python Service</kind>
+        <symbol>MemoryInjectionService</symbol>
+        <lines>43-515</lines>
+        <reason>Complete memory injection implementation with composite scoring algorithm, caching, and performance analytics. Provides prepare_injection method for chat initialization.</reason>
+      </file>
+      <file path="onyx-core/services/memory_service.py">
+        <kind>Python Service</kind>
+        <symbol>MemoryService</symbol>
+        <lines>20-652</lines>
+        <reason>Core memory CRUD operations with validation, search, categorization, and PII detection. Implements get_user_memories with filtering and pagination.</reason>
+      </file>
+      <file path="onyx-core/services/standing_instructions_service.py">
+        <kind>Python Service</kind>
+        <symbol>StandingInstructionsService</symbol>
+        <lines>23-446</lines>
+        <reason>Standing instructions management with priority-based ordering, usage tracking, and analytics. Supports bulk operations and category filtering.</reason>
+      </file>
+      <file path="onyx-core/api/standing_instructions.py">
+        <kind>API Endpoint</kind>
+        <symbol>FastAPI Router</symbol>
+        <lines>22-383</lines>
+        <reason>REST API endpoints for standing instructions with validation, error handling, and analytics. Includes test injection endpoint for development.</reason>
+      </file>
+      <file path="suna/src/lib/services/memory-service.ts">
+        <kind>TypeScript Service</kind>
+        <symbol>MemoryServiceClient</symbol>
+        <lines>38-373</lines>
+        <reason>Frontend memory service client with comprehensive error handling, validation, and utility methods. Provides type-safe interface to memory API.</reason>
+      </file>
+      <file path="suna/src/lib/types/memory.ts">
+        <kind>TypeScript Types</kind>
+        <symbol>Memory System Interfaces</symbol>
+        <lines>8-265</lines>
+        <reason>Complete type definitions for memory system including enums, interfaces, validation constants, and UI configuration. Ensures type safety across frontend.</reason>
+      </file>
+      <file path="suna/src/components/StandingInstructions/StandingInstructionsManager.tsx">
+        <kind>React Component</kind>
+        <symbol>Main Management UI</symbol>
+        <lines>23-564</lines>
+        <reason>Complete standing instructions management interface with CRUD operations, analytics, filtering, and bulk actions. Implements test injection functionality.</reason>
+      </file>
+      <file path="suna/src/components/ChatInterface.tsx">
+        <kind>React Component</kind>
+        <symbol>Chat Interface</symbol>
+        <lines>1-100</lines>
+        <reason>Main chat interface component where memory injection will be integrated. Currently has placeholder for streaming implementation.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <backend>
+        <name>FastAPI</name>
+        <version>0.104.1</version>
+        <purpose>Python web framework for memory CRUD API endpoints</purpose>
+      </backend>
+      <backend>
+        <name>PostgreSQL</name>
+        <version>15+</version>
+        <purpose>Primary database for memory storage with full-text search</purpose>
+      </backend>
+      <backend>
+        <name>asyncpg</name>
+        <version>0.29.0</version>
+        <purpose>Async PostgreSQL driver for high-performance memory queries</purpose>
+      </backend>
+      <backend>
+        <name>SQLAlchemy</name>
+        <version>2.0.23</version>
+        <purpose>ORM for database models and migrations</purpose>
+      </backend>
+      <backend>
+        <name>Redis</name>
+        <version>5.0.1</version>
+        <purpose>Caching layer for memory query optimization</purpose>
+      </backend>
+      <backend>
+        <name>Qdrant</name>
+        <version>1.15.0</version>
+        <purpose>Vector database for semantic similarity search</purpose>
+      </backend>
+      <backend>
+        <name>pytest</name>
+        <version>7.4.3</version>
+        <purpose>Testing framework for memory service unit and integration tests</purpose>
+      </backend>
+      <backend>
+        <name>pydantic</name>
+        <version>2.5.0</version>
+        <purpose>Data validation and serialization for memory API</purpose>
+      </backend>
+      <frontend>
+        <name>Next.js</name>
+        <version>14.0.0</version>
+        <purpose>Frontend framework with App Router for memory UI components</purpose>
+      </frontend>
+      <frontend>
+        <name>TypeScript</name>
+        <version>5.3.0</version>
+        <purpose>Type safety for memory interfaces and API contracts</purpose>
+      </frontend>
+      <frontend>
+        <name>Tailwind CSS</name>
+        <version>3.4.0</version>
+        <purpose>Styling for memory management UI components</purpose>
+      </frontend>
+      <frontend>
+        <name>Jest</name>
+        <version>29.0.0</version>
+        <purpose>Frontend testing framework for memory UI components</purpose>
+      </frontend>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="database">Use PostgreSQL with asyncpg driver for sub-50ms query performance. Implement proper indexing strategy on user_id, category, confidence, and created_at columns. Use JSONB for metadata field to support schema evolution.</constraint>
+    <constraint type="api">Follow existing FastAPI route patterns with proper error handling and structured response format: {success: boolean, data: any, error?: string}. Use proper HTTP status codes and validation.</constraint>
+    <constraint type="security">Implement user isolation at database level with proper foreign key constraints. Use parameterized queries to prevent SQL injection. Implement PII detection with optional masking. Add audit logging for all CRUD operations.</constraint>
+    <constraint type="performance">Target memory creation &lt;100ms, retrieval &lt;50ms. Use Redis caching for frequently accessed memories. Implement connection pooling with pgBouncer. Monitor query performance with EXPLAIN ANALYZE.</constraint>
+    <constraint type="testing">Achieve &gt;90% test coverage for all memory operations. Write unit tests for service layer, integration tests for API endpoints, and performance tests for query optimization. Use pytest fixtures and mocking patterns.</constraint>
+    <constraint type="architecture">Follow existing service layer patterns in onyx-core/services/. Use async/await patterns throughout. Implement proper logging with structured JSON format. Use environment variables for configuration management.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Memory Injection API">
+      <kind>REST Endpoints</kind>
+      <signature>POST /api/injection/prepare - InjectionRequest → MemoryInjectionResponse
+GET /api/injection/test - Test memory injection with current user context
+GET /api/injection/analytics/{user_id} - InjectionAnalyticsResponse</signature>
+      <path>onyx-core/api/memory_injection.py</path>
+    </interface>
+    <interface name="Memory Database Schema">
+      <kind>SQL Schema</kind>
+      <signature>CREATE TABLE user_memories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    fact TEXT NOT NULL,
+    category TEXT NOT NULL CHECK (category IN ('priority', 'decision', 'context', 'preference', 'relationship', 'goal', 'summary')),
+    confidence FLOAT NOT NULL DEFAULT 0.8 CHECK (confidence >= 0 AND confidence <= 1),
+    source_type TEXT NOT NULL CHECK (source_type IN ('manual', 'extracted_from_chat', 'auto_summary', 'standing_instruction')),
+    source_message_id UUID REFERENCES messages(id),
+    conversation_id UUID REFERENCES conversations(id),
+    metadata JSONB DEFAULT '{}',
+    expires_at TIMESTAMP,
+    access_count INTEGER DEFAULT 0,
+    last_accessed_at TIMESTAMP DEFAULT NOW(),
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);</signature>
+      <path>onyx-core/migrations/001_create_memories_table.py</path>
+    </interface>
+    <interface name="Standing Instructions Database Schema">
+      <kind>SQL Schema</kind>
+      <signature>CREATE TABLE standing_instructions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    instruction_text TEXT NOT NULL,
+    category TEXT NOT NULL CHECK (category IN ('workflow', 'decision', 'communication', 'security', 'general')),
+    priority INTEGER NOT NULL DEFAULT 5 CHECK (priority >= 1 AND priority <= 10),
+    context_hints TEXT[] DEFAULT '{}',
+    enabled BOOLEAN DEFAULT TRUE,
+    usage_count INTEGER DEFAULT 0,
+    last_used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);</signature>
+      <path>onyx-core/migrations/002_create_standing_instructions_table.py</path>
+    </interface>
+    <interface name="Memory Service Layer">
+      <kind>TypeScript Interface</kind>
+      <signature>interface MemoryInjectionService {
+    prepareInjection(userId: string, conversationId: string, currentMessage?: string): Promise&lt;MemoryInjection&gt;;
+    getTopMemories(userId: string, limit?: number): Promise&lt;Memory[]&gt;;
+    getStandingInstructions(userId: string, limit?: number): Promise&lt;StandingInstruction[]&gt;;
+    formatForLLM(instructions: StandingInstruction[], memories: Memory[]): string;
+}</signature>
+      <path>suna/src/lib/services/memory-injection-service.ts</path>
+    </interface>
+    <interface name="Chat Integration Interface">
+      <kind>React Component Hook</kind>
+      <signature>interface UseMemoryInjection {
+    injection: MemoryInjection | null;
+    loading: boolean;
+    error: string | null;
+    injectMemories: (conversationId: string) => Promise&lt;void&gt;;
+    clearInjection: () => void;
+}</signature>
+      <path>suna/src/hooks/useMemoryInjection.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Use pytest with async support for testing. Follow existing test patterns with fixtures for environment setup. Achieve >90% code coverage. Implement unit tests for service logic, integration tests for API endpoints, and performance tests for query optimization. Use mock objects for external dependencies. Test both happy paths and error conditions.</standards>
+    <locations>
+      <path>suna/src/__tests__/</path>
+      <path>suna/src/app/api/memory/__tests__/</path>
+      <path>onyx-core/tests/unit/test_memory_service.py</path>
+      <path>onyx-core/tests/unit/test_memory_injection_service.py</path>
+      <path>onyx-core/tests/unit/test_standing_instructions_service.py</path>
+      <path>onyx-core/tests/integration/test_memory_api.py</path>
+      <path>onyx-core/tests/integration/test_memory_injection_api.py</path>
+      <path>onyx-core/tests/performance/test_memory_queries.py</path>
+    </locations>
+    <ideas>
+      <test mapping="AC4.2.1">test_memory_retrieval_service - Verify MemoryRetriever service with getTopMemories() and getStandingInstructions() methods. Test confidence scoring algorithm with mock data.</test>
+      <test mapping="AC4.2.2">test_automatic_memory_injection - Test that new chat sessions automatically fetch and inject memories. Verify standing instructions retrieval and UI notification display.</test>
+      <test mapping="AC4.2.3">test_enhanced_system_prompt - Test system prompt template includes memories and instructions sections. Verify proper formatting with confidence scores and priorities.</test>
+      <test mapping="AC4.2.4">test_memory_database_schema - Test database schema with confidence, recency_score, and composite_score columns. Verify PostgreSQL generated columns and performance indexes.</test>
+      <test mapping="AC4.2.5">test_memory_injection_notification - Test "Recalling 5 facts..." notification displays on chat start. Verify preview functionality and "View All Memories" option.</test>
+      <test mapping="AC4.2.6">test_performance_targets - Performance tests for memory retrieval (&lt;30ms) and context injection (&lt;20ms). Load testing with 1000+ memories per user.</test>
+      <test mapping="AC4.2.7">test_memory_confidence_tracking - Test memory confidence scores updated based on usage feedback. Track LLM response references and automatic confidence decay.</test>
+    </ideas>
+  </tests>
+</story-context>

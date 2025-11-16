@@ -53,27 +53,27 @@ epics:
           - "AC4.1.6: Security and privacy controls implemented"
           - "AC4.1.7: Memory search and filtering functionality"
 
-      - story_id: "4-2-standing-instructions-management"
-        title: "Standing Instructions Management"
-        status: "drafted"
-        priority: "P0"
-        estimated_points: 6
+      - story_id: "4-2-memory-injection-chat-start"
+        title: "Memory Injection at Chat Start"
+        status: "ready-for-dev"
+        priority: "P1"
+        estimated_points: 3
         assigned_to: "TBD"
         sprint: "Sprint 8"
-        created_date: "2025-11-15"
+        created_date: "2025-11-16"
         started_date: null
         completed_date: null
         blocked_reason: null
-        notes: "✅ DRAFTED: Comprehensive standing instructions management system with full technical specifications. Database schema, API endpoints, React UI components, instruction processing service, and performance targets all specified. Priority-based instruction ordering and conflict resolution with analytics dashboard. Ready for development assignment."
+        notes: "✅ READY FOR DEVELOPMENT: Memory injection service for automatic context injection at chat start. Comprehensive context XML generated with complete technical specifications, existing code analysis, dependencies, interfaces, testing standards, and acceptance criteria. Implements intelligent memory scoring (confidence * 0.7 + recency * 0.3), top-5 memory retrieval, standing instructions injection, and enhanced system prompts. Performance targets <50ms retrieval, <100ms total overhead. Ready for development assignment with full implementation guidance."
         dependencies: ["4-1-memory-schema-storage-system"]
         acceptance_criteria:
-          - "AC4.2.1: Standing instructions database table and API endpoints implemented"
-          - "AC4.2.2: Comprehensive instruction management UI with full CRUD operations"
-          - "AC4.2.3: Instruction categorization system with 5 categories and icons"
-          - "AC4.2.4: Priority-based instruction ordering and conflict resolution"
-          - "AC4.2.5: Context-aware instruction evaluation and application"
-          - "AC4.2.6: Usage analytics and effectiveness tracking implemented"
-          - "AC4.2.7: Performance targets achieved for instruction operations"
+          - "AC4.2.1: Memory retrieval service implemented with intelligent scoring"
+          - "AC4.2.2: Automatic memory injection at chat initialization"
+          - "AC4.2.3: Enhanced system prompt with user context sections"
+          - "AC4.2.4: Memory database schema enhanced with scoring"
+          - "AC4.2.5: User-facing memory injection notification"
+          - "AC4.2.6: Performance targets achieved for memory operations"
+          - "AC4.2.7: Memory confidence and usage tracking"
 
       - story_id: "4-3-memory-injection-agent-integration"
         title: "Memory Injection & Agent Integration"
