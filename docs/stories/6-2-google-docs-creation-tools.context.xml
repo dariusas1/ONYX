@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="{bmad_folder}/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>epic-6</epicId>
+    <storyId>6-2</storyId>
+    <title>Google Docs Creation Tools</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-15T18:45:00Z</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/6-2-google-docs-creation-tools.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an agent</asA>
+    <iWant>create Google Docs with formatted content from my analysis</iWant>
+    <soThat>I can generate strategic documents, reports, and insights that users can access, edit, and share through Google Workspace</soThat>
+    <tasks>- Task 1: Google Docs API Integration (AC: 6.2.1, 6.2.7, 6.2.8, 6.2.10)
+  - [ ] Subtask 1.1: Implement Google Docs API client service
+  - [ ] Subtask 1.2: Add Docs API scopes to OAuth2 configuration
+  - [ ] Subtask 1.3: Create document creation endpoint with authentication
+  - [ ] Subtask 1.4: Implement comprehensive error handling
+  - [ ] Subtask 1.5: Add performance monitoring and timing
+
+- Task 2: Content Processing & Formatting (AC: 6.2.3, 6.2.4)
+  - [ ] Subtask 2.1: Implement Markdown to Google Docs conversion
+  - [ ] Subtask 2.2: Handle headings (H1-H6) with proper styling
+  - [ ] Subtask 2.3: Process lists (ordered and unordered) correctly
+  - [ ] Subtask 2.4: Convert text formatting (bold, italics, strikethrough)
+  - [ ] Subtask 2.5: Handle links and references properly
+  - [ ] Subtask 2.6: Support code blocks and inline code formatting
+
+- Task 3: File Management & Permissions (AC: 6.2.2, 6.2.6, 6.2.9)
+  - [ ] Subtask 3.1: Implement folder placement logic
+  - [ ] Subtask 3.2: Handle Drive permission inheritance
+  - [ ] Subtask 3.3: Create ONYX folder structure if needed
+  - [ ] Subtask 3.4: Store document metadata in database
+  - [ ] Subtask 3.5: Link document to original agent task
+
+- Task 4: Agent Tool Integration (AC: 6.2.1, 6.2.5)
+  - [ ] Subtask 4.1: Create agent tool interface for Google Docs creation
+  - [ ] Subtask 4.2: Implement tool parameter validation
+  - [ ] Subtask 4.3: Add shareable URL generation and return
+  - [ ] Subtask 4.4: Integrate with agent approval gates system
+  - [ ] Subtask 4.5: Add tool usage logging and audit trails
+
+- Task 5: Testing & Validation (AC: All)
+  - [ ] Subtask 5.1: Unit tests for Docs API integration
+  - [ ] Subtask 5.2: Integration tests with Google Workspace
+  - [ ] Subtask 5.3: End-to-end agent workflow testing
+  - [ ] Subtask 5.4: Performance testing and optimization
+  - [ ] Subtask 5.5: Error scenario testing and validation</tasks>
+  </story>
+
+  <acceptanceCriteria>1. **AC6.2.1**: Agent can invoke `create_google_doc` tool with title and content parameters
+2. **AC6.2.2**: Google Doc created successfully in user's Google Drive with proper permissions
+3. **AC6.2.3**: Content formatting preserved (headings, lists, bold, italics, links)
+4. **AC6.2.4**: Markdown content properly converted to Google Docs format
+5. **AC6.2.5**: Document accessible via shareable Google Docs URL returned to user
+6. **AC6.2.6**: Document creation respects user's Google Drive folder structure
+7. **AC6.2.7**: Error handling for permission issues, quota limits, and API failures
+8. **AC6.2.8**: Performance target: document creation completes in &lt;2 seconds
+9. **AC6.2.9**: Document metadata tracked (creation time, agent, task context)
+10. **AC6.2.10**: Integration with existing OAuth2 foundation for authentication</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/stories/6-1-oauth2-setup-integration.context.xml</path>
+        <title>OAuth2 Setup &amp; Integration Context</title>
+        <section>OAuth2 Foundation</section>
+        <snippet>Complete OAuth2 implementation with GoogleOAuthService class, AES-256 encryption, database schema, API endpoints, and 95% completion status. Provides authentication foundation for all Google Workspace integrations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics/epic-6-tech-spec.md</path>
+        <title>Epic 6 Technical Specification</title>
+        <section>Google Workspace Integration</section>
+        <snippet>Comprehensive technical specification for Epic 6 covering Google Workspace tools integration, OAuth2 setup, Docs API integration, and agent tool patterns.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Documentation</title>
+        <section>System Architecture</section>
+        <snippet>Complete ONYX system architecture including microservices, authentication, database schema, API routing, and agent integration patterns.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <code>
+        <path>onyx-core/services/google_oauth.py</path>
+        <kind>service</kind>
+        <symbol>GoogleOAuthService</symbol>
+        <lines>21-313</lines>
+        <reason>Foundation OAuth2 service for Google Workspace authentication. Handles authorization URL generation, token exchange, encrypted storage, and automatic refresh. Provides get_credentials() method for API access.</reason>
+      </code>
+      <code>
+        <path>onyx-core/api/google_drive.py</path>
+        <kind>router</kind>
+        <symbol>APIRouter</symbol>
+        <lines>19-511</lines>
+        <reason>FastAPI router with OAuth endpoints (/auth/authorize, /auth/callback, /auth/status, /auth/disconnect) and sync endpoints. Pattern for adding new Google Docs API endpoints alongside existing OAuth infrastructure.</reason>
+      </code>
+      <code>
+        <path>onyx-core/services/content_extractor.py</path>
+        <kind>service</kind>
+        <symbol>ContentExtractor</symbol>
+        <lines>21-242</lines>
+        <reason>Existing Google Docs content extraction service with Google Docs API v1 integration patterns. Shows Google Docs MIME type handling and API client usage for document operations.</reason>
+      </code>
+      <code>
+        <path>onyx-core/api/web_tools.py</path>
+        <kind>router</kind>
+        <symbol>APIRouter</symbol>
+        <lines>30-528</lines>
+        <reason>Agent tool integration pattern with FastAPI router. Shows tool registration, parameter validation, authentication, and structured responses. Template for Google Docs tool implementation.</reason>
+      </code>
+      <code>
+        <path>onyx-core/services/google_drive_sync.py</path>
+        <kind>service</kind>
+        <symbol>GoogleDriveSync</symbol>
+        <lines>24-100</lines>
+        <reason>Google Drive API integration patterns showing file management, folder operations, and permission handling. Provides foundation for Google Docs file placement and organization.</reason>
+      </code>
+    </code>
+    <dependencies>
+      <python>
+        <package name="google-api-python-client" version="2.108.0">Google API client library for Docs API v1 integration</package>
+        <package name="google-auth" version="2.25.2">Google authentication library for OAuth2 credentials</package>
+        <package name="google-auth-oauthlib" version="1.2.0">OAuth2 flow handling for Google services</package>
+        <package name="google-auth-httplib2" version="0.2.0">HTTP transport for Google API requests</package>
+        <package name="fastapi" version="0.104.1">Web framework for API endpoints</package>
+        <package name="cryptography" version="42.0.8">AES-256 encryption for secure token storage</package>
+        <package name="psycopg2-binary" version="2.9.9">PostgreSQL database for document metadata storage</package>
+        <package name="pydantic" version="2.5.0">Data validation and serialization</package>
+      </python>
+      <javascript>
+        <package name="next" version="^14.0.0">Frontend framework for UI components</package>
+        <package name="react" version="^18.0.0">Component library for agent interface</package>
+        <package name="typescript" version="^5.3.0">Type safety for tool interfaces</package>
+      </javascript>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>OAuth2 Authentication: Must use existing GoogleOAuthService from Story 6.1 for authentication. Cannot bypass or duplicate OAuth implementation.</constraint>
+    <constraint>Google Docs API v1: Must use Google Docs API v1 for document creation. Upgrade from content extraction patterns which already use v1.</constraint>
+    <constraint>Scopes: Must add Google Docs API scopes to existing OAuth2 configuration (https://www.googleapis.com/auth/documents)</constraint>
+    <constraint>Performance: Document creation must complete in &lt;2 seconds including formatting and file operations.</constraint>
+    <constraint>Security: Must follow existing encryption patterns for token storage. Use same encryption service as OAuth2 implementation.</constraint>
+    <constraint>Database: Must use existing database schema patterns for document metadata storage. Extend OAuth tables if needed.</constraint>
+    <constraint>Agent Integration: Must follow existing agent tool patterns from web_tools.py. Include authentication, parameter validation, audit logging.</constraint>
+    <constraint>Error Handling: Must follow existing error handling patterns from OAuth2 implementation. Include specific Google Docs API error codes.</constraint>
+    <constraint>Folder Structure: Must respect user's Google Drive folder structure. Create ONYX folder if needed following Google Drive sync patterns.</constraint>
+    <constraint>Async Operations: Must follow async/await patterns from existing services. Ensure non-blocking document creation.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>GoogleOAuthService.get_credentials()</name>
+      <kind>method</kind>
+      <signature>get_credentials(user_id: str) -&gt; Optional[Credentials]</signature>
+      <path>onyx-core/services/google_oauth.py</path>
+      <description>Retrieves authenticated Google credentials for API access. Provides automatic token refresh and decryption.</description>
+    </interface>
+    <interface>
+      <name>ContentExtractor._extract_google_doc()</name>
+      <kind>method</kind>
+      <signature>_extract_google_doc(file_id: str, file_name: str) -&gt; Optional[str]</signature>
+      <path>onyx-core/services/content_extractor.py</path>
+      <description>Shows Google Docs API v1 usage patterns with drive_service.files().export_media(). Template for document creation operations.</description>
+    </interface>
+    <interface>
+      <name>Tool Registry Pattern</name>
+      <kind>interface</kind>
+      <signature>register_tool(name: str, tool_definition: Dict) -&gt; void</signature>
+      <path>onyx-core/api/web_tools.py</path>
+      <description>Agent tool registration pattern with parameter validation, authentication, and structured responses. Used for create_google_doc tool.</description>
+    </interface>
+    <interface>
+      <name>FastAPI Router Pattern</name>
+      <kind>interface</kind>
+      <signature>@router.post("/endpoint", response_model=ResponseModel)</signature>
+      <path>onyx-core/api/google_drive.py</path>
+      <description>API endpoint pattern with authentication, request/response models, and error handling. Template for Google Docs creation endpoints.</description>
+    </interface>
+    <interface>
+      <name>Database Service Pattern</name>
+      <kind>interface</kind>
+      <signature>store_oauth_tokens(user_id, provider, tokens, expiry, scopes) -&gt; bool</signature>
+      <path>onyx-core/services/google_oauth.py</path>
+      <description>Database persistence pattern using PostgreSQL with AES-256 encryption. Extend for document metadata storage.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Follow existing test patterns from OAuth2 implementation. Unit tests for GoogleDocsService class with mocking. Integration tests with Google Docs API test environment. Performance tests to ensure &lt;2s document creation. Agent tool integration tests. Error handling tests for permission issues, quota limits, API failures. Security tests for token encryption and user authorization. Use pytest with asyncio support. Mock Google API responses to avoid dependency on external services. Test both successful document creation and error scenarios.</standards>
+    <locations>
+      <location>tests/unit/test_google_docs_service.py</location>
+      <location>tests/integration/test-google-docs-creation.sh</location>
+      <location>tests/test_api/test_google_docs.py</location>
+      <location>tests/performance/test_docs_creation_speed.py</location>
+      <location>tests/security/test_google_docs_auth.py</location>
+    </locations>
+    <ideas>
+      <idea ac="AC6.2.1">Test agent tool creation with valid title and content parameters</idea>
+      <idea ac="AC6.2.2">Test document appears in user's Google Drive with correct permissions</idea>
+      <idea ac="AC6.2.3">Test Markdown formatting preservation including H1-H6 headings, bold, italics, lists</idea>
+      <idea ac="AC6.2.4">Test complex Markdown conversion including code blocks, links, nested lists</idea>
+      <idea ac="AC6.2.5">Test shareable URL generation and document accessibility</idea>
+      <idea ac="AC6.2.6">Test document creation in ONYX folder with proper Drive hierarchy</idea>
+      <idea ac="AC6.2.7">Test error handling for insufficient permissions, quota exceeded, invalid content</idea>
+      <idea ac="AC6.2.8">Performance test with timing assertions for document creation speed</idea>
+      <idea ac="AC6.2.9">Test document metadata storage including creation time, agent context</idea>
+      <idea ac="AC6.2.10">Test OAuth2 integration with existing authentication flow</idea>
+    </ideas>
+  </tests>
+</story-context>

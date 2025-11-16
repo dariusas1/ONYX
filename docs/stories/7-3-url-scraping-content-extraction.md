@@ -1,6 +1,6 @@
 # Story 7.3: URL Scraping & Content Extraction
 
-Status: drafted
+Status: ready-for-review
 
 ## Story
 
@@ -92,6 +92,60 @@ This story extends the web automation layer established in Story 7.1 (Playwright
 - [Source: docs/epics/epic-7-tech-spec.md#Workflows-and-Sequencing] - URL scraping workflow implementation
 - [Source: docs/epics/epic-7-tech-spec.md#External-Dependencies] - Readability library and HTML parsing dependencies
 - [Source: docs/sprint-status.yaml#story-7-3] - Current story status and dependencies
+
+## Implementation
+
+### Files Created/Modified
+
+**Core Service:**
+- `/onyx-core/services/scraper_service.py` - Main URL scraping service with Mozilla Readability integration
+- `/onyx-core/api/web_tools.py` - FastAPI router with scrape_url and batch_scrape endpoints
+- `/onyx-core/services/tool_registry.py` - Tool registry system for agent tool discovery
+
+**Dependencies:**
+- `/onyx-core/requirements.txt` - Added readability-lxml==0.8.1 and html2text==2020.1.16
+- `/onyx-core/main.py` - Integrated web_tools router and tool registry registration
+
+**Tests:**
+- `/onyx-core/tests/test_services/test_scraper_service.py` - Unit tests for scraper service
+- `/onyx-core/tests/test_api/test_web_tools.py` - Integration tests for API endpoints
+- `/onyx-core/tests/test_performance/test_scraper_performance.py` - Performance tests to verify <5s requirement
+
+### Key Features Implemented
+
+1. **Mozilla Readability Integration**: Clean HTML extraction removing ads, scripts, navigation
+2. **Markdown Conversion**: HTML to readable Markdown format using html2text
+3. **Metadata Extraction**: Title, author, publish_date, excerpt from HTML meta tags
+4. **Browser Manager Integration**: Uses existing Playwright setup from Story 7-1
+5. **Redis Caching**: 24h TTL with SHA256-based cache keys
+6. **Rate Limiting**: 2-second delays per domain for respectful scraping
+7. **Comprehensive Error Handling**: Structured errors for all failure scenarios
+8. **Performance Monitoring**: Execution timing and latency tracking
+9. **Batch Processing**: Support for multiple URLs with rate limiting
+10. **Tool Registry**: Centralized registration system for agent tools
+
+### API Endpoints
+
+- `POST /tools/scrape_url` - Single URL scraping
+- `POST /tools/batch_scrape` - Batch URL scraping (max 10 URLs)
+- `GET /tools/scrape_health` - Health check for scraping services
+
+### Acceptance Criteria Verification
+
+✅ **AC7.3.1**: Agent can invoke scrape_url tool with URL parameter
+✅ **AC7.3.2**: Page loaded and HTML rendered (handles JavaScript)
+✅ **AC7.3.3**: HTML cleaned (remove ads, scripts, navigation) using Readability
+✅ **AC7.3.4**: Main content extracted and converted to Markdown
+✅ **AC7.3.5**: Execution time <5s from navigation to clean content (performance tests verify)
+✅ **AC7.3.6**: Returns text_content, metadata (title, author, publish_date)
+✅ **AC7.3.7**: Error handling: 404s, timeouts, blocked sites return structured errors
+
+### Performance Metrics
+
+- Target: <5s execution time (95th percentile)
+- Cache: 24h TTL with >70% hit rate target
+- Rate Limiting: 2s delay per domain
+- Error Rate: <5% for well-formed requests
 
 ## Dev Agent Record
 
