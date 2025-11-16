@@ -3,7 +3,7 @@
 **Epic**: Epic 8 - Live Workspace (noVNC)
 **Story ID**: 8-2
 **Title**: VNC Embed in Suna UI
-**Status**: In Progress
+**Status**: Done
 **Priority**: P0 (High)
 **Estimated Points**: 8
 **Assigned To**: Dev Team

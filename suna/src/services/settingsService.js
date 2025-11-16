@@ -5,7 +5,7 @@
  * Handles user settings with local storage and future Supabase integration
  */
 
-import { getStorageItem, setStorageItem, STORAGE_KEYS } from '../utils/storage';
+import { storage } from '../utils/storage';
 
 // Settings keys
 const USER_SETTINGS_KEYS = {
@@ -29,7 +29,7 @@ export class SettingsService {
     try {
       // For now, use localStorage
       // In future, integrate with Supabase user_settings table
-      return getStorageItem(`user_${key}`, defaultValue);
+      return storage.get(`user_${key}`) || defaultValue;
     } catch (error) {
       console.warn(`Error getting setting "${key}":`, error);
       return defaultValue;
@@ -47,7 +47,7 @@ export class SettingsService {
       // For now, use localStorage
       // In future, sync with Supabase user_settings table
       const storageKey = `user_${key}`;
-      const success = setStorageItem(storageKey, value);
+      const success = storage.set(storageKey, value);
 
       if (success) {
         // Trigger sync event for future Supabase integration
@@ -71,7 +71,7 @@ export class SettingsService {
 
       // Get all known settings
       Object.values(USER_SETTINGS_KEYS).forEach(key => {
-        settings[key] = getStorageItem(`user_${key}`, null);
+        settings[key] = storage.get(`user_${key}`);
       });
 
       return settings;

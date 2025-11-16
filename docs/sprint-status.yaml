@@ -55,7 +55,7 @@ epics:
 
       - story_id: "4-2-standing-instructions-management"
         title: "Standing Instructions Management"
-        status: "ready-for-dev"
+        status: "drafted"
         priority: "P0"
         estimated_points: 6
         assigned_to: "TBD"
@@ -64,7 +64,7 @@ epics:
         started_date: null
         completed_date: null
         blocked_reason: null
-        notes: "✅ UNBLOCKED: Foundation (Story 4-1) complete. Standing instructions UI and management system ready for development. Priority-based instruction ordering and conflict resolution. Complete UI/UX specification with analytics dashboard."
+        notes: "✅ DRAFTED: Comprehensive standing instructions management system with full technical specifications. Database schema, API endpoints, React UI components, instruction processing service, and performance targets all specified. Priority-based instruction ordering and conflict resolution with analytics dashboard. Ready for development assignment."
         dependencies: ["4-1-memory-schema-storage-system"]
         acceptance_criteria:
           - "AC4.2.1: Standing instructions database table and API endpoints implemented"
@@ -616,7 +616,7 @@ sprint_summary:
   story_count:
     total: 21
     todo: 9
-    drafted: 5  # Story 8-3 added as ready-for-dev
+    drafted: 5  # Story 4-2 drafted, Stories 6.3, 6.4, 6.5, 8-2, 8-3 ready-for-dev
     ready: 5     # Stories 6.3, 6.4, 6.5, 8-2, 8-3 ready-for-dev
     in_progress: 0
     in_review: 0

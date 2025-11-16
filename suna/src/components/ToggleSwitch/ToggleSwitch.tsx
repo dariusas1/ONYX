@@ -1,7 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, MessageSquare, AlertTriangle } from 'lucide-react';
 
-const ToggleSwitch = ({
+interface ToggleSwitchProps {
+  isAgentMode: boolean;
+  onToggle: () => void;
+  size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  showLabel?: boolean;
+}
+
+const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   isAgentMode,
   onToggle,
   size = 'md',
