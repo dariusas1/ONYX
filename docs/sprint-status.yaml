@@ -27,7 +27,7 @@ epics:
 
   - epic_id: "epic-4"
     name: "Persistent Memory & Learning"
-    status: "ready-for-dev"
+    status: "drafted"
     completion_percentage: 100
     notes: "✅ READY FOR DEVELOPMENT: All stories ready for Sprint 8 development with comprehensive specifications. Story 4-1 complete with production-ready implementation. Stories 4-2, 4-3, 4-4 all ready with technical specifications, context.xml files, and acceptance criteria. Database schema, APIs, memory management foundation, injection system, standing instructions UI, and auto-summarization pipeline all specified and ready for development."
     stories:
@@ -55,16 +55,16 @@ epics:
 
       - story_id: "4-2-standing-instructions-management"
         title: "Standing Instructions Management"
-        status: "ready-for-dev"
+        status: "in-progress"
         priority: "P0"
         estimated_points: 6
-        assigned_to: "TBD"
+        assigned_to: "Dev Team"
         sprint: "Sprint 8"
         created_date: "2025-11-15"
-        started_date: null
+        started_date: "2025-11-16"
         completed_date: null
         blocked_reason: null
-        notes: "✅ READY-FOR-DEV: Story context workflow completed with comprehensive technical specifications. Standing instructions database table and API endpoints specifications, React UI components with full CRUD operations, instruction categorization system (5 categories), priority-based conflict resolution, context-aware instruction evaluation, usage analytics dashboard, and performance targets all specified. Context XML generated with complete project artifacts including Epic 4 tech spec, existing memory service patterns, integration constraints, testing standards, and comprehensive interface specifications. Ready for development assignment with all 7 acceptance criteria clearly defined."
+        notes: "🚀 IN-PROGRESS: Implementation started for standing instructions management system. Database schema, API endpoints, and React UI components being developed with comprehensive context-aware instruction evaluation and priority-based conflict resolution. All technical specifications from context XML available for implementation."
         dependencies: ["4-1-memory-schema-storage-system"]
         acceptance_criteria:
           - "AC4.2.1: Standing instructions database table and API endpoints implemented"
@@ -99,7 +99,7 @@ epics:
 
       - story_id: "4-4-auto-summarization-pipeline"
         title: "Auto-Summarization Pipeline"
-        status: "ready-for-dev"
+        status: "drafted"
         priority: "P1"
         estimated_points: 8
         assigned_to: "TBD"
@@ -152,13 +152,13 @@ epics:
 
   - epic_id: "epic-6"
     name: "Google Workspace Tools"
-    status: "ready-for-dev"
+    status: "drafted"
     completion_percentage: 100
     notes: "Google Workspace integration complete with all 5 stories ready-for-dev. OAuth2 foundation ready, Google Docs creation/editing tools specified with context XML, Google Sheets creation and editing capabilities comprehensive. Final Story 6.5 completed with story-context workflow and 15 acceptance criteria covering advanced spreadsheet editing operations including formula validation, batch updates, and audit logging. All stories have comprehensive context XML with complete technical specifications, API integrations, and performance targets. Epic 6 fully ready for Sprint 8 development."
     stories:
       - story_id: "6-1-oauth2-setup-integration"
         title: "OAuth2 Setup & Integration"
-        status: "ready-for-dev"
+        status: "drafted"
         priority: "P0"
         estimated_points: 13
         assigned_to: "TBD"
@@ -178,7 +178,7 @@ epics:
 
       - story_id: "6-2-google-docs-creation-tools"
         title: "Google Docs Creation Tools"
-        status: "ready-for-dev"
+        status: "drafted"
         priority: "P0"
         estimated_points: 8
         assigned_to: "TBD"
@@ -203,7 +203,7 @@ epics:
 
       - story_id: "6-3-google-docs-editing-capabilities"
         title: "Google Docs Editing Capabilities"
-        status: "ready-for-dev"
+        status: "drafted"
         priority: "P0"
         estimated_points: 8
         assigned_to: "TBD"
@@ -228,7 +228,7 @@ epics:
 
       - story_id: "6-4-google-sheets-creation-tools"
         title: "Google Sheets Creation Tools"
-        status: "ready-for-dev"
+        status: "drafted"
         priority: "P0"
         estimated_points: 8
         assigned_to: "TBD"
@@ -253,7 +253,7 @@ epics:
 
       - story_id: "6-5-google-sheets-editing-capabilities"
         title: "Google Sheets Editing Capabilities"
-        status: "ready-for-dev"
+        status: "drafted"
         priority: "P0"
         estimated_points: 8
         assigned_to: "TBD"
@@ -395,7 +395,7 @@ epics:
 
   - epic_id: "epic-8"
     name: "Live Workspace (noVNC)"
-    status: "ready-for-dev"
+    status: "drafted"
     completion_percentage: 40
     notes: "Foundation story completed with enterprise-grade security implementation. Story 8-1 (noVNC Server Setup) approved with production-ready security controls. Stories 8-2 (VNC Embed) and 8-3 (Mouse & Keyboard Input) ready for development with comprehensive context XML and technical specifications. Ready for workspace interface implementation."
     stories:
@@ -475,7 +475,7 @@ epics:
     stories:
       - story_id: "9-1-prometheus-metrics-grafana-dashboards"
         title: "Prometheus Metrics & Grafana Dashboards"
-        status: "ready-for-dev"
+        status: "drafted"
         priority: "P0"
         estimated_points: 5
         assigned_to: "TBD"
