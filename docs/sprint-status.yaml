@@ -33,7 +33,7 @@ epics:
     stories:
       - story_id: "4-1-memory-schema-storage-system"
         title: "Memory Schema & Storage System"
-        status: "drafted"
+        status: "ready-for-dev"
         priority: "P0"
         estimated_points: 8
         assigned_to: "TBD"
@@ -55,7 +55,7 @@ epics:
 
       - story_id: "4-2-standing-instructions-management"
         title: "Standing Instructions Management"
-        status: "drafted"
+        status: "ready-for-dev"
         priority: "P0"
         estimated_points: 6
         assigned_to: "TBD"
@@ -77,7 +77,7 @@ epics:
 
       - story_id: "4-3-memory-injection-agent-integration"
         title: "Memory Injection & Agent Integration"
-        status: "drafted"
+        status: "ready-for-dev"
         priority: "P0"
         estimated_points: 7
         assigned_to: "TBD"
@@ -99,7 +99,7 @@ epics:
 
       - story_id: "4-4-auto-summarization-pipeline"
         title: "Auto-Summarization Pipeline"
-        status: "drafted"
+        status: "ready-for-dev"
         priority: "P1"
         estimated_points: 8
         assigned_to: "TBD"
@@ -127,7 +127,7 @@ epics:
     stories:
       - story_id: "5-1-agent-mode-toggle-ui"
         title: "Agent Mode Toggle & UI"
-        status: "drafted"
+        status: "ready-for-dev"
         priority: "P0"
         estimated_points: 6
         assigned_to: "TBD"
@@ -224,16 +224,16 @@ epics:
 
       - story_id: "7-3-url-scraping-content-extraction"
         title: "URL Scraping & Content Extraction"
-        status: "todo"
+        status: "ready-for-dev"
         priority: "P1"
         estimated_points: 8
         assigned_to: "TBD"
         sprint: "Sprint 7"
-        created_date: null
+        created_date: "2025-11-15"
         started_date: null
         completed_date: null
         blocked_reason: null
-        notes: "Depends on 7-1 (Playwright) for JavaScript rendering"
+        notes: "Comprehensive story specification created with 5 main tasks and 23 subtasks. Covers content extraction, Readability integration, browser automation, caching, and testing. Depends on 7-1 (Playwright) for JavaScript rendering."
         dependencies: ["7-1-playwright-browser-setup-headless-automation"]
         acceptance_criteria:
           - "AC7.3.1: Agent can invoke scrape_url tool with URL parameter"
@@ -290,10 +290,31 @@ epics:
 
   - epic_id: "epic-8"
     name: "Live Workspace (noVNC)"
-    status: "todo"
-    completion_percentage: 0
-    notes: "NoVNC server setup and UI integration pending. Foundation infrastructure in place."
-    stories: []
+    status: "in_progress"
+    completion_percentage: 20
+    notes: "First story drafted. Foundation infrastructure in place. noVNC server setup ready for development."
+    stories:
+      - story_id: "8-1-novnc-server-setup"
+        title: "noVNC Server Setup"
+        status: "ready-for-dev"
+        priority: "P0"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 7"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Foundation story for Epic 8. Set up noVNC VNC server for remote desktop access with WebSocket support. Blocks all subsequent workspace stories."
+        dependencies: ["epic-1"]
+        acceptance_criteria:
+          - "AC8.1.1: VNC server listening on :6080 (WebSocket) when noVNC service started"
+          - "AC8.1.2: Supports resolution 1920x1080 with optimal display configuration"
+          - "AC8.1.3: Framerate 30fps target achieved with performance optimization"
+          - "AC8.1.4: Compression enabled for lower bandwidth usage"
+          - "AC8.1.5: VNC password set with encrypted storage mechanism"
+          - "AC8.1.6: Integration with Docker Compose and existing infrastructure"
+          - "AC8.1.7: Health checks and monitoring implemented for service reliability"
 
   - epic_id: "epic-9"
     name: "Monitoring & DevOps"
@@ -303,7 +324,7 @@ epics:
     stories:
       - story_id: "9-1-prometheus-metrics-grafana-dashboards"
         title: "Prometheus Metrics & Grafana Dashboards"
-        status: "drafted"
+        status: "ready-for-dev"
         priority: "P0"
         estimated_points: 5
         assigned_to: "TBD"
