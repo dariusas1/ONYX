@@ -3,7 +3,7 @@
     <epicId>4</epicId>
     <storyId>2</storyId>
     <title>Standing Instructions Management</title>
-    <status>drafted</status>
+    <status>ready-for-dev</status>
     <generatedAt>2025-11-16</generatedAt>
     <generator>BMAD Story Context Workflow</generator>
     <sourceStoryPath>docs/stories/4-2-standing-instructions-management.md</sourceStoryPath>
@@ -25,16 +25,347 @@ AC4.2.6: Usage analytics and effectiveness tracking implemented
 AC4.2.7: Performance targets achieved for instruction operations</acceptanceCriteria>
 
   <artifacts>
-    <docs></docs>
-    <code></code>
-    <dependencies></dependencies>
+    <docs>
+      <doc>
+        <title>Epic 4 Technical Specification</title>
+        <file>docs/epics/epic-4-tech-spec.md</file>
+        <relevance>Provides comprehensive technical specifications for Persistent Memory &amp; Learning epic including standing instructions architecture, database schema, API design, and integration patterns with the broader ONYX system</relevance>
+        <keyPoints>
+          <point>Standing Instructions Database Schema with instruction_id PK, priority-based ordering, instruction_type enum, metadata JSONB</point>
+          <point>Three Phase Implementation: Phase 0 (Minimum Viable System), Phase 1 (Conflict Resolution), Phase 2 (Advanced Features)</point>
+          <point>API Integration with existing memory injection endpoints in onyx-core/api/memory_injection.py</point>
+          <point>Frontend Integration with existing memory management components in suna/src/components/MemoryManagement</point>
+          <point>Performance Requirements: 200ms for instruction retrieval, 500ms for conflict resolution, 95% cache hit rate</point>
+          <point>Security: User isolation, instruction validation, XSS protection, audit logging</point>
+          <point>Integration Points: Memory injection service, conversation service, user management, vector search</point>
+        </keyPoints>
+      </doc>
+      <doc>
+        <title>ONYX Architecture Documentation</title>
+        <file>docs/architecture.md</file>
+        <relevance>Overall system architecture showing where standing instructions fit into the broader ONYX ecosystem, including service boundaries, data flows, and integration patterns</relevance>
+        <keyPoints>
+          <point>Three-tier architecture with Frontend (SUNA), Core (ONYX Services), and Data (PostgreSQL + Vector DB)</point>
+          <point>Memory Management System with standing instructions as specialized memory type</point>
+          <point>Caching architecture with Redis for performance optimization</point>
+          <point>API Gateway pattern with microservice communication</point>
+        </keyPoints>
+      </doc>
+    </docs>
+    <code>
+      <codeArtifact>
+        <component>Memory Service</component>
+        <path>onyx-core/services/memory_service.py</path>
+        <relevance>Core memory management service with standing instruction validation already implemented in _validate_source_type() method, includes 'standing_instruction' as valid source_type, provides CRUD patterns to extend for instructions</relevance>
+        <interfaces>
+          <interface>create_memory() - baseline for create_instruction()</interface>
+          <interface>get_user_memories() - filtering for instruction retrieval</interface>
+          <interface>update_memory() - pattern for instruction updates</interface>
+          <interface>delete_memory() - soft delete pattern for instructions</interface>
+        </interfaces>
+        <patterns>
+          <pattern>Database connection management with context managers</pattern>
+          <pattern>Input validation with ValueError exceptions</pattern>
+          <pattern>PII detection and masking with _detect_and_mask_pii()</pattern>
+          <pattern>Duplicate detection with _find_duplicate_memory()</pattern>
+          <pattern>Access tracking with _track_access()</pattern>
+        </patterns>
+      </codeArtifact>
+      <codeArtifact>
+        <component>Memory Injection Service</component>
+        <path>onyx-core/services/memory_injection_service.py</path>
+        <relevance>Critical for standing instructions application, already has _get_top_standing_instructions() method implemented, includes priority scoring algorithm, caching mechanisms, and context-aware filtering</relevance>
+        <interfaces>
+          <interface>_get_top_standing_instructions() - retrieves top 10 instructions by priority</interface>
+          <interface>prepare_injection() - combines instructions with memories for LLM context</interface>
+          <interface>_format_for_llm() - formats instructions for agent consumption</interface>
+          <interface>get_context_aware_memories() - semantic filtering for instructions</interface>
+        </interfaces>
+        <patterns>
+          <pattern>Composite scoring algorithm with configurable weights</pattern>
+          <pattern>TTL-based caching with LRU eviction</pattern>
+          <pattern>Parallel instruction and memory fetching</pattern>
+          <pattern>Performance analytics and logging</pattern>
+        </patterns>
+      </codeArtifact>
+      <codeArtifact>
+        <component>Memory Injection API</component>
+        <path>onyx-core/api/memory_injection.py</path>
+        <relevance>REST API endpoints already exist for memory injection, includes authentication, request validation, error handling, and response patterns that can be extended for standing instructions</relevance>
+        <interfaces>
+          <interface>/context/build - builds LLM context with instruction injection</interface>
+          <interface>/injection/prepare - prepares injection for testing/debugging</interface>
+          <interface>/injection/health - health check for injection services</interface>
+          <interface>/injection/analytics - performance and usage analytics</interface>
+        </interfaces>
+        <patterns>
+          <pattern>Pydantic models for request/response validation</pattern>
+          <pattern>JWT-based authentication with require_authenticated_user</pattern>
+          <pattern>Comprehensive error handling with HTTPException</pattern>
+          <pattern>Background task processing with FastAPI BackgroundTasks</pattern>
+        </patterns>
+      </codeArtifact>
+      <codeArtifact>
+        <component>Frontend Framework</component>
+        <path>suna/package.json</path>
+        <relevance>React-based frontend with Next.js, Tailwind CSS, TypeScript, and comprehensive testing setup ready for standing instructions UI components</relevance>
+        <dependencies>
+          <dep>next: ^14.0.0 - React framework with API routes</dep>
+          <dep>react: ^18.0.0 - UI library for component development</dep>
+          <dep>typescript: ^5.3.0 - Type safety for instruction management</dep>
+          <dep>tailwindcss: ^3.4.0 - Styling system for instruction UI</dep>
+          <dep>lucide-react: ^0.294.0 - Icon library for instruction categories</dep>
+          <dep>@testing-library/react: ^14.0.0 - Component testing framework</dep>
+        </dependencies>
+      </codeArtifact>
+    </code>
+    <dependencies>
+      <python>
+        <dependency>
+          <name>fastapi</name>
+          <version>0.104.1</version>
+          <purpose>Web framework for standing instructions API endpoints</purpose>
+        </dependency>
+        <dependency>
+          <name>psycopg2-binary</name>
+          <version>2.9.9</version>
+          <purpose>PostgreSQL driver for instruction database operations</purpose>
+        </dependency>
+        <dependency>
+          <name>asyncpg</name>
+          <version>0.29.0</version>
+          <purpose>Async PostgreSQL operations for high performance</purpose>
+        </dependency>
+        <dependency>
+          <name>redis</name>
+          <version>5.0.1</version>
+          <purpose>Caching for instruction retrieval and performance optimization</purpose>
+        </dependency>
+        <dependency>
+          <name>pydantic</name>
+          <version>2.5.0</version>
+          <purpose>Data validation and serialization for instruction models</purpose>
+        </dependency>
+        <dependency>
+          <name>cryptography</name>
+          <version>42.0.8</version>
+          <purpose>Instruction content encryption and security</purpose>
+        </dependency>
+      </python>
+      <nodejs>
+        <dependency>
+          <name>next</name>
+          <version>^14.0.0</version>
+          <purpose>React framework for standing instructions UI</purpose>
+        </dependency>
+        <dependency>
+          <name>react</name>
+          <version>^18.0.0</version>
+          <purpose>Component library for instruction management interface</purpose>
+        </dependency>
+        <dependency>
+          <name>typescript</name>
+          <version>^5.3.0</version>
+          <purpose>Type safety for instruction data structures</purpose>
+        </dependency>
+        <dependency>
+          <name>lucide-react</name>
+          <version>^0.294.0</version>
+          <purpose>Icon library for instruction categories</purpose>
+        </dependency>
+      </nodejs>
+    </dependencies>
   </artifacts>
 
-  <constraints></constraints>
-  <interfaces></interfaces>
+  <constraints>
+    <technical>
+      <constraint>Must integrate with existing memory injection service without breaking changes</constraint>
+      <constraint>Standing instructions must follow existing memory service patterns for consistency</constraint>
+      <constraint>API endpoints must follow existing RESTful patterns and authentication</constraint>
+      <constraint>Frontend components must use existing design system (Tailwind CSS, lucide-react icons)</constraint>
+      <constraint>Database schema must be compatible with existing PostgreSQL setup</constraint>
+      <constraint>Must achieve sub-200ms instruction retrieval performance targets</constraint>
+      <constraint>Cache hit rate must exceed 95% for optimal performance</constraint>
+    </technical>
+    <business>
+      <constraint>User instructions must be isolated and secure</constraint>
+      <constraint>Must support priority-based conflict resolution</constraint>
+      <constraint>Instruction categories must be user-customizable with 5 default options</constraint>
+      <constraint>Must provide comprehensive usage analytics</constraint>
+      <constraint>Must support context-aware instruction evaluation</constraint>
+    </business>
+  </constraints>
+
+  <interfaces>
+    <internal>
+      <interface>
+        <name>Memory Injection Service Integration</name>
+        <type>Service-to-Service</type>
+        <protocol>Python Function Calls</protocol>
+        <description>Standing instructions service integrates with memory injection service to provide instruction context to LLM</description>
+        <methods>
+          <method>_get_top_standing_instructions() - retrieves prioritized instructions</method>
+          <method>prepare_injection() - includes instructions in LLM context</method>
+        </methods>
+      </interface>
+      <interface>
+        <name>Database Schema Integration</name>
+        <type>Data Layer</type>
+        <protocol>PostgreSQL</protocol>
+        <description>Standing instructions table integrated with existing memory database schema</description>
+        <tables>
+          <table>standing_instructions - new table following memory patterns</table>
+          <table>user_memories - existing table with standing_instruction source_type</table>
+          <table>memory_categories - existing categories can be extended for instructions</table>
+        </tables>
+      </interface>
+    </internal>
+    <external>
+      <interface>
+        <name>Standing Instructions API</name>
+        <type>REST API</type>
+        <protocol>HTTP/JSON</protocol>
+        <description>RESTful API endpoints for instruction CRUD operations, management, and analytics</description>
+        <endpoints>
+          <endpoint>POST /api/instructions - create new instruction</endpoint>
+          <endpoint>GET /api/instructions - list user instructions with filtering</endpoint>
+          <endpoint>PUT /api/instructions/{id} - update existing instruction</endpoint>
+          <endpoint>DELETE /api/instructions/{id} - soft delete instruction</endpoint>
+          <endpoint>GET /api/instructions/analytics - usage statistics</endpoint>
+        </endpoints>
+      </interface>
+      <interface>
+        <name>Frontend UI Components</name>
+        <type>React Components</type>
+        <protocol>Component Props/State</protocol>
+        <description>React components for instruction management interface integrated with existing memory management UI</description>
+        <components>
+          <component>InstructionManager - main instruction management component</component>
+          <component>InstructionForm - create/edit instruction form</component>
+          <component>InstructionList - instruction listing with filtering</component>
+          <component>InstructionAnalytics - usage and effectiveness dashboard</component>
+        </components>
+      </interface>
+    </external>
+  </interfaces>
+
   <tests>
-    <standards></standards>
-    <locations></locations>
-    <ideas></ideas>
+    <standards>
+      <standard>
+        <name>Unit Testing</name>
+        <framework>pytest</framework>
+        <pattern>Follow memory service test patterns in onyx-core/tests/unit/test_memory_service.py</pattern>
+        <coverage>95% code coverage required for instruction service</coverage>
+        <patterns>
+          <pattern>Async test methods with @pytest.mark.asyncio</pattern>
+          <pattern>Mock database connections with AsyncMock</pattern>
+          <pattern>Comprehensive input validation testing</pattern>
+          <pattern>Performance testing for instruction retrieval</pattern>
+          <pattern>Error handling and edge case validation</pattern>
+        </patterns>
+      </standard>
+      <standard>
+        <name>Integration Testing</name>
+        <framework>pytest + FastAPI TestClient</framework>
+        <pattern>Test API endpoints with authentication and authorization</pattern>
+        <coverage>All REST endpoints must have integration tests</coverage>
+        <patterns>
+          <pattern>Test instruction creation, retrieval, update, deletion</pattern>
+          <pattern>Test memory injection service integration</pattern>
+          <pattern>Test database transaction rollback on errors</pattern>
+          <pattern>Test concurrent instruction operations</pattern>
+        </patterns>
+      </standard>
+      <standard>
+        <name>Frontend Testing</name>
+        <framework>@testing-library/react + Jest</framework>
+        <pattern>Component testing following React Testing Library best practices</pattern>
+        <coverage>90% component coverage required</coverage>
+        <patterns>
+          <pattern>User interaction testing with user-event</pattern>
+          <pattern>Form validation and submission testing</pattern>
+          <pattern>Component state management testing</pattern>
+          <pattern>API integration testing with mocks</pattern>
+          <pattern>Accessibility testing with jest-axe</pattern>
+        </patterns>
+      </standard>
+      <standard>
+        <name>Performance Testing</name>
+        <framework>Custom performance tests</framework>
+        <pattern>Load testing for instruction retrieval and caching</pattern>
+        <coverage>Must meet 200ms retrieval and 500ms conflict resolution targets</coverage>
+        <patterns>
+          <pattern>Concurrent instruction access testing</pattern>
+          <pattern>Cache hit rate validation</pattern>
+          <pattern>Memory usage monitoring</pattern>
+          <pattern>Database query performance testing</pattern>
+        </patterns>
+      </standard>
+    </standards>
+    <locations>
+      <location>
+        <name>Backend Tests</name>
+        <path>onyx-core/tests/unit/test_standing_instructions_service.py</path>
+        <description>Unit tests for standing instructions service following memory service patterns</description>
+      </location>
+      <location>
+        <name>Integration Tests</name>
+        <path>onyx-core/tests/integration/test_standing_instructions_api.py</path>
+        <description>API endpoint integration tests with authentication and database</description>
+      </location>
+      <location>
+        <name>Frontend Tests</name>
+        <path>suna/src/components/Instructions/__tests__/</path>
+        <description>React component tests for instruction management interface</description>
+      </location>
+      <location>
+        <name>Performance Tests</name>
+        <path>onyx-core/tests/performance/test_instruction_performance.py</path>
+        <description>Performance validation tests for instruction operations</description>
+      </location>
+    </locations>
+    <ideas>
+      <idea>
+        <name>Instruction Conflict Resolution Testing</name>
+        <description>Test scenarios for priority-based instruction conflicts, edge cases, and resolution algorithms</description>
+        <testCases>
+          <testCase>High priority instruction overrides conflicting low priority</testCase>
+          <testCase>Equal priority instructions use chronological ordering</testCase>
+          <testCase>Context-aware filtering with semantic matching</testCase>
+          <testCase>Instruction category precedence testing</testCase>
+        </testCases>
+      </idea>
+      <idea>
+        <name>Caching Performance Testing</name>
+        <description>Comprehensive cache testing including hit rates, TTL validation, and cache invalidation</description>
+        <testCases>
+          <testCase>Cache hit rate exceeds 95% under normal load</testCase>
+          <testCase>Cache invalidation on instruction updates</testCase>
+          <testCase>LRU eviction under memory pressure</testCase>
+          <testCase>Concurrent cache access performance</testCase>
+        </testCases>
+      </idea>
+      <idea>
+        <name>Security Testing</name>
+        <description>Test instruction isolation, XSS prevention, and authorization boundaries</description>
+        <testCases>
+          <testCase>User cannot access other users' instructions</testCase>
+          <testCase>XSS injection prevention in instruction content</testCase>
+          <thetaCase>SQL injection prevention in instruction queries</testCase>
+          <testCase>Instruction content size limits validation</testCase>
+        </testCases>
+      </idea>
+      <idea>
+        <name>UI/UX Testing</name>
+        <description>User interface testing for instruction management workflow</description>
+        <testCases>
+          <testCase>Instruction creation form validation</testCase>
+          <testCase>Instruction list filtering and sorting</testCase>
+          <testCase>Priority ordering interface</testCase>
+          <testCase>Category selection with icons</testCase>
+          <testCase>Analytics dashboard functionality</testCase>
+        </testCases>
+      </idea>
+    </ideas>
   </tests>
 </story-context>
