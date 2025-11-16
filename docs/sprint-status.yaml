@@ -153,8 +153,8 @@ epics:
   - epic_id: "epic-6"
     name: "Google Workspace Tools"
     status: "in_progress"
-    completion_percentage: 80
-    notes: "OAuth2 setup complete and first Google Docs tool drafted. Ready for development of Stories 6.2-6.5 Google Workspace API integrations."
+    completion_percentage: 85
+    notes: "OAuth2 setup complete and Google Docs creation/editing tools drafted. Ready for development of Stories 6.4-6.7 Google Workspace API integrations. Comprehensive editing capabilities specified with version history and formatting preservation."
     stories:
       - story_id: "6-1-oauth2-setup-integration"
         title: "OAuth2 Setup & Integration"
@@ -200,6 +200,31 @@ epics:
           - "AC6.2.8: Performance target: document creation completes in <2 seconds"
           - "AC6.2.9: Document metadata tracked (creation time, agent, task context)"
           - "AC6.2.10: Integration with existing OAuth2 foundation for authentication"
+
+      - story_id: "6-3-google-docs-editing-capabilities"
+        title: "Google Docs Editing Capabilities"
+        status: "ready-for-dev"
+        priority: "P0"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 8"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Google Docs editing capabilities with comprehensive story-context workflow completed. Agent tool interface for editing existing documents with content insertion, replacement, and formatting updates. Builds on OAuth2 foundation and document creation from Stories 6.1-6.2. Includes 10 acceptance criteria covering editing operations, version history, and performance targets. Context XML generated with all relevant project artifacts including OAuth2 service, Google Docs API v1 patterns, batchUpdate operations, and integration constraints. Ready for development with 8 main tasks and 32 subtasks."
+        dependencies: ["6-1-oauth2-setup-integration", "6-2-google-docs-creation-tools"]
+        acceptance_criteria:
+          - "AC6.3.1: Agent can invoke edit_google_doc tool with document_id and action parameters"
+          - "AC6.3.2: Document content insertion works at specified positions (beginning, middle, end)"
+          - "AC6.3.3: Text replacement functionality updates existing content within specified ranges"
+          - "AC6.3.4: Formatting updates preserve Google Docs structure (headings, lists, bold, italics)"
+          - "AC6.3.5: All changes are tracked in Google Docs version history for audit trails"
+          - "AC6.3.6: Error handling manages permission issues, invalid document IDs, and API failures"
+          - "AC6.3.7: Performance target: document editing operations complete in <2 seconds"
+          - "AC6.3.8: Integration with OAuth2 foundation for secure authentication and token management"
+          - "AC6.3.9: Markdown input properly converted to Google Docs format during editing"
+          - "AC6.3.10: Document metadata updated with edit timestamp and agent context"
 
   - epic_id: "epic-7"
     name: "Web Automation & Search"
@@ -321,16 +346,16 @@ epics:
     stories:
       - story_id: "8-1-novnc-server-setup"
         title: "noVNC Server Setup"
-        status: "ready-for-dev"
+        status: "changes-requested"
         priority: "P0"
         estimated_points: 8
         assigned_to: "TBD"
         sprint: "Sprint 7"
         created_date: "2025-11-15"
-        started_date: null
+        started_date: "2025-11-15"
         completed_date: null
-        blocked_reason: null
-        notes: "Foundation story for Epic 8. Set up noVNC VNC server for remote desktop access with WebSocket support. Blocks all subsequent workspace stories."
+        blocked_reason: "Critical security gaps identified: Default VNC password exposure, missing SSL/TLS, insufficient access control. 3 HIGH severity security issues require immediate attention before production deployment."
+        notes: "Senior Developer Review (2025-11-15): CHANGES REQUESTED - Excellent engineering foundation (9/10 quality) with 6 of 7 ACs implemented, but critical security gaps prevent production readiness. 3 HIGH severity issues: (1) Default password exposure, (2) Missing SSL/TLS, (3) Insufficient access control. Estimated 1-2 days additional work for security hardening. Blocks all subsequent workspace stories until security issues resolved."
         dependencies: ["epic-1"]
         acceptance_criteria:
           - "AC8.1.1: VNC server listening on :6080 (WebSocket) when noVNC service started"
@@ -488,10 +513,10 @@ sprint_summary:
     - "Integrate browser automation, web search, content extraction"
 
   story_count:
-    total: 18  # Updated: added 4 stories for Epic 4 + Story 5.1 + Story 6.2
+    total: 19
     todo: 9
-    drafted: 6  # Updated: added 4 stories for Epic 4 + Story 5.1 + Story 6.2 + 1 for Epic 9
-    ready: 1
+    drafted: 6  # Story 6.3 moved to ready-for-dev
+    ready: 2     # Story 6.3 now ready-for-dev
     in_progress: 0
     in_review: 0
     done: 2

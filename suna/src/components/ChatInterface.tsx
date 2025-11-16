@@ -4,7 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { MessageList, Message } from './MessageList';
 import { InputBox } from './InputBox';
-import { useModeOperations } from '../hooks/useMode';
+import { useMode } from '../contexts/ModeContext';
 
 export interface ChatInterfaceProps {
   conversationId?: string;
@@ -20,7 +20,12 @@ export function ChatInterface({
   const [isStreaming, setIsStreaming] = useState(false);
 
   // Mode operations for Agent Mode functionality
-  const { isAgentMode, isTransitioning, getAgentModeWarning } = useModeOperations();
+  const { isAgentMode, isLoading } = useMode();
+
+  // Get Agent Mode warning message
+  const getAgentModeWarning = () => {
+    return 'Agent will execute actions. Review approval gates.';
+  };
 
   // Note: conversationId will be used in Story 2.3 for message persistence
 
@@ -64,7 +69,7 @@ export function ChatInterface({
           className={`
             flex items-center gap-3 px-4 py-3 bg-yellow-500/10 border-b border-yellow-500/20
             transition-all duration-300 ease-in-out
-            ${isTransitioning ? 'opacity-50' : 'opacity-100'}
+            ${isLoading ? 'opacity-50' : 'opacity-100'}
           `}
           role="alert"
           aria-live="polite"

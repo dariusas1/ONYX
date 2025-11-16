@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
 import { Send, Play } from 'lucide-react';
-import { useModeOperations } from '../hooks/useMode';
+import { useMode } from '../contexts/ModeContext';
 
 export interface InputBoxProps {
   value: string;
@@ -24,12 +24,13 @@ export function InputBox({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Mode operations for dynamic UI changes
-  const {
-    isAgentMode,
-    isTransitioning,
-    getButtonText,
-    getInputPlaceholder,
-  } = useModeOperations();
+  const { isAgentMode, isLoading } = useMode();
+
+  // Mode-specific placeholders and text
+  const getButtonText = () => isAgentMode ? 'Execute Task' : 'Send';
+  const getInputPlaceholder = () => isAgentMode
+    ? 'Describe the task you want the agent to execute...'
+    : 'Type your message...';
 
   // Use mode-specific placeholder
   const placeholder = getInputPlaceholder();

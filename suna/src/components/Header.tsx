@@ -2,13 +2,15 @@
 
 import React from 'react';
 import { Menu } from 'lucide-react';
-import { ToggleSwitch } from './ToggleSwitch/ToggleSwitch';
+import { useMode } from '../contexts/ModeContext';
+import ToggleSwitch from './ToggleSwitch/ToggleSwitch';
 
 export interface HeaderProps {
   className?: string;
 }
 
 export function Header({ className = '' }: HeaderProps) {
+  const { isAgentMode, toggleMode } = useMode();
   return (
     <header
       className={`flex items-center justify-between px-4 py-3 border-b border-manus-border bg-manus-surface ${className}`}
@@ -28,7 +30,12 @@ export function Header({ className = '' }: HeaderProps) {
       <div className="flex items-center gap-3">
         {/* Agent Mode Toggle */}
         <div className="flex items-center">
-          <ToggleSwitch size="sm" showLabel={false} />
+          <ToggleSwitch
+            isAgentMode={isAgentMode}
+            onToggle={toggleMode}
+            size="sm"
+            showLabel={false}
+          />
         </div>
 
         {/* User menu */}

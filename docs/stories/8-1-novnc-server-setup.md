@@ -1,7 +1,7 @@
 # Story 8-1: noVNC Server Setup
 
 **Epic:** Epic 8 - Live Workspace (noVNC)
-**Status:** ready-for-dev
+**Status:** changes-requested
 **Priority:** P0
 **Estimated Points:** 8
 **Sprint:** Sprint 7
@@ -245,6 +245,10 @@ The noVNC server setup implementation demonstrates **excellent engineering pract
 - Note: Consider adding user session management database integration
 - Note: Implement bandwidth throttling for multiple concurrent users
 - Note: Add automated security scanning in CI/CD pipeline
+
+## Change Log
+
+**2025-11-15 (v1.0)** - Senior Developer Review (AI) notes appended. Status updated: ready-for-dev → changes-requested due to critical security gaps identified.
 
 ---
 **Created Date:** 2025-11-15

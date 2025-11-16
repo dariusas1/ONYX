@@ -7,9 +7,70 @@ set -e
 
 echo "Starting noVNC service setup..."
 
-# Function to generate encrypted VNC password
+# Function to validate password strength
+validate_password_strength() {
+    local password="$1"
+    local min_length=12
+
+    # Check minimum length
+    if [[ ${#password} -lt $min_length ]]; then
+        echo "ERROR: VNC password must be at least $min_length characters long"
+        return 1
+    fi
+
+    # Check for complexity (at least one uppercase, lowercase, digit, and special character)
+    if [[ ! "$password" =~ [A-Z] ]]; then
+        echo "ERROR: VNC password must contain at least one uppercase letter"
+        return 1
+    fi
+
+    if [[ ! "$password" =~ [a-z] ]]; then
+        echo "ERROR: VNC password must contain at least one lowercase letter"
+        return 1
+    fi
+
+    if [[ ! "$password" =~ [0-9] ]]; then
+        echo "ERROR: VNC password must contain at least one digit"
+        return 1
+    fi
+
+    if [[ ! "$password" =~ [^a-zA-Z0-9] ]]; then
+        echo "ERROR: VNC password must contain at least one special character"
+        return 1
+    fi
+
+    # Check for common weak passwords
+    local weak_patterns=("password" "123456" "qwerty" "admin" "welcome" "onyx")
+    for pattern in "${weak_patterns[@]}"; do
+        if [[ "${password,,}" == *"$pattern"* ]]; then
+            echo "ERROR: VNC password contains common weak pattern '$pattern'"
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+# Function to generate encrypted VNC password with security requirements
 generate_vnc_password() {
+    # CRITICAL SECURITY: Require VNC_PASSWORD to be set
+    if [[ "${VNC_PASSWORD_REQUIRED}" == "true" && -z "${VNC_PASSWORD}" ]]; then
+        echo "ERROR: VNC_PASSWORD environment variable is required but not set"
+        echo "ERROR: For security reasons, VNC_PASSWORD must be explicitly provided"
+        echo "ERROR: Set a strong password (12+ chars with uppercase, lowercase, digits, special chars)"
+        exit 1
+    fi
+
     if [[ -n "${VNC_PASSWORD}" ]]; then
+        echo "Validating VNC password strength..."
+
+        # Validate password strength
+        if ! validate_password_strength "${VNC_PASSWORD}"; then
+            echo "ERROR: VNC password validation failed"
+            echo "ERROR: Please set a stronger VNC_PASSWORD meeting all security requirements"
+            exit 1
+        fi
+
         echo "Setting VNC password..."
         # Create password file using x11vnc format
         mkdir -p "$(dirname "$VNC_PASSWORD_FILE")"
@@ -17,7 +78,7 @@ generate_vnc_password() {
         chmod 600 "${VNC_PASSWORD_FILE}"
         echo "VNC password configured successfully"
     else
-        echo "WARNING: No VNC_PASSWORD set, using no password"
+        echo "WARNING: No VNC_PASSWORD set - this is not recommended for production"
     fi
 }
 
@@ -335,20 +396,111 @@ python3 -m websockify --web=/usr/share/novnc \
     :${NO_VNC_PORT:-6080} &
 WEBSOCKET_PID=$!
 
-# Function to cleanup on exit
-cleanup() {
-    echo "Shutting down services..."
-    kill $VNC_PID $WEBSOCKET_PID $METRICS_PID 2>/dev/null || true
-    exit 0
+# Function to log detailed error information
+log_error() {
+    local error_code="$1"
+    local error_message="$2"
+    local component="$3"
+
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $error_message" | tee -a /var/log/onyx/novnc-errors.log
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR_CODE: $error_code" | tee -a /var/log/onyx/novnc-errors.log
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] COMPONENT: $component" | tee -a /var/log/onyx/novnc-errors.log
+
+    # Send to metrics endpoint if available
+    if [[ -n "$METRICS_PORT" ]]; then
+        echo "vnc_errors_total{component=\"$component\",code=\"$error_code\"} 1" | curl -X POST http://localhost:$METRICS_PORT/metrics -d @- 2>/dev/null || true
+    fi
 }
 
-# Set up signal handlers
-trap cleanup SIGTERM SIGINT
+# Function to cleanup on exit with enhanced logging
+cleanup() {
+    local exit_code=$1
 
-# Wait for services
-wait
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Starting graceful shutdown of noVNC services..."
 
-echo "noVNC service stopped"
+    # Log which processes are being terminated
+    if [[ -n "$VNC_PID" ]] && kill -0 $VNC_PID 2>/dev/null; then
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Terminating VNC server (PID: $VNC_PID)"
+        kill -TERM $VNC_PID 2>/dev/null || log_error "VNC_SHUTDOWN_FAIL" "Failed to terminate VNC server" "vnc-server"
+        sleep 3
+        kill -KILL $VNC_PID 2>/dev/null || true
+    fi
+
+    if [[ -n "$WEBSOCKET_PID" ]] && kill -0 $WEBSOCKET_PID 2>/dev/null; then
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Terminating WebSocket server (PID: $WEBSOCKET_PID)"
+        kill -TERM $WEBSOCKET_PID 2>/dev/null || log_error "WEBSOCKET_SHUTDOWN_FAIL" "Failed to terminate WebSocket server" "websocket-server"
+        sleep 2
+        kill -KILL $WEBSOCKET_PID 2>/dev/null || true
+    fi
+
+    if [[ -n "$METRICS_PID" ]] && kill -0 $METRICS_PID 2>/dev/null; then
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Terminating metrics endpoint (PID: $METRICS_PID)"
+        kill -TERM $METRICS_PID 2>/dev/null || log_error "METRICS_SHUTDOWN_FAIL" "Failed to terminate metrics endpoint" "metrics-endpoint"
+        sleep 1
+        kill -KILL $METRICS_PID 2>/dev/null || true
+    fi
+
+    # Cleanup session data if requested
+    if [[ "${CLEANUP_SESSION_ON_SHUTDOWN}" == "true" ]]; then
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: Cleaning up session data"
+        rm -rf /tmp/vnc-session/* 2>/dev/null || true
+    fi
+
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: noVNC services shutdown complete"
+    exit ${exit_code:-0}
+}
+
+# Function to handle service health monitoring
+monitor_service_health() {
+    while true; do
+        # Check VNC server health
+        if [[ -n "$VNC_PID" ]]; then
+            if ! kill -0 $VNC_PID 2>/dev/null; then
+                log_error "VNC_PROCESS_DIED" "VNC server process died unexpectedly" "vnc-server"
+                cleanup 1
+            fi
+        fi
+
+        # Check WebSocket server health
+        if [[ -n "$WEBSOCKET_PID" ]]; then
+            if ! kill -0 $WEBSOCKET_PID 2>/dev/null; then
+                log_error "WEBSOCKET_PROCESS_DIED" "WebSocket server process died unexpectedly" "websocket-server"
+                cleanup 1
+            fi
+        fi
+
+        # Check memory usage
+        local memory_usage=$(ps -o rss= -p $VNC_PID 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
+        if [[ $memory_usage -gt $((1024 * 1024 * 2)) ]]; then  # 2GB limit
+            log_error "HIGH_MEMORY_USAGE" "VNC server memory usage too high: ${memory_usage}KB" "vnc-server"
+        fi
+
+        sleep 30
+    done
+}
+
+# Set up enhanced signal handlers
+trap 'cleanup 0' SIGTERM
+trap 'cleanup 130' SIGINT
+trap 'log_error "UNKNOWN_SIGNAL" "Received unexpected signal" "system"; cleanup 1' SIGUSR1 SIGUSR2
+
+# Start health monitoring in background
+monitor_service_health &
+MONITOR_PID=$!
+
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: noVNC services started successfully"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: VNC PID: $VNC_PID, WebSocket PID: $WEBSOCKET_PID, Metrics PID: $METRICS_PID, Monitor PID: $MONITOR_PID"
+
+# Wait for services with error handling
+wait $VNC_PID
+vnc_exit_code=$?
+
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: VNC server exited with code: $vnc_exit_code"
+
+# Kill remaining processes
+cleanup $vnc_exit_code
+
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] INFO: noVNC service stopped"
 EOF
 
     chmod +x /home/novncuser/start-service.sh

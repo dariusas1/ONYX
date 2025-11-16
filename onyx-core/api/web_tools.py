@@ -22,7 +22,7 @@ from datetime import datetime
 from services.scraper_service import ScraperService, ScrapedContent
 from services.cache_manager import CacheManager
 from services.browser_manager import BrowserManager
-from services.auth import require_authenticated_user  # Assuming auth exists
+from utils.auth import require_authenticated_user
 
 logger = logging.getLogger(__name__)
 

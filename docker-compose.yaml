@@ -99,6 +99,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init-postgres.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - ./docker/migrations/002-google-drive-sync.sql:/docker-entrypoint-initdb.d/02-google-drive-sync.sql
+      - ./docker/migrations/005-memory-system-schema.sql:/docker-entrypoint-initdb.d/03-memory-system-schema.sql
     networks:
       - manus-network
     healthcheck:
@@ -333,9 +334,10 @@ services:
       VNC_QUALITY: 8
       VNC_PIXFORMAT: rgb888
 
-      # Security
-      VNC_PASSWORD: ${VNC_PASSWORD:-onyx-vnc-2024}
+      # Security - CRITICAL: No weak default passwords
       VNC_PASSWORD_FILE: /tmp/vnc-passwd
+      # Require explicit VNC_PASSWORD - fail startup if not set
+      VNC_PASSWORD_REQUIRED: "true"
 
       # Metrics
       METRICS_PORT: 9091
@@ -351,11 +353,13 @@ services:
     volumes:
       - ./novnc:/home/novncuser
       - novnc_home:/root
+      - novnc_session:/tmp/vnc-session  # User session persistence
       - ./logs/novnc:/var/log/onyx
     networks:
       - manus-network
-    mem_limit: 1g
-    cpus: 1.0
+    # Production-ready resource limits for 1920x1080@30fps
+    mem_limit: 2g
+    cpus: 2.0
     command: /home/novncuser/startup.sh
     logging:
       driver: "json-file"
@@ -392,4 +396,6 @@ volumes:
   grafana_data:
     driver: local
   novnc_home:
+    driver: local
+  novnc_session:
     driver: local
