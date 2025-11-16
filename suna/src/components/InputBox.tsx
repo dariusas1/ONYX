@@ -122,7 +122,7 @@ export function InputBox({
                 ? 'opacity-50 cursor-not-allowed'
                 : 'hover:opacity-80'
               }
-              ${isTransitioning ? 'scale-95' : 'scale-100'}
+              ${isLoading ? 'scale-95' : 'scale-100'}
             `}
             aria-label={isAgentMode ? 'Execute task' : 'Send message'}
             title={isAgentMode ? 'Execute task (Enter)' : 'Send message (Enter)'}
