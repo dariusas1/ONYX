@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { MessageList, Message } from './MessageList';
 import { InputBox } from './InputBox';
+import { MemoryInjectionNotification, useMemoryInjectionNotification } from './MemoryInjectionNotification';
 import { useMode } from '../contexts/ModeContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { WorkspacePanel } from './WorkspacePanel/WorkspacePanel';
@@ -20,6 +21,10 @@ export function ChatInterface({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+
+  // Memory injection notification hook
+  const { injection, showNotification, hideNotification } = useMemoryInjectionNotification();
 
   // Mode operations for Agent Mode functionality
   const { isAgentMode, isLoading } = useMode();
@@ -32,10 +37,54 @@ export function ChatInterface({
     return 'Agent will execute actions. Review approval gates.';
   };
 
-  // Note: conversationId will be used in Story 2.3 for message persistence
+  // Generate conversation ID when needed
+  useEffect(() => {
+    if (!currentConversationId) {
+      const newConversationId = `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      setCurrentConversationId(newConversationId);
+    }
+  }, [currentConversationId]);
 
-  // Handle message submission
-  // Note: Full streaming implementation will be added in Story 2.4
+  // Prepare memory injection for conversation start
+  const prepareMemoryInjection = useCallback(async (message: string) => {
+    if (!currentConversationId) return;
+
+    try {
+      // Call memory injection API to prepare context
+      const response = await fetch('/api/injection/prepare', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversation_id: currentConversationId,
+          current_message: message,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          // Show memory injection notification
+          showNotification({
+            memories_count: data.data.memories?.length || 0,
+            instructions_count: data.data.standing_instructions?.length || 0,
+            injection_time_ms: data.data.injection_time_ms || 0,
+            performance_stats: {
+              cache_hit: data.data.performance_stats?.cache_hit || false,
+              memories: data.data.memories?.slice(0, 5) || [], // Show top 5 in notification
+              instructions: data.data.standing_instructions?.slice(0, 3) || [], // Show top 3 in notification
+            },
+          });
+        }
+      }
+    } catch (error) {
+      console.warn('Memory injection preparation failed:', error);
+      // Continue without memory injection on error
+    }
+  }, [currentConversationId, showNotification]);
+
+  // Handle message submission with memory injection
   const handleSubmit = useCallback(
     async (message: string) => {
       // Add user message to the list
@@ -49,13 +98,16 @@ export function ChatInterface({
       setMessages((prev) => [...prev, userMessage]);
       setIsStreaming(true);
 
+      // Prepare memory injection for this message
+      await prepareMemoryInjection(message);
+
       // Simulate streaming response (placeholder for Story 2.4)
-      // In Story 2.4, this will be replaced with actual LiteLLM streaming
+      // In Story 2.4, this will be replaced with actual LiteLLM streaming with memory context
       setTimeout(() => {
         const assistantMessage: Message = {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
-          content: `I received your message: "${message}". Full streaming and AI response functionality will be implemented in Story 2.4 (Message Streaming & Real-Time Response Display).`,
+          content: `I received your message: "${message}". Full streaming and AI response functionality with memory injection context will be implemented in Story 2.4 (Message Streaming & Real-Time Response Display).`,
           timestamp: new Date(),
         };
 
@@ -63,7 +115,7 @@ export function ChatInterface({
         setIsStreaming(false);
       }, 1500);
     },
-    []
+    [prepareMemoryInjection]
   );
 
   return (
@@ -106,6 +158,12 @@ export function ChatInterface({
       <WorkspacePanel
         isOpen={isWorkspaceVisible}
         onToggle={toggleWorkspace}
+      />
+
+      {/* Memory Injection Notification */}
+      <MemoryInjectionNotification
+        injection={injection}
+        onDismiss={hideNotification}
       />
     </>
   );
