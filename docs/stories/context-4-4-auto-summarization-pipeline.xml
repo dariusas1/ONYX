@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-id>4-4-auto-summarization-pipeline</story-id>
+  <title>Auto-Summarization Pipeline</title>
+  <epic>Epic 4 - Persistent Memory &amp; Learning</epic>
+  <status>ready-for-dev</status>
+  <priority>P1</priority>
+  <estimated-points>8</estimated-points>
+
+  <!-- Story Overview -->
+  <overview>
+    <summary>Auto-summarization pipeline that generates concise summaries of conversations every 10 messages using DeepSeek LLM, with background processing via BullMQ and Redis, achieving &gt;95% success rate with comprehensive error handling and monitoring.</summary>
+    <description>This story implements the auto-summarization pipeline that automatically generates concise summaries of conversations every 10 messages. The pipeline extracts key topics, decisions, and action items from conversation segments, stores them as high-quality memories, and ensures that important context from long conversations is preserved for future reference.</description>
+  </overview>
+
+  <!-- Dependencies -->
+  <dependencies>
+    <dependency id="4-1-memory-schema-storage-system" status="completed">
+      <description>Foundation memory system with database schema and CRUD operations</description>
+    </dependency>
+    <dependency id="4-3-memory-injection-agent-integration" status="completed">
+      <description>Memory injection service for LLM context preparation</description>
+    </dependency>
+  </dependencies>
+
+  <!-- Technical Architecture -->
+  <architecture>
+    <pipeline-flow>
+      <step id="1" name="Trigger Detection">
+        <description>Every 10 messages, trigger summarization with message count monitoring</description>
+        <component>SummarizationTriggerService</component>
+      </step>
+      <step id="2" name="Context Fetching">
+        <description>Retrieve last 10 messages from conversation</description>
+        <component>MessageRepository</component>
+      </step>
+      <step id="3" name="LLM Summarization">
+        <description>Generate concise 2-3 sentence summary using DeepSeek via LiteLLM proxy</description>
+        <component>ConversationSummarizer</component>
+      </step>
+      <step id="4" name="Topic Extraction">
+        <description>Extract 3-5 key topics using LLM</description>
+        <component>TopicExtractor</component>
+      </step>
+      <step id="5" name="Sentiment Analysis">
+        <description>Analyze conversation sentiment (-1 to +1 scale)</description>
+        <component>SentimentAnalyzer</component>
+      </step>
+      <step id="6" name="Memory Storage">
+        <description>Store summary as memory with metadata in 'summary' category</description>
+        <component>SummaryMemoryStorage</component>
+      </step>
+      <step id="7" name="Background Processing">
+        <description>Async processing with BullMQ job queue</description>
+        <component>BullQueueProcessor</component>
+      </step>
+    </pipeline-flow>
+  </architecture>
+
+  <!-- Existing Components Integration -->
+  <existing-components>
+    <!-- Memory System Components -->
+    <component name="MemoryService" file="onyx-core/services/memory_service.py">
+      <description>Core memory CRUD operations with database integration</description>
+      <methods>
+        <method name="create_memory">Creates new memory records with validation</method>
+        <method name="get_memory">Retrieves specific memory by ID</method>
+        <method name="update_memory">Updates existing memory records</method>
+        <method name="get_user_memories">Gets filtered memories for user</method>
+      </methods>
+      <database-connection>PostgreSQL with psycopg2</database-connection>
+    </component>
+
+    <component name="MemoryInjectionService" file="onyx-core/services/memory_injection_service.py">
+      <description>Memory injection for LLM context preparation with caching</description>
+      <methods>
+        <method name="prepare_injection">Prepares memory injection for LLM context</method>
+        <method name="_get_top_memories">Retrieves top 5 memories using composite scoring</method>
+        <method name="_format_for_llm">Formats memories for LLM consumption</method>
+      </methods>
+      <cache-type>In-memory with 5-minute TTL</cache-type>
+    </component>
+
+    <component name="Memory Types" file="suna/src/lib/types/memory.ts">
+      <description>TypeScript interfaces for memory system</description>
+      <types>
+        <type name="Memory">Core memory interface with metadata</type>
+        <type name="MemoryCategory">Enum: priority, decision, context, preference, relationship, goal, summary</type>
+        <type name="SourceType">Enum: manual, extracted_from_chat, auto_summary, standing_instruction</type>
+      </types>
+    </component>
+
+    <!-- Database Components -->
+    <component name="Database" file="suna/src/lib/database.ts">
+      <description>PostgreSQL connection pool and query utilities</description>
+      <connection-pool>
+        <max-connections>20</max-connections>
+        <timeout>2000ms</timeout>
+        <idle-timeout>30000ms</idle-timeout>
+      </connection-pool>
+      <tables>
+        <table name="conversations">Chat conversations with metadata</table>
+        <table name="messages">Individual messages with full-text search</table>
+        <table name="user_memories">Memory storage system</table>
+      </tables>
+    </component>
+
+    <!-- Infrastructure Components -->
+    <component name="Docker Compose" file="docker-compose.yaml">
+      <description>Orchestration of all services</description>
+      <services>
+        <service name="redis" port="6379">Cache and job queue backend</service>
+        <service name="postgres" port="5432">Primary database</service>
+        <service name="litellm-proxy" port="4000">LLM routing with DeepSeek integration</service>
+        <service name="onyx-core" port="8080">Python backend API</service>
+        <service name="suna" port="3000">Next.js frontend</service>
+      </services>
+    </component>
+
+    <!-- Frontend Components -->
+    <component name="Memory Service Client" file="suna/src/lib/services/memory-service.ts">
+      <description>Frontend service client for memory API interactions</description>
+      <methods>
+        <method name="getMemories">Retrieve memories with filtering</method>
+        <method name="createMemory">Create new memory record</method>
+        <method name="searchMemories">Full-text search across memories</method>
+      </methods>
+      <base-url>http://localhost:8080</base-url>
+    </component>
+  </existing-components>
+
+  <!-- New Components to Implement -->
+  <new-components>
+    <component name="SummarizationTriggerService">
+      <description>Monitors message count and triggers summarization jobs</description>
+      <language>TypeScript</language>
+      <location>onyx-core/services/summarization/trigger.ts</location>
+      <interfaces>
+        <interface name="SummarizationTrigger">
+          <field name="conversationId" type="string"/>
+          <field name="messageId" type="string"/>
+          <field name="messageCount" type="number"/>
+          <field name="userId" type="string"/>
+        </interface>
+      </interfaces>
+      <dependencies>
+        <dependency>BullMQ</dependency>
+        <dependency>Redis</dependency>
+        <dependency>MessageRepository</dependency>
+      </dependencies>
+    </component>
+
+    <component name="ConversationSummarizer">
+      <description>Generates summaries using DeepSeek LLM via LiteLLM proxy</description>
+      <language>TypeScript</language>
+      <location>onyx-core/services/summarization/summarizer.ts</location>
+      <interfaces>
+        <interface name="SummarizationRequest">
+          <field name="conversationId" type="string"/>
+          <field name="messageRange" type="{start: number, end: number}"/>
+          <field name="userId" type="string"/>
+        </interface>
+        <interface name="SummarizationResult">
+          <field name="summary" type="string"/>
+          <field name="keyTopics" type="string[]"/>
+          <field name="sentiment" type="number"/>
+          <field name="confidence" type="number"/>
+          <field name="processingTime" type="number"/>
+        </interface>
+      </interfaces>
+      <performance-targets>
+        <target name="summary-generation" metric="&lt;2 seconds"/>
+        <target name="topic-extraction" metric="&lt;500ms"/>
+        <target name="sentiment-analysis" metric="&lt;300ms"/>
+      </performance-targets>
+    </component>
+
+    <component name="BackgroundWorker">
+      <description>BullMQ worker for processing summarization jobs</description>
+      <language>TypeScript</language>
+      <location>onyx-core/workers/summarization-worker.ts</location>
+      <job-configuration>
+        <concurrency>2</concurrency>
+        <attempts>3</attempts>
+        <backoff>exponential</backoff>
+        <removeOnComplete>100</removeOnComplete>
+        <removeOnFail>50</removeOnFail>
+      </job-configuration>
+      <dependencies>
+        <dependency>BullMQ</dependency>
+        <dependency>ConversationSummarizer</dependency>
+        <dependency>SummaryMemoryStorage</dependency>
+      </dependencies>
+    </component>
+
+    <component name="SummaryMemoryStorage">
+      <description>Stores summaries as memories with duplicate detection</description>
+      <language>TypeScript</language>
+      <location>onyx-core/services/summarization/storage.ts</location>
+      <methods>
+        <method name="storeSummary">Stores summary as memory with metadata</method>
+        <method name="findDuplicateSummary">Prevents duplicate summaries</method>
+      </methods>
+      <database-tables>
+        <table name="conversation_summaries">Dedicated summary storage</table>
+        <table name="user_memories">Integrates with existing memory system</table>
+      </database-tables>
+    </component>
+  </new-components>
+
+  <!-- Database Schema Requirements -->
+  <database-schema>
+    <table name="conversation_summaries">
+      <description>Dedicated table for conversation summaries</description>
+      <columns>
+        <column name="id" type="UUID" primary="true"/>
+        <column name="conversation_id" type="UUID" foreign="conversations.id"/>
+        <column name="user_id" type="UUID" foreign="users.id"/>
+        <column name="summary_text" type="TEXT" not-null="true"/>
+        <column name="message_range_start" type="INTEGER" not-null="true"/>
+        <column name="message_range_end" type="INTEGER" not-null="true"/>
+        <column name="key_topics" type="JSONB"/>
+        <column name="sentiment_score" type="DECIMAL(3,2)"/>
+        <column name="confidence_score" type="DECIMAL(3,2)"/>
+        <column name="processing_time_ms" type="INTEGER"/>
+        <column name="model_used" type="VARCHAR(100)"/>
+        <column name="created_at" type="TIMESTAMP" default="NOW()"/>
+      </columns>
+      <indexes>
+        <index name="idx_conversation_summaries_conversation_id" on="conversation_id"/>
+        <index name="idx_conversation_summaries_user_id" on="user_id"/>
+        <index name="idx_conversation_summaries_created_at" on="created_at"/>
+      </indexes>
+    </table>
+
+    <table name="summarization_metrics">
+      <description>Performance metrics tracking</description>
+      <columns>
+        <column name="id" type="UUID" primary="true"/>
+        <column name="conversation_id" type="UUID"/>
+        <column name="user_id" type="UUID"/>
+        <column name="processing_time_ms" type="INTEGER"/>
+        <column name="success" type="BOOLEAN"/>
+        <column name="error_message" type="TEXT"/>
+        <column name="created_at" type="TIMESTAMP" default="NOW()"/>
+      </columns>
+      <indexes>
+        <index name="idx_summarization_metrics_created_at" on="created_at"/>
+        <index name="idx_summarization_metrics_success" on="success"/>
+      </indexes>
+    </table>
+  </database-schema>
+
+  <!-- API Requirements -->
+  <api-requirements>
+    <endpoint method="POST" path="/api/summarization/trigger">
+      <description>Manually trigger summarization for testing</description>
+      <request-body>
+        <field name="conversationId" type="string" required="true"/>
+        <field name="force" type="boolean" default="false"/>
+      </request-body>
+    </endpoint>
+
+    <endpoint method="GET" path="/api/summarization/status/{conversationId}">
+      <description>Get summarization status for conversation</description>
+      <response>
+        <field name="status" type="string" enum="pending, processing, completed, failed"/>
+        <field name="lastSummary" type="object"/>
+        <field name="nextTrigger" type="integer"/>
+      </response>
+    </endpoint>
+
+    <endpoint method="GET" path="/api/summarization/analytics">
+      <description>Get summarization performance analytics</description>
+      <query-params>
+        <param name="days" type="integer" default="7"/>
+      </query-params>
+      <response>
+        <field name="totalSummaries" type="integer"/>
+        <field name="successRate" type="float"/>
+        <field name="avgProcessingTime" type="float"/>
+        <field name="errorRate" type="float"/>
+      </response>
+    </endpoint>
+  </api-requirements>
+
+  <!-- Performance Requirements -->
+  <performance-requirements>
+    <metric name="trigger-detection" target="&lt;10ms" description="Message count monitoring"/>
+    <metric name="summary-generation" target="&lt;2 seconds" description="LLM summarization with DeepSeek"/>
+    <metric name="topic-extraction" target="&lt;500ms" description="Topic identification"/>
+    <metric name="storage-time" target="&lt;100ms" description="Database operations"/>
+    <metric name="queue-processing" target="&lt;30 seconds" description="Background processing"/>
+    <metric name="success-rate" target="&gt;95%" description="Overall pipeline reliability"/>
+  </performance-requirements>
+
+  <!-- Configuration Requirements -->
+  <configuration>
+    <environment-variables>
+      <var name="SUMMARIZATION_INTERVAL" default="10" description="Messages between summaries"/>
+      <var name="DEEPSEEK_MODEL" default="deepseek-main" description="LLM model for summarization"/>
+      <var name="LITELLM_URL" default="http://litellm-proxy:4000" description="LiteLLM proxy endpoint"/>
+      <var name="REDIS_HOST" default="localhost" description="Redis server host"/>
+      <var name="REDIS_PORT" default="6379" description="Redis server port"/>
+      <var name="BULLMQ_CONCURRENCY" default="2" description="Max concurrent summarization jobs"/>
+    </environment-variables>
+
+    <feature-flags>
+      <flag name="ENABLE_TOPIC_EXTRACTION" default="true"/>
+      <flag name="ENABLE_SENTIMENT_ANALYSIS" default="true"/>
+      <flag name="ENABLE_DUPLICATE_DETECTION" default="true"/>
+      <flag name="ENABLE_PERFORMANCE_LOGGING" default="true"/>
+    </feature-flags>
+  </configuration>
+
+  <!-- Integration Points -->
+  <integration-points>
+    <integration name="LiteLLM Proxy">
+      <description>DeepSeek model access via LiteLLM proxy</description>
+      <endpoint>http://litellm-proxy:4000/chat/completions</endpoint>
+      <model>deepseek-main</model>
+      <parameters>
+        <param name="temperature" value="0.3"/>
+        <param name="max_tokens" value="150"/>
+      </parameters>
+    </integration>
+
+    <integration name="Memory System">
+      <description>Storage of summaries as memories with 'summary' category</description>
+      <service>MemoryService</service>
+      <category>summary</category>
+      <confidence>0.9</confidence>
+      <source-type>auto_summary</source-type>
+    </integration>
+
+    <integration name="Memory Injection">
+      <description>Automatic injection of summaries in future conversations</description>
+      <service>MemoryInjectionService</service>
+      <priority>High (auto-generated summaries)</priority>
+    </integration>
+  </integration-points>
+
+  <!-- Error Handling Strategy -->
+  <error-handling>
+    <error-type name="LLM Service Unavailable">
+      <strategy>Retry with exponential backoff, fallback to simpler summarization</strategy>
+      <max-retries>3</max-retries>
+      <backoff-delay>1000ms, 2000ms, 4000ms</backoff-delay>
+    </error-type>
+
+    <error-type name="Database Connection Failed">
+      <strategy>Queue job for retry, log with context</strategy>
+      <max-retries>3</max-retries>
+      <dead-letter-queue>true</dead-letter-queue>
+    </error-type>
+
+    <error-type name="Memory Storage Failed">
+      <strategy>Log error, continue processing, alert monitoring</strategy>
+      <max-retries>2</max-retries>
+    </error-type>
+
+    <error-type name="Queue Processing Failed">
+      <strategy>Move to dead letter queue for manual inspection</strategy>
+      <alerting>critical</alerting>
+    </error-type>
+  </error-handling>
+
+  <!-- Monitoring Requirements -->
+  <monitoring>
+    <metrics>
+      <metric name="summarization_jobs_total" type="counter" description="Total summarization jobs processed"/>
+      <metric name="summarization_jobs_success" type="counter" description="Successful summarization jobs"/>
+      <metric name="summarization_jobs_failed" type="counter" description="Failed summarization jobs"/>
+      <metric name="summarization_processing_time" type="histogram" description="Processing time distribution"/>
+      <metric name="summarization_queue_size" type="gauge" description="Current queue size"/>
+      <metric name="summary_memory_count" type="counter" description="Total summaries stored as memories"/>
+    </metrics>
+
+    <alerts>
+      <alert name="high_failure_rate" condition="success_rate &lt; 90%" severity="warning"/>
+      <alert name="slow_processing" condition="avg_processing_time &gt; 3000ms" severity="warning"/>
+      <alert name="queue_backlog" condition="queue_size &gt; 100" severity="critical"/>
+      <alert name="service_unavailable" condition="llm_service_down" severity="critical"/>
+    </alerts>
+
+    <logging>
+      <level>info</level>
+      <format>json</format>
+      <context>conversation_id, user_id, job_id, processing_time</context>
+    </logging>
+  </monitoring>
+
+  <!-- Testing Requirements -->
+  <testing>
+    <unit-tests>
+      <coverage>90%</coverage>
+      <components>SummarizationTriggerService, ConversationSummarizer, SummaryMemoryStorage</components>
+    </unit-tests>
+
+    <integration-tests>
+      <scenarios>
+        <scenario>End-to-end summarization pipeline</scenario>
+        <scenario>Redis queue processing</scenario>
+        <scenario>Memory injection integration</scenario>
+        <scenario>Error handling and recovery</scenario>
+      </scenarios>
+    </integration-tests>
+
+    <performance-tests>
+      <load-testing>
+        <conversations>50</conversations>
+        <messages-per-conversation>100</messages-per-conversation>
+        <target-processing-time>&lt;30 seconds per summary</target-processing-time>
+        <success-rate>&gt;95%</success-rate>
+      </load-testing>
+    </performance-tests>
+  </testing>
+
+  <!-- Security Considerations -->
+  <security>
+    <data-protection>
+      <pii-masking>true</pii-masking>
+      <content-filtering>true</content-filtering>
+      <access-control>user-isolated</access-control>
+    </data-protection>
+
+    <api-security>
+      <authentication>required</authentication>
+      <authorization>user-restricted</authorization>
+      <rate-limiting>user-specific</rate-limiting>
+    </api-security>
+
+    <job-security>
+      <job-isolation>true</job-isolation>
+      <resource-limits>true</resource-limits>
+      <timeout-protection>true</timeout-protection>
+    </job-security>
+  </security>
+
+  <!-- Deployment Considerations -->
+  <deployment>
+    <scaling>
+      <horizontal-scaling>false</horizontal-scaling>
+      <vertical-scaling>true</vertical-scaling>
+      <queue-scaling>true</queue-scaling>
+    </scaling>
+
+    <resource-requirements>
+      <cpu>0.5 cores per worker</cpu>
+      <memory>512MB per worker</memory>
+      <storage>Minimal for job data</storage>
+    </resource-requirements>
+
+    <health-checks>
+      <check name="database-connection" interval="30s"/>
+      <check name="redis-connection" interval="30s"/>
+      <check name="llm-service" interval="60s"/>
+      <check name="queue-processing" interval="60s"/>
+    </health-checks>
+  </deployment>
+
+  <!-- Rollout Strategy -->
+  <rollout-strategy>
+    <phase-1>Deploy infrastructure components (database schema, Redis config)</phase-1>
+    <phase-2>Deploy core summarization services with feature flags disabled</phase-2>
+    <phase-3>Enable for test users with monitoring</phase-3>
+    <phase-4>Gradual rollout to all users with performance monitoring</phase-4>
+    <phase-5>Full deployment with all features enabled</phase-5>
+  </rollout-strategy>
+
+  <!-- Success Metrics -->
+  <success-metrics>
+    <metric name="summary_quality" target="&gt;85% user satisfaction" description="User feedback on summary quality"/>
+    <metric name="processing_reliability" target="&gt;95% success rate" description="End-to-end processing success"/>
+    <metric name="performance_sla" target="&lt;30 seconds" description="Processing time SLA"/>
+    <metric name="memory_integration" target="100%" description="All summaries stored as memories"/>
+    <metric name="error_rate" target="&lt;5%" description="Overall error rate"/>
+  </success-metrics>
+
+  <!-- Acceptance Criteria Summary -->
+  <acceptance-criteria>
+    <criteria id="AC4.4.1" status="ready">Summarization trigger service with message count detection</criteria>
+    <criteria id="AC4.4.2" status="ready">LLM summarization service with DeepSeek integration</criteria>
+    <criteria id="AC4.4.3" status="ready">Topic extraction and sentiment analysis functionality</criteria>
+    <criteria id="AC4.4.4" status="ready">Background job processing with BullMQ and Redis</criteria>
+    <criteria id="AC4.4.5" status="ready">Memory storage and integration with injection system</criteria>
+    <criteria id="AC4.4.6" status="ready">Error handling and monitoring implemented</criteria>
+    <criteria id="AC4.4.7" status="ready">Performance targets achieved with &gt;95% success rate</criteria>
+  </acceptance-criteria>
+
+  <!-- Implementation Notes -->
+  <implementation-notes>
+    <note>All dependencies (Stories 4-1, 4-3) are complete and ready for integration</note>
+    <note>DeepSeek LLM access available via existing LiteLLM proxy configuration</note>
+    <note>Redis infrastructure already in place for job queue functionality</note>
+    <note>Memory system provides foundation for storing summaries</note>
+    <note>Memory injection system will automatically include summaries in future conversations</note>
+    <note>Comprehensive error handling and monitoring framework available</note>
+    <note>Database schema extensions needed for summary-specific tables</note>
+    <note>Background processing ensures no impact on chat performance</note>
+  </implementation-notes>
+
+  <!-- Risk Assessment -->
+  <risk-assessment>
+    <risk level="low" description="LLM service availability" mitigation="Retry logic with fallback"></risk>
+    <risk level="low" description="Performance impact" mitigation="Background processing"></risk>
+    <risk level="low" description="Summary quality" mitigation="Confidence scoring and validation"></risk>
+    <risk level="low" description="Cost management" mitigation="Token limits and efficient processing"></risk>
+  </risk-assessment>
+</story-context>
