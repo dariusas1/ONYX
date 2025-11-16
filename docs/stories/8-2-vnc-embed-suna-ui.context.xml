@@ -1,0 +1,147 @@
+<story-context id="8-2-vnc-embed-suna-ui" v="1.0">
+  <metadata>
+    <epicId>epic-8</epicId>
+    <storyId>8-2</storyId>
+    <title>VNC Embed in Suna UI</title>
+    <status>in_progress</status>
+    <generatedAt>2025-11-15</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/8-2-vnc-embed-suna-ui.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>As a user</asA>
+    <iWant>I want to integrate noVNC viewer component into the Suna UI to provide users with a live workspace view directly within the chat interface, supporting responsive design and workspace management controls</iWant>
+    <soThat>So that I can see and interact with a remote desktop environment directly within the chat interface with responsive design and workspace management controls</soThat>
+    <tasks>
+### Task 1: Project Setup and Dependencies
+- Install noVNC JavaScript client dependency
+- Create VNC viewer component structure
+- Set up WebSocket connection management
+- Configure build system for noVNC integration
+
+### Task 2: VNC Viewer Component Development
+- Create VNCViewer React component
+- Implement noVNC client initialization
+- Add connection status management
+- Implement display scaling and resizing
+
+### Task 3: Workspace Panel Integration
+- Create WorkspacePanel component
+- Implement sidebar layout (30% width)
+- Add workspace toggle functionality
+- Integrate with Suna UI theme and styling
+
+### Task 4: Workspace Controls Implementation
+- Create WorkspaceControls component
+- Add fullscreen/maximize functionality
+- Implement disconnect/reconnect controls
+- Add quality and settings controls
+
+### Task 5: Responsive Design Implementation
+- Implement tablet-responsive layout
+- Add landscape orientation support
+- Optimize for different screen sizes
+- Ensure touch interactions work on tablets
+
+### Task 6: Error Handling and Connection Management
+- Implement connection error handling
+- Add retry mechanism for failed connections
+- Create user-friendly error messages
+- Add connection status indicators
+
+### Task 7: Performance Optimization
+- Optimize VNC display performance
+- Implement efficient update mechanisms
+- Add bandwidth optimization settings
+- Monitor and improve frame rates
+
+### Task 8: Integration Testing
+- Test VNC connection to noVNC server
+- Verify responsive design on tablets
+- Test error handling scenarios
+- Validate integration with Suna UI
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+### AC8.2.1: Workspace Toggle Control
+- **Given**: User viewing Suna chat interface
+- **When**: User clicks "Show Workspace" button or toggle
+- **Then**: VNC viewer panel appears in right sidebar (30% width)
+- **And**: Workspace can be hidden by clicking "Hide Workspace"
+
+### AC8.2.2: VNC Connection & Display
+- **Given**: Workspace panel is visible
+- **When**: VNC viewer initializes
+- **Then**: Connects to noVNC WebSocket server (ws://localhost:6080)
+- **And**: Live desktop displayed in real-time
+- **And**: Connection status indicator shows connection state
+
+### AC8.2.3: Responsive Design
+- **Given**: User on tablet or desktop
+- **When**: Viewing workspace panel
+- **Then**: VNC viewer adapts to screen size
+- **And**: Works on tablets (landscape orientation)
+- **And**: Maintains aspect ratio and usability
+
+### AC8.2.4: Workspace Controls
+- **Given**: Workspace panel visible
+- **When**: User interacts with workspace controls
+- **Then**: Can maximize/workspace to fullscreen
+- **And**: Can disconnect/pause workspace viewing
+- **And**: Can reconnect to workspace session
+- **And**: Quality/settings controls available
+
+### AC8.2.5: Error Handling
+- **Given**: VNC connection issues
+- **When**: Server unavailable or network problems
+- **Then**: Graceful error handling with user feedback
+- **And**: Retry connection mechanism
+- **And**: Clear error messages and recovery options
+
+### AC8.2.6: Performance Optimization
+- **Given**: Active VNC session
+- **When**: User interacts with workspace
+- **Then**: Smooth real-time updates (target: 30fps)
+- **And**: Minimal latency for user interactions
+- **And**: Efficient bandwidth usage
+
+### AC8.2.7: Integration with Suna UI
+- **Given**: VNC workspace active
+- **When**: User navigates Suna interface
+- **Then**: Workspace state maintained across page changes
+- **And**: Chat functionality remains accessible
+- **And**: Workspace doesn't interfere with core chat features
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <!-- Documentation artifacts will be populated in Step 2 -->
+    </docs>
+    <code>
+      <!-- Code artifacts will be populated in Step 3 -->
+    </code>
+    <dependencies>
+      <!-- Dependencies will be populated in Step 4 -->
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <!-- Constraints will be populated in Step 3 -->
+  </constraints>
+  <interfaces>
+    <!-- Interfaces will be populated in Step 3 -->
+  </interfaces>
+  <tests>
+    <standards>
+      <!-- Testing standards will be populated in Step 5 -->
+    </standards>
+    <locations>
+      <!-- Test locations will be populated in Step 5 -->
+    </locations>
+    <ideas>
+      <!-- Test ideas will be populated in Step 5 -->
+    </ideas>
+  </tests>
+</story-context>
