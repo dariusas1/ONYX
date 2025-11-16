@@ -171,7 +171,7 @@ class TestScraperService:
         assert cache_key.startswith("scraped:")
 
         # Should be SHA256 hash (64 chars)
-        assert len(cache_key) == 71  # "scraped:" + 64 char hash
+        assert len(cache_key) == 72  # "scraped:" + 64 char hash
 
     def test_extract_domain(self, scraper_service):
         """Test domain extraction from URLs."""
