@@ -1,0 +1,305 @@
+<story-context id="4-2-standing-instructions-management" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>2</storyId>
+    <title>Standing Instructions Management</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-15T00:00:00Z</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/4-2-standing-instructions-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a user of Manus</asA>
+    <iWant>I want to set up standing instructions that guide Manus behavior in all conversations</iWant>
+    <soThat>I can customize how Manus responds, makes decisions, and interacts based on my preferences and requirements</soThat>
+    <tasks>
+1. Design and implement standing_instructions database table extending memory schema
+2. Create comprehensive instruction management UI with CRUD operations
+3. Implement instruction categorization system with 5 categories and visual indicators
+4. Build priority-based instruction ordering and conflict resolution system
+5. Create context-aware instruction evaluation and application service
+6. Implement usage analytics and effectiveness tracking dashboard
+7. Optimize performance for sub-30ms retrieval and sub-50ms evaluation targets
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criteria id="AC4.2.1">
+      <title>Standing instructions database table and API endpoints implemented</title>
+      <description>standing_instructions table with all specified fields and constraints, priority range validation (1-10) with database constraints, category validation with predefined options, enabled/disabled status management, context hints JSON schema validation, and proper foreign key relationships to users table</description>
+    </criteria>
+    <criteria id="AC4.2.2">
+      <title>Comprehensive instruction management UI with full CRUD operations</title>
+      <description>Instruction list view with sorting and filtering options, add instruction modal with rich text editing, edit instruction with change tracking and validation, delete instruction with confirmation and soft delete, bulk enable/disable operations for efficiency, and responsive design for mobile compatibility</description>
+    </criteria>
+    <criteria id="AC4.2.3">
+      <title>Instruction categorization system with 5 categories and icons</title>
+      <description>Category selection with visual indicators (icons and colors), category-based filtering and organization, predefined category descriptions and examples, custom category creation for user-specific needs, and category-specific default priorities and context hints</description>
+    </criteria>
+    <criteria id="AC4.2.4">
+      <title>Priority-based instruction ordering and conflict resolution</title>
+      <description>Priority slider (1-10) with real-time preview, automatic instruction sorting by priority, conflict detection when instructions contradict each other, smart conflict resolution based on priority and usage, and manual override options for specific conflicts</description>
+    </criteria>
+    <criteria id="AC4.2.5">
+      <title>Context-aware instruction evaluation and application</title>
+      <description>Topic-based relevance checking using keyword matching, agent mode-specific instruction filtering, confidence threshold filtering for quality control, usage statistics tracking and analytics, and last-used timestamp updates for relevance decay</description>
+    </criteria>
+    <criteria id="AC4.2.6">
+      <title>Usage analytics and effectiveness tracking implemented</title>
+      <description>Instruction usage frequency monitoring, conversation outcome correlation analysis, effectiveness scoring based on user feedback, trend analysis for instruction optimization, and export capability for analytics data</description>
+    </criteria>
+    <criteria id="AC4.2.7">
+      <title>Performance targets achieved for instruction operations</title>
+      <description>Instruction retrieval &lt;30ms for typical user loads, instruction evaluation &lt;50ms per conversation, UI response time &lt;200ms for all operations, support for 100+ instructions per user, and bulk operations (enable/disable) &lt;1s for 50+ instructions</description>
+    </criteria>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/stories/4-1-memory-schema-storage-system.context.xml">
+        <title>Story 4-1 Context - Memory Schema Foundation</title>
+        <section>Database Schema and Memory Service Foundation</section>
+        <snippet>Foundation implementation providing user_memories table, memory categories, confidence scoring, and performance indexing that standing instructions will extend and build upon.</snippet>
+      </doc>
+      <doc path="docs/epics.md">
+        <title>Epic 4: Persistent Memory & Learning</title>
+        <section>Standing Instructions Component</section>
+        <snippet>Standing Instructions UI: User interface for creating and managing persistent behavioral directives that influence how Manus responds and makes decisions across conversations.</snippet>
+      </doc>
+      <doc path="docs/architecture.md">
+        <title>ONYX Architecture Document</title>
+        <section>Component Architecture and Service Patterns</section>
+        <snippet>Service Layer Pattern: Python services in onyx-core/services/ with async/await, FastAPI endpoints, PostgreSQL integration, and comprehensive error handling patterns to follow for instruction service.</snippet>
+      </doc>
+      <doc path="docker/migrations/005-memory-system-schema.sql">
+        <title>Memory System Database Schema</title>
+        <section>Existing Memory Infrastructure</section>
+        <snippet>user_memories table with performance indexes, JSONB metadata support, user isolation patterns, and category validation that standing instructions will extend with additional table.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="onyx-core/services/memory_service.py">
+        <kind>Service Layer Pattern</kind>
+        <symbol>MemoryService</symbol>
+        <lines>1-652</lines>
+        <reason>Complete service implementation showing database connection management, CRUD operations, validation patterns, PII detection, and error handling that instruction service should follow and extend</reason>
+      </file>
+      <file path="suna/src/lib/types/memory.ts">
+        <kind>TypeScript Interfaces</kind>
+        <symbol>MemoryCategory</symbol>
+        <lines>8-242</lines>
+        <reason>Type definitions and validation patterns for memory categories and API responses that should be extended for standing instruction types and interfaces</reason>
+      </file>
+      <file path="suna/src/components/ChatInterface.tsx">
+        <kind>React Component Pattern</kind>
+        <symbol>ChatInterface</symbol>
+        <lines>1-113</lines>
+        <reason>Component structure showing state management, context usage, responsive design patterns, and accessibility features to follow for instruction management UI</reason>
+      </file>
+      <file path="suna/package.json">
+        <kind>Dependencies</kind>
+        <symbol>package.json</symbol>
+        <lines>1-53</lines>
+        <reason>Frontend framework configuration with Next.js 14, TypeScript, Tailwind CSS, and testing setup that instruction UI components should integrate with</reason>
+      </file>
+      <file path="onyx-core/requirements.txt">
+        <kind>Backend Dependencies</kind>
+        <symbol>requirements.txt</symbol>
+        <lines>1-86</lines>
+        <reason>Python backend dependencies including FastAPI, PostgreSQL (asyncpg, SQLAlchemy), Redis, and testing frameworks required for instruction service implementation</reason>
+      </file>
+      <file path="suna/src/app/api/health/health.js">
+        <kind>API Endpoint Pattern</kind>
+        <symbol>handler</symbol>
+        <lines>137-260</lines>
+        <reason>Next.js API route structure with comprehensive error handling, logging, and response patterns that should be followed for instruction API endpoints</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <frontend>
+        <name>Next.js</name>
+        <version>14.0.0</version>
+        <purpose>Frontend framework with App Router for instruction management UI components</purpose>
+      </frontend>
+      <frontend>
+        <name>TypeScript</name>
+        <version>5.3.0</version>
+        <purpose>Type safety for instruction interfaces and API contracts extending memory types</purpose>
+      </frontend>
+      <frontend>
+        <name>Tailwind CSS</name>
+        <version>3.4.0</version>
+        <purpose>Styling for instruction management UI with responsive design and animations</purpose>
+      </frontend>
+      <frontend>
+        <name>React</name>
+        <version>18.0.0</version>
+        <purpose>Component library for building interactive instruction management interface</purpose>
+      </frontend>
+      <frontend>
+        <name>Lucide React</name>
+        <version>0.294.0</version>
+        <purpose>Icon library for instruction categories and UI indicators</purpose>
+      </frontend>
+
+      <backend>
+        <name>FastAPI</name>
+        <version>0.104.1</version>
+        <purpose>Python web framework for instruction CRUD API endpoints</purpose>
+      </backend>
+      <backend>
+        <name>PostgreSQL</name>
+        <version>15+</version>
+        <purpose>Primary database for instruction storage extending memory schema</purpose>
+      </backend>
+      <backend>
+        <name>asyncpg</name>
+        <version>0.29.0</version>
+        <purpose>Async PostgreSQL driver for high-performance instruction queries</purpose>
+      </backend>
+      <backend>
+        <name>SQLAlchemy</name>
+        <version>2.0.23</version>
+        <purpose>ORM for instruction models and database migrations</purpose>
+      </backend>
+      <backend>
+        <name>Redis</name>
+        <version>5.0.1</version>
+        <purpose>Caching layer for instruction evaluation optimization</purpose>
+      </backend>
+      <backend>
+        <name>pydantic</name>
+        <version>2.5.0</version>
+        <purpose>Data validation and serialization for instruction API</purpose>
+      </backend>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="database">Extend existing memory schema with standing_instructions table. Use PostgreSQL with proper indexing on user_id, priority, category, and enabled columns. Leverage existing JSONB metadata patterns from memory system. Follow existing migration patterns and performance optimization strategies.</constraint>
+    <constraint type="api">Follow existing Next.js API route patterns with TypeScript interfaces extending memory types. Implement proper error handling with structured response format: {success: boolean, data: any, error?: string}. Use existing authentication and user isolation patterns from memory endpoints.</constraint>
+    <constraint type="ui">Build on existing React component patterns from ChatInterface and memory types. Use Tailwind CSS for consistent styling with existing design system. Implement responsive design and accessibility features following established patterns. Use Lucide React icons consistent with existing components.</constraint>
+    <constraint type="performance">Target instruction retrieval &lt;30ms, evaluation &lt;50ms building on memory system performance patterns. Use Redis caching for frequently accessed instructions. Leverage existing database connection pooling and query optimization patterns. Monitor performance with existing metrics infrastructure.</constraint>
+    <constraint type="integration">Integrate with existing memory service patterns and database schema. Extend memory category system with instruction-specific categories. Use existing user authentication and authorization patterns. Leverage existing analytics and logging infrastructure.</constraint>
+    <constraint type="testing">Follow existing pytest and Jest testing patterns from memory system. Achieve &gt;90% test coverage for instruction operations. Write unit tests for service layer, integration tests for API endpoints, and performance tests for evaluation optimization.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Standing Instructions Database Schema">
+      <kind>SQL Schema</kind>
+      <signature>CREATE TABLE standing_instructions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    instruction_text TEXT NOT NULL CHECK (length(instruction_text) BETWEEN 1 AND 500),
+    priority INTEGER DEFAULT 5 CHECK (priority >= 1 AND priority <= 10),
+    category TEXT CHECK (category IN ('behavior', 'communication', 'decision', 'security', 'workflow')),
+    enabled BOOLEAN DEFAULT TRUE,
+    context_hints JSONB DEFAULT '{}',
+    usage_count INTEGER DEFAULT 0,
+    last_used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);</signature>
+      <path>docker/migrations/006-standing-instructions.sql</path>
+    </interface>
+    <interface name="Standing Instructions API">
+      <kind>REST Endpoints</kind>
+      <signature>POST /api/instructions - CreateInstructionRequest → InstructionResponse
+GET /api/instructions/:id → InstructionResponse
+PUT /api/instructions/:id - UpdateInstructionRequest → InstructionResponse
+DELETE /api/instructions/:id → DeleteResponse
+GET /api/instructions - InstructionFilters → InstructionListResponse
+POST /api/instructions/bulk - BulkOperationRequest → BulkOperationResponse</signature>
+      <path>suna/src/app/api/instructions/route.ts</path>
+    </interface>
+    <interface name="Instruction Processor Service">
+      <kind>Python Class</kind>
+      <signature>class InstructionProcessor:
+    async def evaluate_instructions(self, user_id: str, conversation_context: ConversationContext) -> List[ActiveInstruction]:
+        """Evaluate and rank relevant instructions for conversation context"""
+
+    async def update_usage_stats(self, instruction_ids: List[str]) -> None:
+        """Update usage statistics and analytics for applied instructions"""
+
+    def is_instruction_relevant(self, instruction: StandingInstruction, context: ConversationContext) -> bool:
+        """Determine if instruction applies to current conversation context"""</signature>
+      <path>onyx-core/services/instruction_processor.py</path>
+    </interface>
+    <interface name="Instruction Management UI">
+      <kind>React Component</kind>
+      <signature>const StandingInstructionsManager: React.FC = () => {
+    const [instructions, setInstructions] = useState&lt;StandingInstruction[]&gt;([]);
+    const [categories] = useState&lt;InstructionCategory[]&gt;(INSTRUCTION_CATEGORIES);
+
+    const handleCreateInstruction = async (instruction: CreateInstructionRequest) => { /* implementation */ };
+    const handleUpdateInstruction = async (id: string, updates: UpdateInstructionRequest) => { /* implementation */ };
+    const handleDeleteInstruction = async (id: string) => { /* implementation */ };
+    const handleBulkOperation = async (operation: BulkOperation) => { /* implementation */ };
+
+    return (
+        &lt;div className="standing-instructions-manager"&gt;
+            &lt;InstructionList /&gt;
+            &lt;InstructionEditor /&gt;
+            &lt;AnalyticsDashboard /&gt;
+        &lt;/div&gt;
+    );
+};</signature>
+      <path>suna/src/components/Settings/StandingInstructionsManager.tsx</path>
+    </interface>
+    <interface name="Instruction Types">
+      <kind>TypeScript Interfaces</kind>
+      <signature>interface StandingInstruction {
+    id: string;
+    user_id: string;
+    instruction_text: string;
+    priority: number;
+    category: InstructionCategory;
+    enabled: boolean;
+    context_hints: ContextHints;
+    usage_count: number;
+    last_used_at?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+enum InstructionCategory {
+    BEHAVIOR = 'behavior',
+    COMMUNICATION = 'communication',
+    DECISION = 'decision',
+    SECURITY = 'security',
+    WORKFLOW = 'workflow'
+}
+
+interface ContextHints {
+    topics?: string[];
+    agentModes?: string[];
+    minConfidence?: number;
+    temporalRelevance?: 'always' | 'business_hours' | 'weekdays';
+}</signature>
+      <path>suna/src/lib/types/instructions.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Follow existing pytest and Jest testing patterns from memory system. Use async testing patterns for service layer. Test both happy paths and error conditions. Validate database constraints and business logic. Performance test evaluation targets. Test UI components with React Testing Library.</standards>
+    <locations>
+      <path>onyx-core/tests/unit/test_instruction_processor.py</path>
+      <path>onyx-core/tests/integration/test_instruction_api.py</path>
+      <path>onyx-core/tests/performance/test_instruction_evaluation.py</path>
+      <path>suna/src/__tests__/components/StandingInstructionsManager.test.tsx</path>
+      <path>suna/src/__tests__/services/instruction-service.test.ts</path>
+    </locations>
+    <ideas>
+      <test mapping="AC4.2.1">test_standing_instructions_crud - Test create, read, update, delete operations with proper validation. Test database constraints and priority validation.</test>
+      <test mapping="AC4.2.2">test_instruction_management_ui - Test instruction list, add, edit, delete operations. Test bulk operations and responsive design.</test>
+      <test mapping="AC4.2.3">test_instruction_categorization - Test 5 standard categories with icons and colors. Test category filtering and organization.</test>
+      <test mapping="AC4.2.4">test_priority_ordering_conflicts - Test priority-based sorting and conflict detection. Test conflict resolution algorithms.</test>
+      <test mapping="AC4.2.5">test_context_aware_evaluation - Test topic relevance, agent mode filtering, confidence thresholds. Test usage tracking.</test>
+      <test mapping="AC4.2.6">test_usage_analytics - Test usage frequency monitoring, effectiveness scoring, trend analysis. Test analytics dashboard.</test>
+      <test mapping="AC4.2.7">test_performance_targets - Performance tests for retrieval (&lt;30ms) and evaluation (&lt;50ms). Test with 100+ instructions.</test>
+    </ideas>
+  </tests>
+</story-context>
