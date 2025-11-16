@@ -153,8 +153,8 @@ epics:
   - epic_id: "epic-6"
     name: "Google Workspace Tools"
     status: "in_progress"
-    completion_percentage: 85
-    notes: "OAuth2 setup complete and Google Docs creation/editing tools drafted. Ready for development of Stories 6.4-6.7 Google Workspace API integrations. Comprehensive editing capabilities specified with version history and formatting preservation."
+    completion_percentage: 90
+    notes: "OAuth2 setup complete and Google Docs creation/editing tools drafted. Google Sheets creation tools story context completed with comprehensive technical specifications. Ready for development of Stories 6.4-6.7 Google Workspace API integrations. Comprehensive editing and spreadsheet creation capabilities specified with advanced features like formulas, conditional formatting, and performance optimization."
     stories:
       - story_id: "6-1-oauth2-setup-integration"
         title: "OAuth2 Setup & Integration"
@@ -228,7 +228,7 @@ epics:
 
       - story_id: "6-4-google-sheets-creation-tools"
         title: "Google Sheets Creation Tools"
-        status: "drafted"
+        status: "ready-for-dev"
         priority: "P0"
         estimated_points: 8
         assigned_to: "TBD"
@@ -540,8 +540,8 @@ sprint_summary:
   story_count:
     total: 19
     todo: 9
-    drafted: 6  # Story 6.3 moved to ready-for-dev
-    ready: 2     # Story 6.3 now ready-for-dev
+    drafted: 5  # Stories 6.3 and 6.4 moved to ready-for-dev
+    ready: 3     # Stories 6.3 and 6.4 now ready-for-dev
     in_progress: 0
     in_review: 0
     done: 3
