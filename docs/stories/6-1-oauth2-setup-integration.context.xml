@@ -1,0 +1,466 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-id>6-1-oauth2-setup-integration</story-id>
+  <title>OAuth2 Setup & Integration</title>
+  <epic-id>epic-6</epic-id>
+  <generated-at>2025-11-15T10:30:00Z</generated-at>
+  <status>ready-for-dev</status>
+
+  <!-- Current Implementation Status -->
+  <implementation-status>
+    <overall-completion>95%</overall-completion>
+    <oauth2-flow>complete</oauth2-flow>
+    <token-management>complete</token-management>
+    <database-schema>complete</database-schema>
+    <api-endpoints>complete</api-endpoints>
+    <testing>complete</testing>
+    <integration>complete</integration>
+  </implementation-status>
+
+  <!-- Existing OAuth2 Implementation Architecture -->
+  <architecture-overview>
+    <components>
+      <component name="Google OAuth2 Service" file="onyx-core/services/google_oauth.py">
+        <description>Handles complete OAuth2 authentication flow for Google Workspace APIs</description>
+        <key-features>
+          <feature>OAuth2 authorization URL generation with state management</feature>
+          <feature>Authorization code exchange for access/refresh tokens</feature>
+          <feature>Automatic token refresh before expiry</feature>
+          <feature>Encrypted token storage and retrieval</feature>
+          <feature>Token revocation and user disconnect functionality</feature>
+        </key-features>
+        <class name="GoogleOAuthService">
+          <methods>
+            <method name="get_authorization_url" return="str">Generate OAuth authorization URL</method>
+            <method name="exchange_code_for_tokens" return="Tuple[str,str,datetime,List[str]]">Exchange auth code for tokens</method>
+            <method name="store_tokens" return="bool">Encrypt and store OAuth tokens</method>
+            <method name="get_credentials" return="Optional[Credentials]">Retrieve and decrypt credentials</method>
+            <method name="revoke_tokens" return="bool">Revoke OAuth tokens</method>
+            <method name="is_authenticated" return="bool">Check authentication status</method>
+          </methods>
+        </class>
+      </component>
+
+      <component name="Encryption Service" file="onyx-core/utils/encryption.py">
+        <description>AES-256 encryption for secure token storage using Fernet symmetric encryption</description>
+        <key-features>
+          <feature>PBKDF2 key derivation for Fernet compatibility</feature>
+          <feature>Token pair encryption/decryption</feature>
+          <feature>Environment-based key management</feature>
+        </key-features>
+        <class name="EncryptionService">
+          <methods>
+            <method name="encrypt_token_pair" return="Tuple[bytes, bytes]">Encrypt access/refresh tokens</method>
+            <method name="decrypt_token_pair" return="Tuple[str, str]">Decrypt access/refresh tokens</method>
+          </methods>
+        </class>
+      </component>
+
+      <component name="Database Service" file="onyx-core/utils/database.py">
+        <description>PostgreSQL database operations for OAuth token storage and sync state</description>
+        <key-features>
+          <feature>OAuth token persistence</feature>
+          <feature>Sync state management</feature>
+          <feature>Job history tracking</feature>
+        </key-features>
+      </component>
+
+      <component name="API Router" file="onyx-core/api/google_drive.py">
+        <description>FastAPI endpoints for OAuth flow and Google Drive operations</description>
+        <endpoints>
+          <endpoint method="GET" path="/auth/authorize">Get OAuth authorization URL</endpoint>
+          <endpoint method="POST" path="/auth/callback">Process OAuth callback</endpoint>
+          <endpoint method="GET" path="/auth/status">Check authentication status</endpoint>
+          <endpoint method="POST" path="/auth/disconnect">Revoke access</endpoint>
+        </endpoints>
+      </component>
+    </components>
+  </architecture-overview>
+
+  <!-- Database Schema -->
+  <database-schema>
+    <table name="oauth_tokens">
+      <description>Encrypted OAuth credentials for third-party services</description>
+      <columns>
+        <column name="id" type="UUID" primary="true">Primary key</column>
+        <column name="user_id" type="UUID" foreign="users(id)" nullable="false">User reference</column>
+        <column name="provider" type="TEXT" check="'google_drive','google_workspace','slack','github'" nullable="false">OAuth provider</column>
+        <column name="encrypted_access_token" type="BYTEA" nullable="false">AES-256 encrypted access token</column>
+        <column name="encrypted_refresh_token" type="BYTEA" nullable="false">AES-256 encrypted refresh token</column>
+        <column name="token_expiry" type="TIMESTAMP" nullable="false">Access token expiry</column>
+        <column name="scopes" type="TEXT[]" default="ARRAY[]::TEXT[]">Granted OAuth scopes</column>
+        <column name="created_at" type="TIMESTAMP" default="NOW()">Creation timestamp</column>
+        <column name="updated_at" type="TIMESTAMP" default="NOW()">Update timestamp</column>
+      </columns>
+      <indexes>
+        <index name="idx_oauth_tokens_user_id">user_id</index>
+        <index name="idx_oauth_tokens_provider">provider</index>
+        <index name="idx_oauth_tokens_expiry">token_expiry</index>
+      </indexes>
+      <constraints>
+        <constraint type="UNIQUE">user_id, provider</constraint>
+      </constraints>
+    </table>
+
+    <table name="drive_sync_state">
+      <description>Google Drive incremental sync state per user</description>
+      <columns>
+        <column name="user_id" type="UUID" primary="true" foreign="users(id)">User reference</column>
+        <column name="sync_token" type="TEXT">Google Drive sync token</column>
+        <column name="last_sync_at" type="TIMESTAMP">Last successful sync</column>
+        <column name="files_synced" type="INTEGER" default="0">Files synced count</column>
+        <column name="files_failed" type="INTEGER" default="0">Failed files count</column>
+        <column name="last_error" type="TEXT">Last sync error</column>
+        <column name="updated_at" type="TIMESTAMP" default="NOW()">Update timestamp</column>
+      </columns>
+    </table>
+
+    <table name="sync_jobs">
+      <description>History of sync job executions</description>
+      <columns>
+        <column name="id" type="UUID" primary="true">Job ID</column>
+        <column name="user_id" type="UUID" foreign="users(id)" nullable="false">User reference</column>
+        <column name="source_type" type="TEXT" check="'google_drive','slack','dropbox'" nullable="false">Sync source</column>
+        <column name="status" type="TEXT" check="'pending','running','success','failed','cancelled'" nullable="false">Job status</column>
+        <column name="started_at" type="TIMESTAMP" default="NOW()">Start time</column>
+        <column name="completed_at" type="TIMESTAMP">Completion time</column>
+        <column name="documents_synced" type="INTEGER" default="0">Synced documents</column>
+        <column name="documents_failed" type="INTEGER" default="0">Failed documents</column>
+        <column name="error_message" type="TEXT">Error message</column>
+        <column name="error_details" type="JSONB">Error details</column>
+      </columns>
+    </table>
+  </database-schema>
+
+  <!-- OAuth2 Configuration -->
+  <oauth2-configuration>
+    <provider name="Google Workspace">
+      <client-id env-var="GOOGLE_CLIENT_ID">Google OAuth2 client ID</client-id>
+      <client-secret env-var="GOOGLE_CLIENT_SECRET">Google OAuth2 client secret</client-secret>
+      <redirect-uri env-var="GOOGLE_REDIRECT_URI" default="http://localhost:3000/api/auth/google/callback">OAuth callback URL</redirect-uri>
+      <scopes>
+        <scope>https://www.googleapis.com/auth/drive.readonly</scope>
+        <scope>https://www.googleapis.com/auth/drive.metadata.readonly</scope>
+        <scope>openid</scope>
+        <scope>https://www.googleapis.com/auth/userinfo.email</scope>
+      </scopes>
+      <auth-uri>https://accounts.google.com/o/oauth2/v2/auth</auth-uri>
+      <token-uri>https://oauth2.googleapis.com/token</token-uri>
+      <access-type>offline</access-type>
+      <prompt>consent</prompt>
+    </provider>
+  </oauth2-configuration>
+
+  <!-- Security Implementation -->
+  <security-measures>
+    <token-security>
+      <encryption>AES-256 Fernet symmetric encryption</encryption>
+      <key-derivation>PBKDF2 with SHA-256, 100,000 iterations</encryption>
+      <key-storage>Environment variable (ENCRYPTION_KEY)</key-storage>
+      <token-lifecycle>Automatic refresh before 1-hour expiry buffer</token-lifecycle>
+    </token-security>
+    <authentication>
+      <user-validation>JWT token validation required for all endpoints</user-validation>
+      <state-management>CSRF protection with OAuth state parameter</state-management>
+      <session-security>Session-based access control</session-security>
+    </authentication>
+    <data-protection>
+      <credential-masking>No credentials in logs or error messages</credential-masking>
+      <sanitized-responses>API responses sanitized for sensitive data</sanitized-responses>
+      <audit-logging>Complete audit trail for all OAuth operations</audit-logging>
+    </data-protection>
+  </security-measures>
+
+  <!-- Integration Points -->
+  <integration-points>
+    <internal-integrations>
+      <integration name="User Authentication">
+        <description>Integration with existing JWT authentication system</description>
+        <file>onyx-core/utils/auth.py</file>
+        <endpoints>Protected endpoints require valid JWT token</endpoints>
+      </integration>
+      <integration name="Agent Tool System">
+        <description>OAuth2 service available to agent tool workflows</description>
+        <access-pattern>Agents can check authentication status and trigger OAuth flow</access-pattern>
+        <permission-model>User consent required for agent-initiated operations</permission-model>
+      </integration>
+      <integration name="Memory System">
+        <description>OAuth operations logged to agent memory and audit trails</description>
+        <storage>Operation history stored for user accountability</storage>
+      </integration>
+    </internal-integrations>
+
+    <external-integrations>
+      <integration name="Google APIs">
+        <apis>
+          <api name="Google OAuth2" version="v2">Authentication and token management</api>
+          <api name="Google Drive" version="v3">File access and metadata</api>
+          <api name="Google Docs" version="v1">Document operations (future)</api>
+          <api name="Google Sheets" version="v4">Spreadsheet operations (future)</api>
+        </apis>
+        <client-libraries>
+          <library>google-api-python-client</library>
+          <library>google-auth-httplib2</library>
+          <library>google-auth-oauthlib</library>
+        </client-libraries>
+      </integration>
+    </external-integrations>
+  </integration-points>
+
+  <!-- Dependencies and Prerequisites -->
+  <dependencies>
+    <python-dependencies>
+      <package name="google-api-python-client" purpose="Google API client library"></package>
+      <package name="google-auth-httplib2" purpose="Authentication transport"></package>
+      <package name="google-auth-oauthlib" purpose="OAuth2 flow handling"></package>
+      <package name="cryptography" purpose="Encryption/decryption"></package>
+      <package name="psycopg2-binary" purpose="PostgreSQL database connection"></package>
+      <package name="fastapi" purpose="API framework"></package>
+      <package name="python-jose" purpose="JWT handling"></package>
+    </python-dependencies>
+
+    <environment-variables>
+      <variable name="GOOGLE_CLIENT_ID" required="true" description="Google OAuth2 client ID"></variable>
+      <variable name="GOOGLE_CLIENT_SECRET" required="true" description="Google OAuth2 client secret"></variable>
+      <variable name="GOOGLE_REDIRECT_URI" required="false" description="OAuth callback URL"></variable>
+      <variable name="ENCRYPTION_KEY" required="true" description="AES-256 encryption key (hex)"></variable>
+      <variable name="POSTGRES_HOST" required="true" description="Database host"></variable>
+      <variable name="POSTGRES_PORT" required="false" description="Database port (default: 5432)"></variable>
+      <variable name="POSTGRES_DB" required="true" description="Database name"></variable>
+      <variable name="POSTGRES_USER" required="true" description="Database user"></variable>
+      <variable name="POSTGRES_PASSWORD" required="true" description="Database password"></variable>
+    </environment-variables>
+
+    <database-requirements>
+      <requirement>PostgreSQL 12+ with UUID extension</requirement>
+      <requirement>Migration 002-google-drive-sync.sql applied</requirement>
+      <requirement>users table exists with UUID primary key</requirement>
+    </database-requirements>
+  </dependencies>
+
+  <!-- API Endpoint Specifications -->
+  <api-specifications>
+    <endpoint path="/api/google-drive/auth/authorize" method="GET">
+      <description>Generate OAuth authorization URL</description>
+      <authentication>JWT token required</authentication>
+      <request>
+        <query-param name="redirect_url" type="string" optional="true">Custom redirect URL</query-param>
+      </request>
+      <response>
+        <status-code>200</status-code>
+        <body>
+          <field name="success" type="boolean">true</field>
+          <field name="data" type="object">
+            <field name="auth_url" type="string">Google OAuth authorization URL</field>
+            <field name="state" type="string">CSRF protection state</field>
+          </field>
+        </body>
+      </response>
+    </endpoint>
+
+    <endpoint path="/api/google-drive/auth/callback" method="POST">
+      <description>Process OAuth callback and exchange code for tokens</description>
+      <authentication>JWT token required</authentication>
+      <request>
+        <body>
+          <field name="code" type="string" required="true">Authorization code from Google</field>
+          <field name="state" type="string" optional="true">State parameter for validation</field>
+        </body>
+      </request>
+      <response>
+        <status-code>200</status-code>
+        <body>
+          <field name="success" type="boolean">true</field>
+          <field name="data" type="object">
+            <field name="authenticated" type="boolean">Authentication successful</field>
+            <field name="scopes" type="array">Granted OAuth scopes</field>
+          </field>
+        </body>
+      </response>
+    </endpoint>
+
+    <endpoint path="/api/google-drive/auth/status" method="GET">
+      <description>Check current authentication status</description>
+      <authentication>JWT token required</authentication>
+      <response>
+        <status-code>200</status-code>
+        <body>
+          <field name="success" type="boolean">true</field>
+          <field name="data" type="object">
+            <field name="is_authenticated" type="boolean">OAuth tokens available and valid</field>
+            <field name="provider" type="string">OAuth provider name</field>
+            <field name="token_expiry" type="string">Token expiry timestamp</field>
+          </field>
+        </body>
+      </response>
+    </endpoint>
+
+    <endpoint path="/api/google-drive/auth/disconnect" method="POST">
+      <description>Revoke OAuth access and delete stored tokens</description>
+      <authentication>JWT token required</authentication>
+      <response>
+        <status-code>200</status-code>
+        <body>
+          <field name="success" type="boolean">true</field>
+          <field name="message" type="string">Tokens revoked successfully</field>
+        </body>
+      </response>
+    </endpoint>
+  </api-specifications>
+
+  <!-- Testing Implementation -->
+  <testing-status>
+    <integration-tests>
+      <test file="tests/integration/test-google-oauth.sh">
+        <description>End-to-end OAuth flow testing</description>
+        <coverage>Authorization URL generation, callback processing, status checking, disconnect</coverage>
+        <status>Complete and passing</status>
+      </test>
+    </integration-tests>
+
+    <unit-tests>
+      <test file="tests/unit/test_encryption.py">
+        <description>Encryption service testing</description>
+        <coverage>Token encryption/decryption, key derivation</coverage>
+        <status>Complete</status>
+      </test>
+    </unit-tests>
+
+    <test-environment>
+      <requirement>Valid Google OAuth2 credentials in test environment</requirement>
+      <requirement>Test database with OAuth schema</requirement>
+      <requirement>JWT authentication for test endpoints</requirement>
+    </test-environment>
+  </testing-status>
+
+  <!-- Error Handling -->
+  <error-handling>
+    <oauth-errors>
+      <error code="invalid_client" handling="400">Invalid client credentials</error>
+      <error code="access_denied" handling="403">User denied authorization</error>
+      <error code="invalid_grant" handling="400">Invalid authorization code</error>
+      <error code="invalid_scope" handling="400">Requested scopes not valid</error>
+    </oauth-errors>
+
+    <token-errors>
+      <error type="encryption_failure" handling="500">Token encryption/decryption failed</error>
+      <error type="storage_failure" handling="500">Database storage error</error>
+      <error type="refresh_failed" handling="401">Token refresh failed, re-auth required</error>
+      <error type="token_expired" handling="auto">Automatic token refresh attempted</error>
+    </token-errors>
+  </error-handling>
+
+  <!-- Performance Characteristics -->
+  <performance-profile>
+    <endpoints>
+      <endpoint name="authorize-url" latency="&lt;100ms" description="OAuth URL generation"></endpoint>
+      <endpoint name="callback-processing" latency="&lt;2s" description="Token exchange with Google"></endpoint>
+      <endpoint name="status-check" latency="&lt;50ms" description="Authentication status"></endpoint>
+      <endpoint name="token-refresh" latency="&lt;1s" description="Automatic token refresh"></endpoint>
+    </endpoints>
+
+    <token-management>
+      <refresh-policy>1-hour buffer before expiry</refresh-policy>
+      <storage-encryption>AES-256 with &lt;10ms overhead</storage-encryption>
+      <caching>Session-based credential caching</caching>
+    </token-management>
+  </performance-profile>
+
+  <!-- Monitoring and Observability -->
+  <monitoring>
+    <logging>
+      <level>INFO for successful operations</level>
+      <level>ERROR for failures and exceptions</level>
+      <level>DEBUG for token refresh operations</level>
+      <format>Structured JSON logging</format>
+    </logging>
+
+    <metrics>
+      <metric name="oauth_flow_success_rate">Percentage of successful OAuth flows</metric>
+      <metric name="token_refresh_count">Number of automatic token refreshes</metric>
+      <metric name="oauth_storage_operations">Token storage/retrieval operations</metric>
+      <metric name="authentication_failures">Authentication error count by type</metric>
+    </metrics>
+
+    <audit-trail>
+      <events>OAuth authorization, token storage, token refresh, revocation</events>
+      <data>User ID, provider, timestamps, operation results</data>
+      <retention>90 days for audit compliance</retention>
+    </audit-trail>
+  </monitoring>
+
+  <!-- Compliance and Security -->
+  <compliance>
+    <data-protection>
+      <standard>GPRD compliance for user data</standard>
+      <measure>No personal data in logs</measure>
+      <measure>Right to data deletion via token revocation</measure>
+    </data-protection>
+
+    <security-standards>
+      <standard>OWASP OAuth2 security best practices</standard>
+      <measure>CSRF protection with state parameter</measure>
+      <measure>Secure token storage with encryption</measure>
+      <measure>Automatic token refresh</measure>
+    </security-standards>
+  </compliance>
+
+  <!-- Development Readiness -->
+  <readiness-assessment>
+    <implementation-status>
+      <item name="OAuth2 Flow" status="complete" confidence="high">Full OAuth2 implementation tested</item>
+      <item name="Token Security" status="complete" confidence="high">AES-256 encryption implemented</item>
+      <item name="Database Schema" status="complete" confidence="high">Migration 002 applied and tested</item>
+      <item name="API Endpoints" status="complete" confidence="high">All endpoints implemented</item>
+      <item name="Error Handling" status="complete" confidence="medium">Comprehensive error handling</item>
+      <item name="Testing" status="complete" confidence="high">Integration and unit tests complete</item>
+    </implementation-status>
+
+    <integration-readiness>
+      <integration name="Agent Tools" status="ready">OAuth service available for agent workflows</integration>
+      <integration name="User Auth" status="ready">JWT integration complete</integration>
+      <integration name="Memory System" status="ready">Audit logging implemented</integration>
+      <integration name="Google APIs" status="ready">Token management complete</integration>
+    </integration-readiness>
+
+    <deployment-readiness>
+      <environment-config required="true">All environment variables documented</environment-config>
+      <database-migration required="true">Migration 002-google-drive-sync.sql</database-migration>
+      <security-setup required="true">ENCRYPTION_KEY generation required</security-setup>
+      <google-oauth-config required="true">Google OAuth2 app configuration</google-oauth-config>
+    </deployment-readiness>
+  </readiness-assessment>
+
+  <!-- Next Steps and Dependencies -->
+  <next-steps>
+    <immediate>
+      <step status="complete">OAuth2 authentication foundation</step>
+      <step status="pending">Story 6.2: Google Docs API integration</step>
+      <step status="pending">Story 6.3: Google Sheets API integration</step>
+    </immediate>
+
+    <future>
+      <step>Enhanced permission management for complex folder structures</step>
+      <step>Rate limiting and quota management for agent workflows</step>
+      <step>Multi-provider OAuth support (Slack, GitHub)</step>
+    </future>
+  </next-steps>
+
+  <!-- Risk Assessment -->
+  <risk-assessment>
+    <high-risk>
+      <risk>Google API rate limits in agent workflows</risk>
+      <mitigation>Implement intelligent batching and queueing</mitigation>
+    </high-risk>
+
+    <medium-risk>
+      <risk>Token refresh failures affecting user experience</risk>
+      <mitigation>Robust error handling with user re-auth prompts</mitigation>
+    </medium-risk>
+
+    <low-risk>
+      <risk>OAuth2 dependency on Google services</risk>
+      <mitigation>Graceful degradation and clear error messaging</mitigation>
+    </low-risk>
+  </risk-assessment>
+</story-context>
