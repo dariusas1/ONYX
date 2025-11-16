@@ -2,7 +2,7 @@
 
 **Epic:** Epic 4 - Persistent Memory & Learning
 **Story ID:** 4-1-memory-schema-storage-system
-**Status:** drafted
+**Status:** ready-for-dev
 **Priority:** P0
 **Estimated Points:** 8
 **Sprint:** Sprint 8

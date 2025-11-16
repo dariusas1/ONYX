@@ -1,0 +1,30 @@
+# =============================================================================
+# Grafana Dashboard Provisioning Configuration
+# =============================================================================
+# Auto-loads all dashboards from the configured directory
+# Dashboards update every 10 seconds as required by AC9.1.2
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  # Dashboard provider for ONYX monitoring dashboards
+  - name: 'onyx-dashboards'
+    orgId: 1
+    folder: 'ONYX Monitoring'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/dashboards-json
+      foldersFromFilesStructure: true
+
+# =============================================================================
+# Dashboard Configuration Details
+# =============================================================================
+# - Provider name: onyx-dashboards
+# - Update interval: 10 seconds (matches AC9.1.2 requirement)
+# - Auto-discovery from dashboards-json directory
+# - Allows UI updates for dashboard customization
+# =============================================================================

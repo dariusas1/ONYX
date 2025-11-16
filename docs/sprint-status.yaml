@@ -33,13 +33,13 @@ epics:
     stories:
       - story_id: "4-1-memory-schema-storage-system"
         title: "Memory Schema & Storage System"
-        status: "ready-for-dev"
+        status: "in_progress"
         priority: "P0"
         estimated_points: 8
-        assigned_to: "TBD"
+        assigned_to: "Dev Team"
         sprint: "Sprint 8"
         created_date: "2025-11-15"
-        started_date: null
+        started_date: "2025-11-15"
         completed_date: null
         blocked_reason: null
         notes: "Foundation story for memory system. Database schema, CRUD operations, and memory management functionality. Blocks stories 4-2, 4-3, 4-4. Complete technical specification with 7 acceptance criteria."
@@ -123,7 +123,7 @@ epics:
     name: "Agent Mode & Task Execution"
     status: "in_progress"
     completion_percentage: 85
-    notes: "Agent mode foundation complete with Story 5.1 toggle UI drafted. Missing comprehensive approval gates system (Story 5.3)."
+    notes: "Agent mode foundation complete with Story 5.1 toggle UI ready for development. Story context workflow completed with comprehensive technical specifications. Missing comprehensive approval gates system (Story 5.3)."
     stories:
       - story_id: "5-1-agent-mode-toggle-ui"
         title: "Agent Mode Toggle & UI"
@@ -136,7 +136,7 @@ epics:
         started_date: null
         completed_date: null
         blocked_reason: null
-        notes: "Foundation story for Agent Mode functionality. Toggle switch component with mode state management, localStorage + Supabase persistence, and UI adaptations. Complete technical specification with 10 acceptance criteria and comprehensive task breakdown."
+        notes: "Foundation story for Agent Mode functionality. Story context workflow completed with comprehensive context XML generated. Toggle switch component with mode state management, localStorage + Supabase persistence, and UI adaptations. Complete technical specification with 10 acceptance criteria, comprehensive task breakdown, and full project context analysis. Ready for Sprint 8 development."
         dependencies: ["epic-2"]
         acceptance_criteria:
           - "AC5.1.1: Toggle switch for Agent Mode is prominently displayed in Suna UI header (top-right)"
@@ -233,7 +233,7 @@ epics:
         started_date: null
         completed_date: null
         blocked_reason: null
-        notes: "Comprehensive story specification created with 5 main tasks and 23 subtasks. Covers content extraction, Readability integration, browser automation, caching, and testing. Depends on 7-1 (Playwright) for JavaScript rendering."
+        notes: "Story context workflow executed. Comprehensive context.xml generated with 7-1 Browser Manager integration, existing service patterns, API structure, dependencies, and implementation guidance. Ready for development with 5 main tasks and 23 subtasks. Depends on 7-1 (Playwright) for JavaScript rendering."
         dependencies: ["7-1-playwright-browser-setup-headless-automation"]
         acceptance_criteria:
           - "AC7.3.1: Agent can invoke scrape_url tool with URL parameter"

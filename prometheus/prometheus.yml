@@ -1,0 +1,146 @@
+# =============================================================================
+# ONYX Prometheus Configuration
+# =============================================================================
+# Scrapes metrics from all 6 core services at 15-second intervals
+# Services: Suna (Next.js), Onyx Core (Python), Qdrant, Supabase, Redis, LiteLLM
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'onyx-development'
+    replica: 'prometheus-1'
+
+# =============================================================================
+# Alertmanager Configuration
+# =============================================================================
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# =============================================================================
+# Load Rules Files
+# =============================================================================
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# =============================================================================
+# Scrape Configurations
+# =============================================================================
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    honor_labels: true
+
+  # Suna Frontend (Next.js)
+  - job_name: 'suna-frontend'
+    static_configs:
+      - targets: ['suna:3000']
+    scrape_interval: 15s
+    metrics_path: /api/metrics
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+    basic_auth:
+      username: 'admin'
+      password: 'admin'
+
+  # Onyx Core Service (Python/FastAPI)
+  - job_name: 'onyx-core'
+    static_configs:
+      - targets: ['onyx-core:8080']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+    basic_auth:
+      username: 'admin'
+      password: 'admin'
+
+  # Qdrant Vector Database
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['qdrant:6333']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # PostgreSQL Database (via node_exporter on postgres)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # Redis Cache
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # LiteLLM Proxy
+  - job_name: 'litellm-proxy'
+    static_configs:
+      - targets: ['litellm-proxy:4000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # Nginx Reverse Proxy
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:80']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # Docker Container Metrics (via cAdvisor)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # Node Exporter (System Metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    honor_labels: true
+
+# =============================================================================
+# Remote Write Configuration (for future scaling)
+# =============================================================================
+# remote_write:
+#   - url: "http://remote-storage:9201/api/v1/write"
+#     queue_config:
+#       max_samples_per_send: 1000
+#       max_shards: 200
+#       capacity: 2500
+
+# =============================================================================
+# Storage Configuration
+# =============================================================================
+# The retention time is set in docker-compose.yaml
+# Default: 200h (about 8 days) for development
+# =============================================================================
