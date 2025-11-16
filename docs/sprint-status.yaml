@@ -226,6 +226,31 @@ epics:
           - "AC6.3.9: Markdown input properly converted to Google Docs format during editing"
           - "AC6.3.10: Document metadata updated with edit timestamp and agent context"
 
+      - story_id: "6-4-google-sheets-creation-tools"
+        title: "Google Sheets Creation Tools"
+        status: "drafted"
+        priority: "P0"
+        estimated_points: 8
+        assigned_to: "TBD"
+        sprint: "Sprint 8"
+        created_date: "2025-11-15"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Google Sheets creation tool drafted with comprehensive specification. Agent tool interface for creating structured spreadsheets with data, formatting, and formulas. Builds on OAuth2 foundation from Story 6.1 and Google Workspace patterns from Stories 6.2-6.3. Includes 10 acceptance criteria covering sheet creation, data insertion, formatting, and performance targets. Ready for development with 8 main tasks and 40 subtasks covering advanced features like formulas, charts, and pivot tables."
+        dependencies: ["6-1-oauth2-setup-integration"]
+        acceptance_criteria:
+          - "AC6.4.1: Agent can invoke create_google_sheet tool with title, headers, and data parameters"
+          - "AC6.4.2: Google Sheet created successfully in user's Google Drive with proper permissions"
+          - "AC6.4.3: Headers are formatted with bold styling and background color for visibility"
+          - "AC6.4.4: Data rows are inserted correctly supporting 2D array data structures"
+          - "AC6.4.5: Sheet accessible via shareable Google Sheets URL returned to user"
+          - "AC6.4.6: Sheet creation respects user's Google Drive folder structure"
+          - "AC6.4.7: Returns sheet ID and share link for subsequent operations"
+          - "AC6.4.8: Error handling for permission issues, quota limits, and API failures"
+          - "AC6.4.9: Performance target: sheet creation completes in <2 seconds"
+          - "AC6.4.10: Integration with existing OAuth2 foundation for secure authentication"
+
   - epic_id: "epic-7"
     name: "Web Automation & Search"
     status: "in_progress"
@@ -341,8 +366,8 @@ epics:
   - epic_id: "epic-8"
     name: "Live Workspace (noVNC)"
     status: "in_progress"
-    completion_percentage: 20
-    notes: "First story drafted. Foundation infrastructure in place. noVNC server setup ready for development."
+    completion_percentage: 25
+    notes: "Foundation story completed with enterprise-grade security implementation. Story 8-1 (noVNC Server Setup) approved with production-ready security controls. Ready for workspace interface stories."
     stories:
       - story_id: "8-1-novnc-server-setup"
         title: "noVNC Server Setup"
@@ -355,7 +380,7 @@ epics:
         started_date: "2025-11-15"
         completed_date: "2025-11-15"
         blocked_reason: null
-        notes: "Senior Developer Review (2025-11-15): CHANGES REQUESTED - Excellent engineering foundation (9/10 quality) with 6 of 7 ACs implemented, but critical security gaps prevent production readiness. 3 HIGH severity issues: (1) Default password exposure, (2) Missing SSL/TLS, (3) Insufficient access control. Estimated 1-2 days additional work for security hardening. Blocks all subsequent workspace stories until security issues resolved."
+        notes: "Senior Developer Review (2025-11-15): ✅ APPROVED - OUTSTANDING security implementation with enterprise-grade controls. All 3 HIGH severity security issues resolved: (1) Strong password enforcement, (2) SSL/TLS termination, (3) Access controls with rate limiting. Added comprehensive security modules (auth-manager.sh, security-config.sh, SECURITY.md). Quality Score: 10/10 Security, 9.5/10 Code Quality. Production ready with defense-in-depth architecture. Foundation for Epic 8 workspace stories complete."
         dependencies: ["epic-1"]
         acceptance_criteria:
           - "AC8.1.1: VNC server listening on :6080 (WebSocket) when noVNC service started"
@@ -519,7 +544,7 @@ sprint_summary:
     ready: 2     # Story 6.3 now ready-for-dev
     in_progress: 0
     in_review: 0
-    done: 2
+    done: 3
     blocked: 0
 
   epic_status:
@@ -530,7 +555,7 @@ sprint_summary:
     todo: 2
     blocked: 0
 
-  overall_completion: 52%  # Updated: increased due to Epic 4 completion
+  overall_completion: 55%  # Updated: increased due to Story 8-1 completion
 
   velocity:
     planned_points: 34
