@@ -311,16 +311,14 @@ async def test_connections(
         except Exception as error:
             redis_status = f"error: {error}"
 
-        # Test LiteLLM connection (optional)
+        # Test LiteLLM connection using health checker
         litellm_status = "not_tested"
         try:
-            import httpx
-            async with httpx.AsyncClient(timeout=5) as client:
-                response = await client.get("http://litellm-proxy:4000/health")
-                if response.status_code == 200:
-                    litellm_status = "connected"
-                else:
-                    litellm_status = f"error: {response.status_code}"
+            litellm_health = await health_checker.check_litellm_health()
+            if litellm_health.is_healthy:
+                litellm_status = f"connected (response time: {litellm_health.response_time_ms:.0f}ms)"
+            else:
+                litellm_status = f"error: {litellm_health.error_message}"
         except Exception as error:
             litellm_status = f"error: {error}"
 
