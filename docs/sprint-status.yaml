@@ -160,9 +160,9 @@ epics:
 
   - epic_id: "epic-8"
     name: "Live Workspace (noVNC)"
-    status: "todo"
+    status: "contexted"
     completion_percentage: 0
-    notes: "NoVNC server setup and UI integration pending. Foundation infrastructure in place."
+    notes: "Comprehensive technical specification generated for live workspace with noVNC integration. Complete implementation blueprint covering: noVNC server setup with WebSocket streaming, UI integration with Suna workspace panel, low-latency mouse/keyboard input handling (<500ms RTT), intervention workflow (pause/takeover/resume), comprehensive audit trails with screenshot capture, security controls with encrypted VNC passwords, performance monitoring and adaptive quality settings, Docker deployment configuration, database schema extensions, testing strategy, and success criteria validation. Ready for development with all 5 stories (8.1-8.5) fully specified with technical details, API contracts, and acceptance criteria."
     stories: []
 
   - epic_id: "epic-9"
