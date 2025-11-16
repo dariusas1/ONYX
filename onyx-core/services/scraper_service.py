@@ -186,17 +186,17 @@ class ScraperService:
         except Exception:
             return "unknown"
 
-    def _validate_url(self, url: str) -> bool:
-        """Validate URL format and scheme."""
+    def _validate_url(self, url: str) -> tuple[bool, Optional[str]]:
+        """Validate URL format and scheme. Returns (is_valid, error_message)."""
         try:
             parsed = urlparse(url)
             if not parsed.scheme or not parsed.netloc:
-                return False
+                return False, "Invalid URL format"
             if parsed.scheme not in ['http', 'https']:
-                return False
-            return True
+                return False, "Invalid URL scheme"
+            return True, None
         except Exception:
-            return False
+            return False, "Invalid URL format"
 
     def _clean_html_with_readability(self, html_content: str, url: str) -> tuple[str, Optional[str]]:
         """
@@ -421,11 +421,12 @@ class ScraperService:
         start_time = asyncio.get_event_loop().time()
 
         # Validate URL
-        if not self._validate_url(url):
+        is_valid, error_message = self._validate_url(url)
+        if not is_valid:
             return ScrapedContent(
                 url=url,
                 title="Invalid URL",
-                error=f"URL validation failed: Invalid URL format: {url}",
+                error=f"{error_message}: {url}",
                 execution_time_ms=int((asyncio.get_event_loop().time() - start_time) * 1000)
             )
 
@@ -497,6 +498,15 @@ class ScraperService:
                 execution_time_ms=int((asyncio.get_event_loop().time() - start_time) * 1000)
             )
 
+    def _calculate_word_count(self, text: str) -> int:
+        """Calculate word count from text."""
+        if not text:
+            return 0
+
+        # Split on whitespace and count non-empty words
+        words = [word for word in text.split() if word.strip()]
+        return len(words)
+
     async def batch_scrape(self, urls: List[str], force_refresh: bool = False) -> List[ScrapedContent]:
         """
         Scrape multiple URLs sequentially with rate limiting.
@@ -513,11 +523,12 @@ class ScraperService:
         logger.info(f"Starting batch scrape of {len(urls)} URLs")
 
         for url in urls:
-            if not self._validate_url(url):
+            is_valid, error_message = self._validate_url(url)
+            if not is_valid:
                 results.append(ScrapedContent(
                     url=url,
                     title="Invalid URL",
-                    error=f"URL validation failed: Invalid URL format: {url}"
+                    error=f"{error_message}: {url}"
                 ))
                 continue
 

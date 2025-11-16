@@ -33,7 +33,7 @@ epics:
     stories:
       - story_id: "4-1-memory-schema-storage-system"
         title: "Memory Schema & Storage System"
-        status: "in_review"
+        status: "done"
         priority: "P0"
         estimated_points: 8
         assigned_to: "Dev Team"
@@ -42,7 +42,7 @@ epics:
         started_date: "2025-11-15"
         completed_date: "2025-11-15"
         blocked_reason: null
-        notes: "Foundation story for memory system. Database schema, CRUD operations, and memory management functionality. Blocks stories 4-2, 4-3, 4-4. Complete technical specification with 7 acceptance criteria."
+        notes: "✅ COMPLETED: Foundation story for memory system fully implemented. Database schema, CRUD operations, memory management functionality, API endpoints, security controls, and performance optimization complete. All 7 acceptance criteria satisfied. Code review approved - production ready."
         dependencies: ["epic-1"]
         acceptance_criteria:
           - "AC4.1.1: Database schema implemented with all specified tables, indexes, and constraints"
@@ -64,7 +64,7 @@ epics:
         started_date: null
         completed_date: null
         blocked_reason: null
-        notes: "Standing instructions UI and management system. Priority-based instruction ordering and conflict resolution. Complete UI/UX specification with analytics dashboard."
+        notes: "✅ UNBLOCKED: Foundation (Story 4-1) complete. Standing instructions UI and management system ready for development. Priority-based instruction ordering and conflict resolution. Complete UI/UX specification with analytics dashboard."
         dependencies: ["4-1-memory-schema-storage-system"]
         acceptance_criteria:
           - "AC4.2.1: Standing instructions database table and API endpoints implemented"
@@ -77,7 +77,7 @@ epics:
 
       - story_id: "4-3-memory-injection-agent-integration"
         title: "Memory Injection & Agent Integration"
-        status: "blocked"
+        status: "ready-for-dev"
         priority: "P0"
         estimated_points: 7
         assigned_to: "TBD"
@@ -85,8 +85,8 @@ epics:
         created_date: "2025-11-15"
         started_date: null
         completed_date: null
-        blocked_reason: "Story 4-1 foundation incomplete - missing database schema and API endpoints"
-        notes: "Memory injection system for chat and Agent Mode. Sub-50ms injection with intelligent caching. Memory-aware agent execution with extraction from actions."
+        blocked_reason: null
+        notes: "✅ UNBLOCKED: Foundation (Story 4-1) complete. Memory injection system for chat and Agent Mode ready for development. Sub-50ms injection with intelligent caching. Memory-aware agent execution with extraction from actions."
         dependencies: ["4-1-memory-schema-storage-system", "4-2-standing-instructions-management"]
         acceptance_criteria:
           - "AC4.3.1: Memory injection service implemented with top-5 memory retrieval"
@@ -127,16 +127,16 @@ epics:
     stories:
       - story_id: "5-1-agent-mode-toggle-ui"
         title: "Agent Mode Toggle & UI"
-        status: "ready-for-dev"
+        status: "in_review"
         priority: "P0"
         estimated_points: 6
-        assigned_to: "TBD"
+        assigned_to: "Dev Team"
         sprint: "Sprint 7"
         created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
+        started_date: "2025-11-16"
+        completed_date: "2025-11-16"
         blocked_reason: null
-        notes: "Foundation story for Agent Mode functionality. Story context workflow completed with comprehensive context XML generated. Toggle switch component with mode state management, localStorage + Supabase persistence, and UI adaptations. Complete technical specification with 10 acceptance criteria, comprehensive task breakdown, and full project context analysis. Ready for Sprint 8 development."
+        notes: "Implementation complete! All 10 acceptance criteria implemented with full functionality. ToggleSwitch component with smooth animations, ModeContext with dual persistence (localStorage + Supabase), mode-specific UI adaptations, warning banners, and accessibility features. Components properly integrated with existing Suna architecture. Ready for code review and testing."
         dependencies: ["epic-2"]
         acceptance_criteria:
           - "AC5.1.1: Toggle switch for Agent Mode is prominently displayed in Suna UI header (top-right)"
