@@ -1,0 +1,700 @@
+<story-context id="8-3-mouse-keyboard-input-handling" v="1.0">
+  <metadata>
+    <epicId>epic-8</epicId>
+    <storyId>8-3</storyId>
+    <title>Mouse & Keyboard Input Handling</title>
+    <status>draft</status>
+    <generatedAt>2025-11-15</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/8-3-mouse-keyboard-input-handling.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>As a founder observing agent execution</asA>
+    <iWant>I want to provide real-time mouse and keyboard input to the remote workspace</iWant>
+    <soThat>So that I can intervene, correct actions, or demonstrate solutions when the agent needs assistance</soThat>
+    <tasks>
+### Task 1: Input Event Capture Infrastructure
+- Create InputManager service for centralized event handling
+- Implement mouse event capture with boundary detection
+- Implement keyboard event capture with modifier tracking
+- Set up event validation and sanitization framework
+- Configure input event queuing and batching
+
+### Task 2: Mouse Input Processing
+- Implement MouseHandler for all mouse event types
+- Add movement tracking with smooth interpolation
+- Implement click, double-click, and drag operations
+- Add mouse button handling (left, right, middle, scroll)
+- Implement cursor visibility and tracking
+
+### Task 3: Keyboard Input Processing
+- Implement KeyboardHandler for all key events
+- Add modifier key state management (Ctrl, Alt, Shift, Cmd)
+- Implement special key handling (function keys, system keys)
+- Add international character and input method support
+- Implement keyboard shortcut handling and conflict resolution
+
+### Task 4: Input Event Forwarding
+- Integrate with noVNC WebSocket for event transmission
+- Implement input event serialization and compression
+- Add input batching for bandwidth optimization
+- Implement input acknowledgment and reliability
+- Add input latency monitoring and optimization
+
+### Task 5: Focus Management
+- Create FocusManager for input focus control
+- Implement focus boundaries for VNC viewer area
+- Add focus switching between VNC and Suna UI components
+- Implement keyboard shortcut conflict resolution
+- Add visual focus indicators for better UX
+
+### Task 6: Touch Device Support
+- Implement TouchHandler for tablet devices
+- Map touch events to mouse events appropriately
+- Add multi-touch gesture support (pinch, swipe)
+- Implement on-screen keyboard integration
+- Add touch-specific optimizations and responsiveness
+
+### Task 7: Security & Validation
+- Implement input validation and sanitization
+- Add input rate limiting and abuse prevention
+- Implement comprehensive audit logging for all input
+- Add security filters for malicious input patterns
+- Configure input security policies and restrictions
+
+### Task 8: Error Handling & Recovery
+- Implement connection loss detection and recovery
+- Add input event queuing during disconnections
+- Create user-friendly error messages and notifications
+- Implement graceful degradation for poor connections
+- Add input status indicators and monitoring
+
+### Task 9: Performance Optimization
+- Optimize input event processing for minimal latency
+- Implement smart input batching and compression
+- Add adaptive quality based on network conditions
+- Optimize memory usage for input event queuing
+- Monitor and tune performance metrics
+
+### Task 10: Testing & Validation
+- Create comprehensive test suite for all input scenarios
+- Test input latency and performance under various conditions
+- Validate touch device support on tablets
+- Test error handling and recovery scenarios
+- Verify security controls and input validation
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+### AC8.3.1: Mouse Input Capture & Forwarding
+- **Given**: VNC workspace panel is visible and connected
+- **When**: User moves mouse over VNC viewer area
+- **Then**: Mouse movement events captured and forwarded to remote desktop
+- **And**: Mouse cursor position updates in real-time on remote desktop
+- **And**: Mouse input is restricted to VNC viewer boundaries
+
+### AC8.3.2: Mouse Click & Drag Handling
+- **Given**: VNC workspace panel is active
+- **When**: User performs left/right/middle click operations
+- **Then**: Click events properly forwarded to remote desktop
+- **And**: Drag operations (click-hold-move-release) work correctly
+- **And**: Double-click events handled appropriately
+- **And**: Right-click context menus accessible
+
+### AC8.3.3: Keyboard Input Capture & Forwarding
+- **Given**: VNC workspace panel has focus
+- **When**: User types on keyboard
+- **Then**: All key events captured and forwarded to remote desktop
+- **And**: Text input appears correctly in remote applications
+- **And**: Special keys (Enter, Tab, Escape) work properly
+- **And**: Input appears with appropriate timing and character mapping
+
+### AC8.3.4: Special Keys & Modifiers
+- **Given**: User needs to use special key combinations
+- **When**: User presses modifier keys (Ctrl, Alt, Shift, Cmd)
+- **Then**: Modifier state tracked and applied to subsequent keystrokes
+- **And**: Common shortcuts (Ctrl+C, Ctrl+V, Ctrl+Z) work correctly
+- **And**: Function keys (F1-F12) handled properly
+- **And**: System keys (Print Screen, Scroll Lock) processed correctly
+
+### AC8.3.5: Input Performance & Latency
+- **Given**: Active VNC session with user interaction
+- **When**: User provides mouse or keyboard input
+- **Then**: Input round-trip time <500ms for responsive experience
+- **And**: Mouse movement appears smooth without lag
+- **And**: Keyboard input appears instantly without noticeable delay
+- **And**: Input batching optimized for bandwidth efficiency
+
+### AC8.3.6: Input Focus Management
+- **Given**: VNC workspace panel embedded in Suna UI
+- **When**: User interacts with other Suna UI elements
+- **Then**: Input focus properly managed between VNC and other components
+- **And**: Clicking outside VNC viewer removes focus from remote desktop
+- **And**: Clicking back inside VNC viewer restores input focus
+- **And**: Keyboard shortcuts don't conflict with browser/system shortcuts
+
+### AC8.3.7: Error Handling & Connection Recovery
+- **Given**: Active input session with VNC connection
+- **When**: Network issues or connection problems occur
+- **Then**: Input events queued during connection issues
+- **And**: Input automatically resumes when connection restored
+- **And**: User notified of input/connection status
+- **And**: Graceful degradation of input responsiveness
+
+### AC8.3.8: Security & Input Validation
+- **Given**: User providing input to remote workspace
+- **When**: Input events are captured and processed
+- **Then**: All input events validated and sanitized
+- **And**: Malicious input patterns filtered or blocked
+- **And**: Input rate limiting prevents abuse
+- **And**: Audit logging tracks all user input actions
+
+### AC8.3.9: Touch Device Support
+- **Given**: User accessing VNC workspace on tablet device
+- **When**: User provides touch-based input
+- **Then**: Touch events properly mapped to mouse events
+- **And**: Multi-touch gestures handled appropriately
+- **And**: Touch scrolling and zooming work correctly
+- **And**: On-screen keyboard accessible for text input
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc id="epic-8-tech-spec" path="docs/epics/epic-8-tech-spec.md" type="technical-specification">
+        <title>Epic Technical Specification: Live Workspace (noVNC)</title>
+        <description>Comprehensive technical specification for live workspace implementation including input handling, noVNC server setup, UI integration, intervention workflows, and security controls.</description>
+        <relevance>PRIMARY - Defines the complete input handling architecture and technical requirements</relevance>
+        <keySections>
+          <section name="Input Handler Service">Mouse/keyboard forwarding, latency optimization, special keys</section>
+          <section name="Performance Requirements"><500ms round-trip time, 30fps streaming, input batching</section>
+          <section name="Security Requirements">Input validation, rate limiting, audit logging</section>
+          <section name="Touch Support">Touch event mapping, multi-touch gestures, on-screen keyboard</section>
+        </keySections>
+      </doc>
+
+      <doc id="story-8-1-novnc-server" path="docs/stories/8-1-novnc-server-setup.md" type="implementation-story">
+        <title>Story 8-1: noVNC Server Setup</title>
+        <description>Complete implementation of noVNC server with WebSocket support, security enhancements, and Docker integration. Status: DONE with comprehensive security fixes.</description>
+        <relevance>CRITICAL - Provides the WebSocket endpoint and server infrastructure for input forwarding</relevance>
+        <keyImplementations>
+          <item>WebSocket server on port 6080 with input forwarding capability</item>
+          <item>Strong password validation and encrypted storage</item>
+          <item>Rate limiting and IP access controls for input security</item>
+          <item>Performance optimization for 30fps at 1920x1080</item>
+          <item>Session management and audit logging for input tracking</item>
+        </keyImplementations>
+      </doc>
+
+      <doc id="story-8-2-vnc-embed" path="docs/stories/8-2-vnc-embed-suna-ui.md" type="implementation-story">
+        <title>Story 8-2: VNC Embed in Suna UI</title>
+        <description>VNC viewer component integration into Suna UI with workspace panel, responsive design, and connection management. Status: In Progress.</description>
+        <relevance>HIGH - Provides the VNC viewer component that will capture and forward input events</relevance>
+        <keyImplementations>
+          <item>VNCViewer React component with noVNC client integration</item>
+          <item>WorkspacePanel component with layout integration</item>
+          <item>Connection management and error handling</item>
+          <item>Responsive design for tablet devices</item>
+          <item>Integration with ModeContext for agent workflows</item>
+        </keyImplementations>
+      </doc>
+
+      <doc id="ux-design-specification" path="docs/ux-design-specification.md" type="design-specification">
+        <title>UX Design Specification</title>
+        <description>Complete design system including interaction patterns, responsive design, accessibility, and touch device support.</description>
+        <relevance>HIGH - Defines UI patterns and interaction requirements for input handling</relevance>
+        <keyPatterns>
+          <pattern>44px minimum touch targets for touch device accessibility</pattern>
+          <pattern>Keyboard navigation with proper focus management</pattern>
+          <pattern>Responsive design patterns for desktop/tablet/mobile</pattern>
+          <pattern>WCAG 2.1 Level AA compliance for input interfaces</pattern>
+          <pattern>Visual feedback for user interactions and focus states</pattern>
+        </keyPatterns>
+      </doc>
+
+      <doc id="architecture-document" path="docs/architecture.md" type="architecture-documentation">
+        <title>ONYX Architecture Document</title>
+        <description>System architecture including service communication, API contracts, and integration patterns.</description>
+        <relevance>HIGH - Defines integration patterns for input handling services</relevance>
+        <keySections>
+          <section>Service Architecture: WebSocket communication for real-time input</section>
+          <section>API Contracts: Input event processing and validation</section>
+          <section>Event Handling: Asynchronous input processing patterns</section>
+          <section>Security: Input validation and audit trail requirements</section>
+        </keySections>
+      </doc>
+
+      <doc id="story-8-2-context" path="docs/stories/8-2-vnc-embed-suna-ui.context.xml" type="context-file">
+        <title>Story 8-2 Context XML</title>
+        <description>Comprehensive context file for VNC embed story with component interfaces and integration patterns.</description>
+        <relevance>MEDIUM - Provides VNC viewer component interfaces for input integration</relevance>
+        <keyInterfaces>
+          <interface>VNC viewer component with WebSocket integration</interface>
+          <interface>Workspace panel layout and interaction patterns</interface>
+          <interface>Connection management and error handling patterns</interface>
+        </keyInterfaces>
+      </doc>
+    </docs>
+
+    <code>
+      <component id="InputBox" path="suna/src/components/InputBox.tsx" type="react-component">
+        <description>Text input component with keyboard event handling and focus management patterns</description>
+        <patterns>Uses KeyboardEvent, handleKeyDown, onChange handlers, focus management</patterns>
+        <keyImplementationDetails>
+          <item>Keyboard event handling: handleKeyDown function with Enter key detection</item>
+          <item>Focus management: useRef for textarea, automatic focus on mount</item>
+          <item>Input validation: trimming and disabled state handling</item>
+          <item>Modifier key support: Shift+Enter for new line functionality</item>
+        </keyImplementationDetails>
+        <relevantPatterns>Event handling, focus management, keyboard shortcuts</relevantPatterns>
+      </component>
+
+      <component id="ModeContext" path="suna/src/contexts/ModeContext.jsx" type="react-context">
+        <description>Context provider for mode management with state synchronization and event handling</description>
+        <patterns>React Context API, useReducer for state management, useEffect for side effects</patterns>
+        <keyImplementationDetails>
+          <item>Event-driven state management with action types</item>
+          <item>Asynchronous synchronization with localStorage and cloud storage</item>
+          <item>Error handling with graceful fallbacks</item>
+          <item>Context provider pattern for state distribution</item>
+        </keyImplementationDetails>
+        <relevantPatterns>State management, event handling, async operations</relevantPatterns>
+      </component>
+
+      <component id="Layout" path="suna/src/app/layout.tsx" type="react-layout">
+        <description>Root layout with context providers and global event handling setup</description>
+        <patterns>Next.js App Router, font optimization, context provider integration</patterns>
+        <contextProviders>ModeProvider, WorkspaceProvider (for future integration)</contextProviders>
+      </component>
+
+      <service id="noVNC-Startup" path="novnc/startup.sh" type="startup-script">
+        <description>noVNC server startup script with security configuration and performance optimization</description>
+        <features>WebSocket server configuration, performance optimization, security hardening</features>
+        <inputRelevance>Provides WebSocket endpoint for input event forwarding with security controls</inputRelevance>
+        <security>Input rate limiting, session management, encrypted connections</security>
+      </service>
+
+      <service id="Docker-Compose" path="docker-compose.yaml" type="infrastructure">
+        <description>Docker Compose orchestration with service networking and resource management</description>
+        <services>suna (frontend), onyx-core (backend), novnc (VNC server), nginx (proxy)</services>
+        <networking>manus-network with internal service communication and WebSocket routing</networking>
+        <inputIntegration>WebSocket routing through Nginx for secure input forwarding</inputIntegration>
+      </service>
+
+      <service id="Nginx-Proxy" path="nginx/nginx.conf" type="reverse-proxy">
+        <description>Nginx reverse proxy with WebSocket support and rate limiting</description>
+        <features>WebSocket proxying, SSL termination, rate limiting, security headers</features>
+        <inputRouting>/vnc/* path routing for WebSocket input event forwarding</inputRouting>
+        <performance>Connection optimization and bandwidth management for input streaming</performance>
+      </service>
+
+      <dependency id="novnc-library" path="@novnc/novnc" type="npm-package">
+        <description>Official noVNC JavaScript client library for VNC viewer functionality</description>
+        <version>^1.6.0</version>
+        <inputCapabilities>
+          <capability>WebSocket connection management for bidirectional communication</capability>
+          <capability>Mouse event capture and forwarding</capability>
+          <capability>Keyboard event processing and transmission</capability>
+          <capability>Touch event mapping and gesture handling</capability>
+          <capability>Input event serialization and compression</capability>
+        </inputCapabilities>
+      </dependency>
+
+      <dependency id="react-framework" path="react" type="npm-package">
+        <description>React library for component-based UI development with event handling</description>
+        <version>^18.0.0</version>
+        <inputEventSupport>SyntheticEvent system, keyboard/mouse event handling, focus management</inputEventSupport>
+      </dependency>
+    </code>
+
+    <dependencies>
+      <dependency name="@novnc/novnc" version="^1.6.0" type="npm">
+        <description>Official noVNC JavaScript client for VNC viewer and input handling</description>
+        <purpose>Core VNC functionality with mouse/keyboard event forwarding, WebSocket communication, touch support</purpose>
+        <integration>Provides RFB (Remote Frame Buffer) protocol implementation for input event transmission</integration>
+      </dependency>
+
+      <dependency name="react" version="^18.0.0" type="npm">
+        <description>React library for component-based UI development</description>
+        <purpose>Synthetic event system for mouse/keyboard events, component lifecycle management, focus handling</purpose>
+        <integration>Input event capture through React's SyntheticEvent system and event delegation</integration>
+      </dependency>
+
+      <dependency name="next" version="^14.0.0" type="npm">
+        <description>React framework with App Router and server components</description>
+        <purpose>API routes for input validation, server-side event processing, WebSocket integration</purpose>
+        <integration>API endpoints for input processing, security validation, and session management</integration>
+      </dependency>
+
+      <dependency name="typescript" version="^5.3.0" type="npm">
+        <description>TypeScript for type safety and interface definitions</description>
+        <purpose>Type definitions for input events, component interfaces, API contracts</purpose>
+        <integration>Strong typing for input event handlers, component props, and service interfaces</integration>
+      </dependency>
+
+      <dependency name="tailwindcss" version="^3.4.0" type="npm">
+        <description>Utility-first CSS framework for responsive design</description>
+        <purpose>Responsive design for touch devices, focus indicators, visual feedback for input</purpose>
+        <integration>Tailwind utilities for input focus states, responsive breakpoints, touch targets</integration>
+      </dependency>
+
+      <dependency name="lucide-react" version="^0.294.0" type="npm">
+        <description>Icon library for React components</description>
+        <purpose>Input-related icons (mouse, keyboard, touch), status indicators, control buttons</purpose>
+        <integration>Visual indicators for input status, focus states, and control buttons</integration>
+      </dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint id="input-latency-target" type="performance-constraint">
+      <description>Input round-trip time must be <500ms for responsive user experience</description>
+      <requirement>Mouse and keyboard input must appear on remote desktop within 500ms of user action</requirement>
+      <source>Epic 8 Technical Specification - Performance Requirements</source>
+    </constraint>
+
+    <constraint id="mouse-tracking-smoothness" type="performance-constraint">
+      <description>Mouse movement must appear smooth with 60fps tracking for natural interaction</description>
+      <requirement>High-frequency mouse events captured and forwarded with minimal delay</requirement>
+      <source>Story Acceptance Criteria - AC8.3.5</source>
+    </constraint>
+
+    <constraint id="input-validation-security" type="security-constraint">
+      <description>All input events must be validated and sanitized before forwarding</description>
+      <requirement>Input sanitization, rate limiting, and audit logging for security compliance</requirement>
+      <source>Story Acceptance Criteria - AC8.3.8</source>
+    </constraint>
+
+    <constraint id="focus-management-compatibility" type="ui-constraint">
+      <description>Input focus must work correctly with Suna UI components and browser shortcuts</description>
+      <requirement>Proper focus boundaries, keyboard shortcut conflict resolution, visual focus indicators</requirement>
+      <source>Story Acceptance Criteria - AC8.3.6</source>
+    </constraint>
+
+    <constraint id="touch-device-support" type="device-constraint">
+      <description>Must support touch devices with multi-touch gestures and on-screen keyboard</description>
+      <requirement>Touch event mapping to mouse events, pinch/zoom gestures, touch-optimized UI</requirement>
+      <source>Story Acceptance Criteria - AC8.3.9</source>
+    </constraint>
+
+    <constraint id="websocket-security" type="security-constraint">
+      <description>Input events must be transmitted through secure WebSocket connections</description>
+      <requirement>SSL/TLS termination, encrypted input transmission, session-based authentication</requirement>
+      <source>Story 8-1 Security Implementation - Enterprise-grade security controls</source>
+    </constraint>
+
+    <constraint id="input-batching-efficiency" type="performance-constraint">
+      <description>Input events must be efficiently batched to optimize bandwidth usage</description>
+      <requirement>Smart batching algorithms, compression, adaptive quality based on network conditions</requirement>
+      <source>Epic 8 Technical Specification - Input Handler Service</source>
+    </constraint>
+
+    <constraint id="accessibility-compliance" type="accessibility-constraint">
+      <description>Input interfaces must meet WCAG 2.1 Level AA accessibility requirements</description>
+      <requirement>44px minimum touch targets, keyboard navigation, screen reader support, focus indicators</requirement>
+      <source>UX Design Specification - Accessibility Strategy</source>
+    </constraint>
+
+    <constraint id="connection-recovery-robustness" type="reliability-constraint">
+      <description>Input system must gracefully handle connection loss and recovery</description>
+      <requirement>Input event queuing during disconnections, automatic resume, user notifications</requirement>
+      <source>Story Acceptance Criteria - AC8.3.7</source>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface id="input-manager-interface" type="service-interface">
+      <description>InputManager service for centralized event handling and validation</description>
+      <properties>
+        <property name="mouseHandler" type="MouseHandler" required="true">Mouse event processing and forwarding</property>
+        <property name="keyboardHandler" type="KeyboardHandler" required="true">Keyboard event processing and forwarding</property>
+        <property name="focusManager" type="FocusManager" required="true">Input focus control and management</property>
+        <property name="inputValidator" type="InputValidator" required="true">Input validation and sanitization</property>
+        <property name="touchHandler" type="TouchHandler" required="true">Touch event mapping and processing</property>
+      </properties>
+      <methods>
+        <method name="captureMouseEvents" params="element: HTMLElement">Capture mouse events from VNC viewer</method>
+        <method name="captureKeyboardEvents" params="element: HTMLElement">Capture keyboard events with focus management</method>
+        <method name="validateInput" params="event: InputEvent">Validate and sanitize input events</method>
+        <method name="forwardInput" params="events: InputEvent[]">Forward validated events to VNC server</method>
+        <method name="handleConnectionLoss" params="queue: boolean">Handle connection issues with event queuing</method>
+      </methods>
+    </interface>
+
+    <interface id="mouse-handler-interface" type="component-interface">
+      <description>MouseHandler for processing all mouse event types with boundary detection</description>
+      <properties>
+        <property name="boundaries" type="DOMRect" required="true">VNC viewer boundary detection</property>
+        <property name="sensitivity" type="number" optional="true">Mouse sensitivity multiplier (default: 1.0)</property>
+        <property name="clickThreshold" type="number" optional="true">Double-click threshold in ms (default: 300)</property>
+        <property name="dragThreshold" type="number" optional="true">Drag detection threshold in pixels (default: 3)</property>
+      </properties>
+      <events>
+        <event name="onMouseMove" payload="{x: number, y: number, buttons: number}">Mouse movement with position and button state</event>
+        <event name="onMouseClick" payload="{x: number, y: number, button: number}">Mouse click with position and button</event>
+        <event name="onMouseDrag" payload="{x: number, y: number, button: number, startX: number, startY: number}">Drag operation with coordinates</event>
+        <event name="onMouseScroll" payload="{x: number, y: number, deltaX: number, deltaY: number}">Scroll event with position and delta</event>
+      </events>
+    </interface>
+
+    <interface id="keyboard-handler-interface" type="component-interface">
+      <description>KeyboardHandler for processing keyboard events with modifier tracking</description>
+      <properties>
+        <property name="modifiers" type="ModifierState" required="true">Current modifier key states</property>
+        <property name="keyMap" type="KeyMapping" required="true">Browser to VNC key mapping</property>
+        <property name="autoRepeat" type="boolean" optional="true">Enable/disable key auto-repeat (default: true)</property>
+        <property name="keyDelay" type="number" optional="true">Key repeat delay in ms (default: 50)</property>
+      </properties>
+      <events>
+        <event name="onKeyDown" payload="{keyCode: number, key: string, modifiers: ModifierState}">Key press with modifiers</event>
+        <event name="onKeyUp" payload="{keyCode: number, key: string, modifiers: ModifierState}">Key release with modifiers</event>
+        <event name="onKeyRepeat" payload="{keyCode: number, key: string, modifiers: ModifierState}">Key repeat event</event>
+        <event name="onShortcut" payload="{shortcut: string, action: string}">Keyboard shortcut detection</event>
+      </events>
+    </interface>
+
+    <interface id="focus-manager-interface" type="component-interface">
+      <description>FocusManager for input focus control and keyboard shortcut management</description>
+      <properties>
+        <property name="hasFocus" type="boolean" required="true">Current focus state</property>
+        <property name="boundaries" type="DOMRect" required="true">Focus boundary detection area</property>
+        <property name="shortcuts" type="ShortcutMap" optional="true">Keyboard shortcut mappings</property>
+        <property name="visualIndicators" type="boolean" optional="true">Enable visual focus indicators (default: true)</property>
+      </properties>
+      <methods>
+        <method name="requestFocus" params="element: HTMLElement">Request focus for VNC viewer</method>
+        <method name="releaseFocus" params="">Release focus from VNC viewer</method>
+        <method name="handleShortcut" params="event: KeyboardEvent">Process keyboard shortcuts with conflict resolution</method>
+        <method name="updateFocusIndicators" params="focused: boolean">Update visual focus indicators</method>
+      </methods>
+    </interface>
+
+    <interface id="touch-handler-interface" type="component-interface">
+      <description>TouchHandler for tablet device touch event mapping and gesture support</description>
+      <properties>
+        <property name="gestureThreshold" type="number" optional="true">Gesture detection threshold in pixels (default: 10)</property>
+        <property name="pinchSensitivity" type="number" optional="true">Pinch zoom sensitivity (default: 1.0)</property>
+        <property name="touchMapping" type="TouchMapping" required="true">Touch to mouse event mapping</property>
+      </properties>
+      <events>
+        <event name="onTouchStart" payload="{x: number, y: number, touchId: number}">Touch start with coordinates</event>
+        <event name="onTouchMove" payload="{x: number, y: number, touchId: number}">Touch move with coordinates</event>
+        <event name="onTouchEnd" payload="{touchId: number}">Touch end event</event>
+        <event name="onGesture" payload="{type: string, value: number, center: {x: number, y: number}}">Gesture detection (pinch, swipe)</event>
+      </events>
+    </interface>
+
+    <interface id="input-validator-interface" type="service-interface">
+      <description>InputValidator for security validation and sanitization of input events</description>
+      <properties>
+        <property name="rateLimit" type="RateLimitConfig" required="true">Rate limiting configuration</property>
+        <property name="securityFilters" type="SecurityFilter[]" required="true">Security validation filters</property>
+        <property name="auditLogger" type="AuditLogger" required="true">Input event audit logging</property>
+      </properties>
+      <methods>
+        <method name="validateMouseEvent" params="event: MouseEvent">Validate mouse event security and limits</method>
+        <method name="validateKeyboardEvent" params="event: KeyboardEvent">Validate keyboard event and content</method>
+        <method name="checkRateLimit" params="userId: string, eventType: string">Check if user exceeded input rate limits</method>
+        <method name="sanitizeInput" params="event: InputEvent">Sanitize input event to prevent injection</method>
+        <method name="logInputEvent" params="event: InputEvent, userId: string">Log input event for audit trail</method>
+      </methods>
+    </interface>
+
+    <interface id="vnc-input-websocket" type="communication-protocol">
+      <description>WebSocket protocol for input event transmission to noVNC server</description>
+      <protocol>WebSocket with SSL/TLS termination (wss://localhost:6080/websockify)</protocol>
+      <messageTypes>
+        <messageType name="mouseEvent" format="MouseInputEvent">Mouse movement and click events</messageType>
+        <messageType name="keyboardEvent" format="KeyboardInputEvent">Keyboard press and release events</messageType>
+        <messageType name="touchEvent" format="TouchInputEvent">Touch events from mobile devices</messageType>
+        <messageType name="focusEvent" format="FocusInputEvent">Focus management events</messageType>
+      </messageTypes>
+      <compression>Input event batching and compression for bandwidth optimization</compression>
+      <reliability>Message acknowledgment and retry mechanisms for reliable delivery</reliability>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard id="input-latency-testing" framework="custom" coverage="performance-metrics">
+        <description>Performance testing for input event processing and transmission</description>
+        <requirements><500ms round-trip latency, 60fps mouse tracking, smooth keyboard input</requirements>
+        <tools>Custom latency measurement tools, performance monitoring, WebSocket timing analysis</tools>
+      </standard>
+
+      <standard id="mouse-interaction-testing" framework="jest" coverage="95%">
+        <description>Comprehensive testing of mouse event capture and forwarding</description>
+        <requirements>All mouse event types, boundary detection, drag operations, scroll events</requirements>
+        <tools>React Testing Library, custom mouse event simulation, VNC server mock</tools>
+      </standard>
+
+      <standard id="keyboard-interaction-testing" framework="jest" coverage="95%">
+        <description>Keyboard event handling with modifiers and special keys</description>
+        <requirements>All keyboard events, modifier tracking, shortcut handling, international characters</requirements>
+        <tools>React Testing Library, keyboard event simulation, IME testing support</tools>
+      </standard>
+
+      <standard id="touch-device-testing" framework="playwright" coverage="100%">
+        <description>Touch device support with gesture mapping and on-screen keyboard</description>
+        <requirements>Touch event mapping, multi-touch gestures, tablet responsiveness, on-screen keyboard</requirements>
+        <tools>Playwright mobile emulation, touch simulation, gesture testing framework</tools>
+      </standard>
+
+      <standard id="input-security-testing" framework="jest" coverage="100%">
+        <description>Security validation and sanitization testing for input events</description>
+        <requirements>Input validation, rate limiting, audit logging, malicious input filtering</requirements>
+        <tools>Security testing utilities, input validation test suite, audit log verification</tools>
+      </standard>
+
+      <standard id="focus-management-testing" framework="jest" coverage="90%">
+        <description>Focus management and keyboard shortcut conflict resolution</description>
+        <requirements>Focus boundaries, shortcut detection, conflict resolution, visual indicators</requirements>
+        <tools>React Testing Library, focus simulation, keyboard shortcut testing</tools>
+      </standard>
+    </standards>
+
+    <locations>
+      <location path="suna/src/components/__tests__/" type="unit-tests">
+        <description>Unit tests for input handling components</description>
+        <files>InputManager.test.tsx, MouseHandler.test.tsx, KeyboardHandler.test.tsx, FocusManager.test.tsx</files>
+      </location>
+
+      <location path="suna/src/services/__tests__/" type="unit-tests">
+        <description>Unit tests for input services and validation</description>
+        <files>InputValidator.test.ts, TouchHandler.test.ts, WebSocketInputService.test.ts</files>
+      </location>
+
+      <location path="suna/__tests__/integration/" type="integration-tests">
+        <description>Integration tests for input handling workflow</description>
+        <files>InputWorkflow.test.tsx, VNCInputIntegration.test.tsx, PerformanceLatency.test.tsx</files>
+      </location>
+
+      <location path="suna/tests/e2e/" type="e2e-tests">
+        <description>End-to-end tests using Playwright</description>
+        <files>MouseInteraction.e2e.ts, KeyboardShortcuts.e2e.ts, TouchGestures.e2e.ts, InputSecurity.e2e.ts</files>
+      </location>
+
+      <location path="suna/tests/performance/" type="performance-tests">
+        <description>Performance testing for input latency and responsiveness</description>
+        <files>InputLatency.test.ts, MouseTracking.test.ts, KeyboardResponse.test.ts, NetworkConditions.test.ts</files>
+      </location>
+
+      <location path="suna/tests/accessibility/" type="accessibility-tests">
+        <description>Accessibility testing for input interfaces</description>
+        <files>FocusNavigation.test.ts, TouchTargets.test.ts, ScreenReader.test.ts, KeyboardAccessibility.test.ts</files>
+      </location>
+    </locations>
+
+    <ideas>
+      <test-idea id="mouse-movement-latency" type="performance-test" priority="high">
+        <description>Test mouse movement tracking meets <500ms latency target</description>
+        <scenarios>
+          <scenario>Rapid mouse movement tracking with position accuracy</scenario>
+          <scenario>High-frequency mouse events (60fps) processing</scenario>
+          <scenario>Mouse movement accuracy across VNC viewer boundaries</scenario>
+          <scenario>Latency under various network conditions</scenario>
+          <scenario>Mouse movement smoothing and interpolation</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="keyboard-shortcut-conflicts" type="integration-test" priority="high">
+        <description>Test keyboard shortcut handling and conflict resolution</description>
+        <scenarios>
+          <scenario>Ctrl+C conflicts between browser and VNC (should prioritize VNC)</scenario>
+          <scenario>Alt+Tab switching (should stay in VNC context)</scenario>
+          <scenario>F5 refresh prevention during VNC focus</scenario>
+          <scenario>Custom application shortcuts work correctly</scenario>
+          <scenario>Escape key handling for menu/dialog closure</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="touch-gesture-mapping" type="accessibility-test" priority="high">
+        <description>Test touch gesture mapping and multi-touch support</description>
+        <scenarios>
+          <scenario>Pinch-to-zoom gestures mapped to mouse wheel</scenario>
+          <scenario>Swipe gestures mapped to appropriate mouse actions</scenario>
+          <scenario>Multi-touch drag operations (two-finger scroll)</scenario>
+          <scenario>Touch accuracy and responsiveness on tablets</scenario>
+          <scenario>On-screen keyboard integration for text input</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="input-boundary-detection" type="unit-test" priority="medium">
+        <description>Test input event boundary detection and restriction</description>
+        <scenarios>
+          <scenario>Mouse events captured only within VNC viewer bounds</scenario>
+          <scenario>Touch events limited to VNC viewer area</scenario>
+          <scenario>Keyboard input only accepted when VNC viewer focused</scenario>
+          <scenario>Edge cases: window resize, viewer movement, overlapping elements</scenario>
+          <scenario>Multiple input devices and simultaneous interaction</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="connection-recovery-input" type="integration-test" priority="high">
+        <description>Test input event queuing and recovery during connection issues</description>
+        <scenarios>
+          <scenario>Input events queued during WebSocket disconnection</scenario>
+          <scenario>Queued events processed in order upon reconnection</scenario>
+          <scenario>User notified of input status during connection issues</scenario>
+          <scenario>Input gracefully degraded during poor network conditions</scenario>
+          <scenario>Automatic input resume without user intervention</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="security-input-validation" type="security-test" priority="high">
+        <description>Test input validation and security filtering</description>
+        <scenarios>
+          <scenario>Malicious input patterns filtered and blocked</scenario>
+          <scenario>Input rate limiting prevents abuse and DoS attacks</scenario>
+          <scenario>Audit logging captures all input events for security monitoring</scenario>
+          <scenario>Input sanitization prevents injection attacks</scenario>
+          <scenario>Unauthorized input attempts are rejected and logged</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="international-keyboard-support" type="accessibility-test" priority="medium">
+        <description>Test international character input and keyboard layouts</description>
+        <scenarios>
+          <scenario>Non-ASCII character input and transmission</scenario>
+          <scenario>International keyboard layouts (AZERTY, QWERTZ, etc.)</scenario>
+          <scenario>Input Method Editor (IME) support for Asian languages</scenario>
+          <scenario>Right-to-left language input handling</scenario>
+          <scenario>Special characters and diacritics processing</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="multi-user-input-isolation" type="security-test" priority="medium">
+        <description>Test input event isolation between concurrent users</description>
+        <scenarios>
+          <scenario>Input events isolated to user's session</scenario>
+          <scenario>No cross-contamination between simultaneous user inputs</scenario>
+          <scenario>Session-based input authentication and authorization</scenario>
+          <scenario>Input access control prevents unauthorized manipulation</scenario>
+          <scenario>Audit trails trace input events to specific users</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="high-frequency-input-stress" type="performance-test" priority="medium">
+        <description>Stress testing with high-frequency input events</description>
+        <scenarios>
+          <scenario>Rapid mouse movement and clicking (100+ events/second)</scenario>
+          <scenario>Fast keyboard typing with auto-repeat</scenario>
+          <source>Simultaneous mouse and keyboard input processing</scenario>
+          <scenario>Memory usage remains stable during high-frequency input</scenario>
+          <scenario>Performance degradation detection and recovery</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="accessibility-focus-management" type="accessibility-test" priority="high">
+        <description>Test focus management for accessibility compliance</description>
+        <scenarios>
+          <scenario>Keyboard navigation through all input controls</scenario>
+          <scenario>Focus indicators are clearly visible and WCAG compliant</scenario>
+          <scenario>Screen reader announcements for input state changes</scenario>
+          <scenario>High contrast mode compatibility for input interfaces</scenario>
+          <scenario>Reduced motion preferences respected for input feedback</scenario>
+        </scenarios>
+      </test-idea>
+    </ideas>
+  </tests>
+</story-context>

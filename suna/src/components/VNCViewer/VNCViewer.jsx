@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Monitor, Wifi, WifiOff, Loader2, Maximize2, Minimize2 } from 'lucide-react';
+import { InputManager } from '../../services/input/InputManager';
 
 export const VNCViewer = ({
   url = 'ws://localhost:6080',
@@ -14,21 +15,94 @@ export const VNCViewer = ({
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const wsRef = useRef(null);
+  const inputManagerRef = useRef<InputManager | null>(null);
 
   const [connectionState, setConnectionState] = useState('disconnected'); // disconnected, connecting, connected, error
   const [error, setError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [inputMetrics, setInputMetrics] = useState(null);
+
+  // Initialize Input Manager
+  const initializeInputManager = useCallback(() => {
+    if (!containerRef.current) return;
+
+    const inputManager = new InputManager({
+      enableMouse: true,
+      enableKeyboard: true,
+      enableTouch: true,
+      rateLimitMs: 16,
+      maxQueueSize: 1000,
+      latencyThreshold: 500,
+      enableLogging: process.env.NODE_ENV === 'development'
+    });
+
+    // Set up input manager event handlers
+    inputManager.on('connected', () => {
+      console.log('Input manager connected');
+    });
+
+    inputManager.on('disconnected', () => {
+      console.log('Input manager disconnected');
+    });
+
+    inputManager.on('error', (error) => {
+      console.error('Input manager error:', error);
+      setError('Input connection error');
+    });
+
+    inputManager.on('highLatency', (data) => {
+      console.warn('High input latency detected:', data.latency);
+    });
+
+    inputManager.on('processingError', (error) => {
+      console.error('Input processing error:', error);
+    });
+
+    // Store reference
+    inputManagerRef.current = inputManager;
+
+    // Start metrics collection
+    const metricsInterval = setInterval(() => {
+      if (inputManagerRef.current) {
+        setInputMetrics(inputManagerRef.current.getMetrics());
+      }
+    }, 1000);
+
+    // Cleanup function
+    return () => {
+      clearInterval(metricsInterval);
+      if (inputManagerRef.current) {
+        inputManagerRef.current.destroy();
+        inputManagerRef.current = null;
+      }
+    };
+
+  }, []);
 
   // Initialize VNC connection
-  const connectVNC = useCallback(() => {
+  const connectVNC = useCallback(async () => {
     if (!canvasRef.current) return;
 
     try {
       setConnectionState('connecting');
       setError(null);
 
-      // Create WebSocket connection for VNC protocol
+      // Initialize input manager first
+      const cleanupInput = initializeInputManager();
+
+      // Connect input manager to WebSocket
+      if (inputManagerRef.current) {
+        await inputManagerRef.current.connect(url);
+
+        // Attach input handlers to VNC container
+        inputManagerRef.current.captureMouseEvents(containerRef.current);
+        inputManagerRef.current.captureKeyboardEvents(containerRef.current);
+        inputManagerRef.current.captureTouchEvents(containerRef.current);
+        inputManagerRef.current.requestFocus(containerRef.current);
+      }
+
+      // Create WebSocket connection for VNC display data
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
@@ -36,15 +110,13 @@ export const VNCViewer = ({
 
       ws.onopen = () => {
         console.log('VNC WebSocket connection opened');
-        // Simple VNC handshake (placeholder for actual VNC protocol)
         setConnectionState('connected');
         onConnect?.();
       };
 
       ws.onmessage = (event) => {
-        // Handle VNC protocol messages
-        console.log('VNC message received');
-        // Placeholder for actual VNC rendering logic
+        // Handle VNC protocol messages for display updates
+        console.log('VNC display message received');
         renderVNCFrame(event.data);
       };
 
@@ -52,6 +124,9 @@ export const VNCViewer = ({
         console.log('VNC connection closed');
         setConnectionState('disconnected');
         onDisconnect?.(event.reason || 'Connection closed');
+
+        // Cleanup input manager on disconnect
+        cleanupInput?.();
       };
 
       ws.onerror = (error) => {
@@ -60,6 +135,9 @@ export const VNCViewer = ({
         setError(errorMsg);
         setConnectionState('error');
         onError?.(errorMsg);
+
+        // Cleanup input manager on error
+        cleanupInput?.();
       };
 
     } catch (err) {
@@ -68,7 +146,7 @@ export const VNCViewer = ({
       setConnectionState('error');
       onError?.(errorMsg);
     }
-  }, [url, onConnect, onDisconnect, onError]);
+  }, [url, onConnect, onDisconnect, onError, initializeInputManager]);
 
   // Simple VNC frame rendering (placeholder)
   const renderVNCFrame = useCallback((data) => {
@@ -103,12 +181,19 @@ export const VNCViewer = ({
 
   // Disconnect VNC connection
   const disconnectVNC = useCallback(() => {
+    // Disconnect input manager first
+    if (inputManagerRef.current) {
+      inputManagerRef.current.destroy();
+      inputManagerRef.current = null;
+    }
+
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
     setConnectionState('disconnected');
     setError(null);
+    setInputMetrics(null);
   }, []);
 
   // Retry connection
@@ -257,16 +342,54 @@ export const VNCViewer = ({
       </div>
 
       {/* Workspace Info */}
-      {dimensions.width > 0 && dimensions.height > 0 && (
-        <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
-          <div className="flex items-center gap-2">
-            <Monitor className="w-4 h-4 text-white" />
-            <span className="text-white text-xs font-medium">
-              {dimensions.width} × {dimensions.height}
-            </span>
+      <div className="absolute bottom-4 left-4 space-y-2">
+        {dimensions.width > 0 && dimensions.height > 0 && (
+          <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2">
+              <Monitor className="w-4 h-4 text-white" />
+              <span className="text-white text-xs font-medium">
+                {dimensions.width} × {dimensions.height}
+              </span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Input Metrics */}
+        {inputMetrics && connectionState === 'connected' && (
+          <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-white text-xs font-medium">
+                  Input Active
+                </span>
+              </div>
+
+              {inputMetrics.averageLatency > 0 && (
+                <div className="text-gray-300 text-xs">
+                  Latency: {Math.round(inputMetrics.averageLatency)}ms
+                  {inputMetrics.averageLatency > 500 && (
+                    <span className="text-yellow-400 ml-1">⚠️</span>
+                  )}
+                </div>
+              )}
+
+              <div className="text-gray-300 text-xs">
+                Events: {inputMetrics.eventsProcessed}
+                {inputMetrics.eventsDropped > 0 && (
+                  <span className="text-red-400 ml-1">({inputMetrics.eventsDropped} dropped)</span>
+                )}
+              </div>
+
+              {inputMetrics.queueSize > 0 && (
+                <div className="text-gray-300 text-xs">
+                  Queue: {inputMetrics.queueSize}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
