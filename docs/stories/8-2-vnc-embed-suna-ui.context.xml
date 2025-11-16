@@ -117,31 +117,410 @@
 
   <artifacts>
     <docs>
-      <!-- Documentation artifacts will be populated in Step 2 -->
+      <doc id="epic-8-tech-spec" path="docs/epics/epic-8-tech-spec.md" type="technical-specification">
+        <title>Epic Technical Specification: Live Workspace (noVNC)</title>
+        <description>Comprehensive technical specification for live workspace implementation including noVNC server setup, UI integration, real-time input handling, intervention workflows, and security controls.</description>
+        <relevance>PRIMARY - Defines the complete architecture and technical requirements for VNC integration</relevance>
+        <keySections>
+          <section name="System Architecture">Service architecture with noVNC server, workspace UI, input handler, intervention service, audit service, session manager, and performance monitor</section>
+          <section name="API Contracts">RESTful APIs for workspace session management, intervention control, and audit logging</section>
+          <section name="Data Models">WorkspaceSession, InterventionEvent, and WorkspaceAuditLog schemas</section>
+          <section name="Security Requirements">Encrypted connections, session management, authentication patterns</section>
+        </keySections>
+      </doc>
+
+      <doc id="story-8-1-novnc-server" path="docs/stories/8-1-novnc-server-setup.md" type="implementation-story">
+        <title>Story 8-1: noVNC Server Setup</title>
+        <description>Complete implementation of noVNC server with WebSocket support, security enhancements, and Docker integration. Status: DONE with comprehensive security fixes.</description>
+        <relevance>CRITICAL - Foundation implementation that provides the noVNC server and WebSocket endpoint for story 8-2</relevance>
+        <keyImplementations>
+          <item>Docker container configuration with security hardening</item>
+          <item>WebSocket server on port 6080 with SSL/TLS termination</item>
+          <item>Strong password validation and encrypted storage</item>
+          <item>Rate limiting and IP access controls</item>
+          <item>Session management and audit logging</item>
+          <item>Performance optimization for 30fps at 1920x1080</item>
+        </keyImplementations>
+      </doc>
+
+      <doc id="ux-design-specification" path="docs/ux-design-specification.md" type="design-specification">
+        <title>UX Design Specification</title>
+        <description>Complete design system including shadcn/ui components, Tailwind CSS styling, color palettes, typography, spacing, and responsive design patterns.</description>
+        <relevance>HIGH - Defines the UI design system and component patterns for VNC integration</relevance>
+        <keyPatterns>
+          <pattern>shadcn/ui component library with custom Manus dark theme</pattern>
+          <pattern>Sidebar + Right Panel layout (recommended direction 4)</pattern>
+          <pattern>Responsive design: Desktop (3-column), Tablet (sidebar collapsed), Mobile (single column)</pattern>
+          <pattern>Custom components: ChatMessage, CitationPopover, ApprovalGate, WorkspacePanel, SourceSidebar</pattern>
+        </keyPatterns>
+      </doc>
+
+      <doc id="architecture-document" path="docs/architecture.md" type="architecture-documentation">
+        <title>ONYX Architecture Document</title>
+        <description>System architecture including technology stack decisions, service architecture, data models, API contracts, and deployment patterns.</description>
+        <relevance>HIGH - Defines the overall system architecture and integration points for VNC</relevance>
+        <keySections>
+          <section>Technology Stack: Next.js 14, PostgreSQL, Qdrant, Redis, Docker Compose</section>
+          <section>Service Architecture: Frontend ↔ Backend ↔ External Services integration patterns</section>
+          <section>Epic 8: Live Workspace - noVNC embed, real-time desktop control, intervention workflows</section>
+          <section>API Contracts and communication patterns</section>
+        </keySections>
+      </doc>
     </docs>
+
     <code>
-      <!-- Code artifacts will be populated in Step 3 -->
+      <component id="ChatInterface" path="suna/src/components/ChatInterface.tsx" type="react-component">
+        <description>Main chat interface component with Agent Mode and Workspace integration</description>
+        <patterns>Uses ModeProvider and WorkspaceProvider contexts, implements message streaming, has workspace panel integration</patterns>
+        <keyProps>conversationId, className</keyProps>
+        <integrationPoints>WorkspacePanel component, ModeContext, WorkspaceContext</integrationPoints>
+      </component>
+
+      <component id="Layout" path="suna/src/app/layout.tsx" type="react-layout">
+        <description>Root layout with ModeProvider and WorkspaceProvider context providers</description>
+        <patterns>Uses Next.js App Router, font optimization, dark theme implementation</patterns>
+        <contextProviders>ModeProvider, WorkspaceProvider</contextProviders>
+      </component>
+
+      <service id="noVNC-Server" path="novnc/startup.sh" type="startup-script">
+        <description>noVNC server startup script with security configuration and password validation</description>
+        <features>Strong password validation, encrypted storage, performance optimization, graceful shutdown</features>
+        <security>12+ character passwords, complexity requirements, encrypted storage with file permissions 600</security>
+      </service>
+
+      <service id="Docker-Compose" path="docker-compose.yaml" type="infrastructure">
+        <description>Docker Compose orchestration with Suna frontend, onyx-core backend, and noVNC service integration</description>
+        <services>suna (Next.js), onyx-core (Python), postgres, redis, qdrant, novnc, nginx, prometheus, grafana</services>
+        <networking>manus-network with internal service communication</networking>
+      </service>
+
+      <service id="Nginx-Proxy" path="nginx/nginx.conf" type="reverse-proxy">
+        <description>Nginx reverse proxy configuration with WebSocket support and performance optimizations</description>
+        <features>WebSocket proxying, SSL termination, rate limiting, gzip compression</features>
+        <routes>/api/* → Suna, /vnc/* → noVNC WebSocket</routes>
+      </service>
     </code>
+
     <dependencies>
-      <!-- Dependencies will be populated in Step 4 -->
+      <dependency name="@novnc/novnc" version="^1.6.0" type="npm">
+        <description>Official noVNC JavaScript client for VNC viewer integration</description>
+        <purpose>Core VNC viewer functionality and WebSocket communication</purpose>
+      </dependency>
+
+      <dependency name="next" version="^14.0.0" type="npm">
+        <description>React framework with App Router and streaming support</description>
+        <purpose>Frontend framework providing API routes and server components</purpose>
+      </dependency>
+
+      <dependency name="react" version="^18.0.0" type="npm">
+        <description>React library for component-based UI development</description>
+        <purpose>UI component development and state management</purpose>
+      </dependency>
+
+      <dependency name="tailwindcss" version="^3.4.0" type="npm">
+        <description>Utility-first CSS framework for styling</description>
+        <purpose>Responsive design and Manus dark theme implementation</purpose>
+      </dependency>
+
+      <dependency name="typescript" version="^5.3.0" type="npm">
+        <description>TypeScript for type safety and better development experience</description>
+        <purpose>Type definitions and compile-time error checking</purpose>
+      </dependency>
+
+      <dependency name="lucide-react" version="^0.294.0" type="npm">
+        <description>Icon library for React components</description>
+        <purpose>UI icons and visual elements</purpose>
+      </dependency>
+
+      <dependency name="winston" version="^3.11.0" type="npm">
+        <description>Logging library for structured logging</description>
+        <purpose>Application logging and debugging</purpose>
+      </dependency>
+
+      <dependency name="jest" version="^29.0.0" type="devDependency">
+        <description>Testing framework for unit and integration tests</description>
+        <purpose>Component testing and test coverage</purpose>
+      </dependency>
+
+      <dependency name="@testing-library/react" version="^14.0.0" type="devDependency">
+        <description>React testing utilities</description>
+        <purpose>React component testing with user interaction simulation</purpose>
+      </dependency>
     </dependencies>
   </artifacts>
 
   <constraints>
-    <!-- Constraints will be populated in Step 3 -->
+    <constraint id="responsive-design" type="ui-constraint">
+      <description>Must support desktop (3-column), tablet (sidebar collapsed), and mobile (single column) layouts</description>
+      <requirement>VNC viewer must adapt to different screen sizes while maintaining functionality</requirement>
+      <source>UX Design Specification - Responsive Strategy section</source>
+    </constraint>
+
+    <constraint id="performance-targets" type="performance-constraint">
+      <description>Target 30fps video streaming at 1920x1080 resolution with <500ms round-trip latency</description>
+      <requirement>WebSocket connections and VNC streaming must meet performance requirements</requirement>
+      <source>Epic 8 Technical Specification - Performance objectives</source>
+    </constraint>
+
+    <constraint id="security-requirements" type="security-constraint">
+      <description>Must use encrypted connections, secure authentication, and session management</description>
+      <requirement>SSL/TLS termination for WebSocket, encrypted password storage, session isolation</requirement>
+      <source>Story 8-1 Security Implementation - All critical issues resolved</source>
+    </constraint>
+
+    <constraint id="accessibility-wcag" type="accessibility-constraint">
+      <description>Must meet WCAG 2.1 Level AA compliance with proper keyboard navigation and screen reader support</description>
+      <requirement>4.5:1 contrast ratios, 44px minimum touch targets, proper ARIA labels</requirement>
+      <source>UX Design Specification - Accessibility Strategy</source>
+    </constraint>
+
+    <constraint id="tablet-orientation" type="device-constraint">
+      <description>Must support landscape orientation on tablets with optimal workspace viewing</description>
+      <requirement>Tablet layout adaptation with landscape orientation support</requirement>
+      <source>Story Acceptance Criteria - AC8.2.3</source>
+    </constraint>
+
+    <constraint id="websocket-port" type="infrastructure-constraint">
+      <description>noVNC WebSocket server must be accessible on port 6080 through Nginx proxy</description>
+      <requirement>WebSocket connection routing through /vnc/* path with SSL termination</requirement>
+      <source>Docker Compose and Nginx configuration</source>
+    </constraint>
   </constraints>
+
   <interfaces>
-    <!-- Interfaces will be populated in Step 3 -->
+    <interface id="vnc-viewer-interface" type="react-component-interface">
+      <description>VNC viewer React component interface for embedding noVNC client</description>
+      <properties>
+        <property name="vncUrl" type="string" required="true">WebSocket URL for VNC connection (ws://localhost:6080)</property>
+        <property name="resolution" type="object" optional="true">Display resolution {width: 1920, height: 1080}</property>
+        <property name="quality" type="object" optional="true">Quality settings {compression_level: 6, jpeg_quality: 80, fps_target: 30}</property>
+        <property name="onConnect" type="function" optional="true">Connection established callback</property>
+        <property name="onDisconnect" type="function" optional="true">Connection lost callback</property>
+        <property name="onError" type="function" optional="true">Connection error callback</property>
+      </properties>
+      <integration>Integrates with @novnc/novnc library for WebSocket communication</integration>
+    </interface>
+
+    <interface id="workspace-panel-interface" type="react-component-interface">
+      <description>Workspace panel component interface for VNC viewer integration</description>
+      <properties>
+        <property name="isVisible" type="boolean" required="true">Panel visibility state</property>
+        <property name="onToggle" type="function" required="true">Panel toggle callback</property>
+        <property name="vncSessionId" type="string" optional="true">Active VNC session identifier</property>
+        <property name="agentState" type="string" optional="true">Current agent execution state</property>
+        <property name="onPauseAgent" type="function" optional="true">Agent pause callback</property>
+        <property name="onResumeAgent" type="function" optional="true">Agent resume callback</property>
+      </properties>
+      <layout>Right-side panel (350px width) with VNC viewer and control buttons</layout>
+    </interface>
+
+    <interface id="vnc-controls-interface" type="react-component-interface">
+      <description>Workspace controls component interface for VNC management</description>
+      <properties>
+        <property name="isConnected" type="boolean" required="true">VNC connection status</property>
+        <property name="isFullscreen" type="boolean" required="true">Fullscreen mode state</property>
+        <property name="onToggleFullscreen" type="function" required="true">Fullscreen toggle callback</property>
+        <property name="onDisconnect" type="function" required="true">Disconnect callback</property>
+        <property name="onReconnect" type="function" required="true">Reconnect callback</property>
+        <property name="quality" type="object" optional="true">Current quality settings</property>
+        <property name="onQualityChange" type="function" optional="true">Quality change callback</property>
+      </properties>
+      <controls>Maximize/Restore, Disconnect/Reconnect, Quality settings, Status indicators</controls>
+    </interface>
+
+    <interface id="workspace-api-endpoints" type="rest-api">
+      <description>REST API endpoints for workspace session management</description>
+      <endpoints>
+        <endpoint method="POST" path="/api/workspace/session">Create new VNC workspace session</endpoint>
+        <endpoint method="GET" path="/api/workspace/session/{id}">Get session status and details</endpoint>
+        <endpoint method="DELETE" path="/api/workspace/session/{id}">Terminate workspace session</endpoint>
+        <endpoint method="POST" path="/api/workspace/intervention/pause">Pause agent execution</endpoint>
+        <endpoint method="POST" path="/api/workspace/intervention/resume">Resume agent execution</endpoint>
+      </endpoints>
+      <authentication>JWT token authentication required for all endpoints</authentication>
+    </interface>
+
+    <interface id="websocket-protocol" type="communication-protocol">
+      <description>WebSocket communication protocol for VNC and real-time updates</description>
+      <protocol>WebSocket with SSL/TLS termination (wss://)</protocol>
+      <endpoints>
+        <endpoint path="/vnc/{sessionId}">VNC WebSocket connection for display and input</endpoint>
+        <endpoint path="/ws/workspace/{sessionId}">Real-time workspace updates and agent status</endpoint>
+      </endpoints>
+      <messageTypes>display_updates, input_events, status_changes, agent_progress</messageTypes>
+    </interface>
   </interfaces>
+
   <tests>
     <standards>
-      <!-- Testing standards will be populated in Step 5 -->
+      <standard id="unit-testing" framework="jest" coverage="90%">
+        <description>Unit tests for all React components using Jest and React Testing Library</description>
+        <requirements>90% code coverage, component rendering, user interactions, state management</requirements>
+      </standard>
+
+      <standard id="integration-testing" framework="jest" coverage="80%">
+        <description>Integration tests for VNC WebSocket connections and API endpoints</description>
+        <requirements>WebSocket connection testing, API endpoint testing, component integration</requirements>
+      </standard>
+
+      <standard id="accessibility-testing" framework="testing-library" coverage="100%">
+        <description>Accessibility testing for WCAG 2.1 Level AA compliance</description>
+        <requirements>Keyboard navigation, screen reader support, color contrast, touch targets</requirements>
+      </standard>
+
+      <standard id="responsive-testing" framework="playwright" coverage="100%">
+        <description>Responsive design testing across desktop, tablet, and mobile viewports</description>
+        <requirements>Layout adaptation, VNC viewer responsiveness, control accessibility</requirements>
+      </standard>
+
+      <standard id="performance-testing" framework="custom" coverage="key-metrics">
+        <description>Performance testing for VNC streaming and interaction latency</description>
+        <requirements>30fps target, <500ms latency, memory usage monitoring</requirements>
+      </standard>
     </standards>
+
     <locations>
-      <!-- Test locations will be populated in Step 5 -->
+      <location path="suna/src/components/__tests__/" type="unit-tests">
+        <description>Unit tests for React components</description>
+        <files>VNCViewer.test.tsx, WorkspacePanel.test.tsx, WorkspaceControls.test.tsx</files>
+      </location>
+
+      <location path="suna/src/lib/__tests__/" type="unit-tests">
+        <description>Unit tests for utility functions and API clients</description>
+        <files>vnc-client.test.ts, workspace-api.test.ts, performance-monitor.test.ts</files>
+      </location>
+
+      <location path="suna/__tests__/" type="integration-tests">
+        <description>Integration tests for component interactions and API integration</description>
+        <files>workspace-integration.test.tsx, vnc-workflow.test.tsx</files>
+      </location>
+
+      <location path="suna/tests/e2e/" type="e2e-tests">
+        <description>End-to-end tests using Playwright</description>
+        <files>vnc-workflow.e2e.ts, responsive-layout.e2e.ts, accessibility.e2e.ts</files>
+      </location>
+
+      <location path="suna/tests/accessibility/" type="accessibility-tests">
+        <description>Accessibility tests and audits</description>
+        <files>wcag-compliance.test.ts, keyboard-navigation.test.ts, screen-reader.test.ts</files>
+      </location>
+
+      <location path="suna/tests/performance/" type="performance-tests">
+        <description>Performance testing and monitoring</description>
+        <files>vnc-latency.test.ts, rendering-performance.test.ts, memory-usage.test.ts</files>
+      </location>
     </locations>
+
     <ideas>
-      <!-- Test ideas will be populated in Step 5 -->
+      <test-idea id="vnc-viewer-rendering" type="unit-test" priority="high">
+        <description>Test VNC viewer component renders correctly with different props</description>
+        <scenarios>
+          <scenario>Render with valid WebSocket URL</scenario>
+          <scenario>Render with custom resolution settings</scenario>
+          <scenario>Render with quality configuration</scenario>
+          <scenario>Handle connection state changes</scenario>
+          <scenario>Display loading states</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="workspace-panel-interaction" type="integration-test" priority="high">
+        <description>Test workspace panel integration with VNC viewer and controls</description>
+        <scenarios>
+          <scenario>Toggle workspace panel visibility</scenario>
+          <scenario>Integrate VNC viewer in panel</scenario>
+          <scenario>Control VNC connection from panel</scenario>
+          <scenario>Handle panel resize and responsiveness</scenario>
+          <scenario>Agent pause/resume workflow</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="vnc-websocket-connection" type="integration-test" priority="high">
+        <description>Test WebSocket connection to noVNC server</description>
+        <scenarios>
+          <scenario>Establish WebSocket connection</scenario>
+          <scenario>Handle connection errors gracefully</scenario>
+          <scenario>Reconnect on connection loss</scenario>
+          <scenario>Send input events through WebSocket</scenario>
+          <scenario>Receive display updates through WebSocket</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="responsive-design-tablet" type="accessibility-test" priority="high">
+        <description>Test VNC viewer responsiveness on tablet devices in landscape orientation</description>
+        <scenarios>
+          <scenario>Tablet landscape layout (768px-1024px width)</scenario>
+          <scenario>VNC viewer adapts to tablet screen size</scenario>
+          <scenario>Workspace controls remain accessible on tablet</scenario>
+          <scenario>Touch interactions work correctly</scenario>
+          <scenario>Orientation change handling</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="keyboard-navigation" type="accessibility-test" priority="high">
+        <description>Test keyboard navigation for VNC workspace interface</description>
+        <scenarios>
+          <scenario>Tab navigation through workspace controls</scenario>
+          <scenario>Focus indicators are visible</scenario>
+          <scenario>Keyboard shortcuts for common actions</scenario>
+          <scenario>Escape key closes dialogs/menus</scenario>
+          <scenario>Screen reader announces workspace state changes</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="performance-latency" type="performance-test" priority="medium">
+        <description>Test VNC streaming performance meets latency targets</description>
+        <scenarios>
+          <scenario>Measure round-trip latency (<500ms target)</scenario>
+          <scenario>Maintain 30fps at 1920x1080 resolution</scenario>
+          <scenario>Memory usage remains within limits</scenario>
+          <scenario>Handle high-frequency input events</scenario>
+          <scenario>Performance under network conditions</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="error-handling-robustness" type="unit-test" priority="medium">
+        <description>Test error handling and recovery scenarios</description>
+        <scenarios>
+          <scenario>VNC server unavailable</scenario>
+          <scenario>WebSocket connection drops</scenario>
+          <scenario>Invalid VNC URL or credentials</scenario>
+          <scenario>Network connectivity issues</scenario>
+          <scenario>Browser compatibility issues</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="accessibility-color-contrast" type="accessibility-test" priority="medium">
+        <description>Test color contrast ratios meet WCAG AA standards</description>
+        <scenarios>
+          <scenario>Workspace panel UI elements 4.5:1 contrast</scenario>
+          <scenario>VNC control buttons meet contrast requirements</scenario>
+          <scenario>Status indicators are distinguishable</scenario>
+          <scenario>Error messages have sufficient contrast</scenario>
+          <scenario>Dark theme maintains accessibility</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="security-session-management" type="integration-test" priority="high">
+        <description>Test secure session management and authentication</description>
+        <scenarios>
+          <scenario>VNC password authentication</scenario>
+          <scenario>Session timeout handling</scenario>
+          <scenario>Secure WebSocket connections (WSS)</scenario>
+          <scenario>Unauthorized access prevention</scenario>
+          <scenario>Session isolation between users</scenario>
+        </scenarios>
+      </test-idea>
+
+      <test-idea id="mobile-compatibility" type="accessibility-test" priority="low">
+        <description>Test mobile compatibility and graceful degradation</description>
+        <scenarios>
+          <scenario>Mobile layout (single column)</scenario>
+          <scenario>Workspace panel hidden on mobile</scenario>
+          <scenario>Touch-friendly interface elements</scenario>
+          <scenario>Performance on mobile devices</scenario>
+          <scenario>Graceful degradation without VNC</scenario>
+        </scenarios>
+      </test-idea>
     </ideas>
   </tests>
 </story-context>

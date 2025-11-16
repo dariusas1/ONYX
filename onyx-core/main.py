@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 from health import router as health_router
 from api.google_drive import router as google_drive_router
 from api.memories import router as memories_router
+from api.memory_injection import router as memory_injection_router
 from api.web_tools import router as web_tools_router, startup_event as web_tools_startup, shutdown_event as web_tools_shutdown
 from contextlib import asynccontextmanager
 from rag_service import get_rag_service
@@ -106,6 +107,7 @@ app.add_middleware(
 app.include_router(health_router, tags=["Health"])
 app.include_router(google_drive_router, tags=["Google Drive"])
 app.include_router(memories_router, tags=["Memories"])
+app.include_router(memory_injection_router, tags=["Memory Injection"])
 app.include_router(web_tools_router, tags=["Web Tools"])
 
 

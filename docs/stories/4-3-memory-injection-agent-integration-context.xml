@@ -1,0 +1,587 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StoryContext>
+    <StoryMetadata>
+        <StoryId>4-3-memory-injection-agent-integration</StoryId>
+        <Title>Memory Injection &amp; Agent Integration</Title>
+        <Epic>Epic 4 - Persistent Memory &amp; Learning</Epic>
+        <Status>ready-for-dev</Status>
+        <Priority>P0</Priority>
+        <EstimatedPoints>7</EstimatedPoints>
+        <Sprint>Sprint 8</Sprint>
+        <TargetDate>2025-11-25</TargetDate>
+        <CreatedDate>2025-11-15</CreatedDate>
+    </StoryMetadata>
+
+    <StoryOverview>
+        <UserStory>
+            As a user of Manus, I want my conversations to automatically include relevant memories and standing instructions, so that Manus can provide personalized context-aware responses without me having to repeat important information.
+        </UserStory>
+        <Description>
+            This story implements the memory injection system that seamlessly integrates stored memories and standing instructions into every conversation. The system automatically prepares and injects relevant context into LLM prompts, ensuring that Manus has the necessary background information to provide personalized and contextually appropriate responses.
+
+            The injection system works at conversation start and continuously updates context during conversations. It integrates with both regular chat and Agent Mode, providing memory-aware task execution and personalized agent behavior.
+        </Description>
+    </StoryOverview>
+
+    <Dependencies>
+        <Prerequisites>
+            <Dependency id="4-1-memory-schema-storage-system" status="completed">
+                Memory Schema &amp; Storage System - Foundation story complete with production-ready database schema, CRUD operations, and memory management functionality.
+            </Dependency>
+            <Dependency id="4-2-standing-instructions-management" status="ready-for-dev">
+                Standing Instructions Management - UI and management system ready for development with priority-based instruction ordering.
+            </Dependency>
+        </Prerequisites>
+        <RequiredComponents>
+            <Component>Chat system integration points</Component>
+            <Component>Agent Mode framework</Component>
+            <Component>LLM integration service</Component>
+            <Component>Memory service APIs</Component>
+        </RequiredComponents>
+    </Dependencies>
+
+    <TechnicalRequirements>
+        <MemoryInjectionPipeline>
+            <Step id="1" name="Pre-conversation Injection">
+                <Description>Standalone instructions + Top-5 memories into initial system prompt</Description>
+                <Performance>&lt;50ms</Performance>
+            </Step>
+            <Step id="2" name="Context Building">
+                <Description>Format memories and instructions for LLM consumption</Description>
+                <Performance>&lt;100ms</Performance>
+            </Step>
+            <Step id="3" name="Continuous Updates">
+                <Description>Track memory usage and relevance during conversation</Description>
+                <Performance>Background processing</Performance>
+            </Step>
+            <Step id="4" name="Performance Optimization">
+                <Description>Cache frequently used memories and instructions</Description>
+                <Performance>&gt;80% cache hit rate</Performance>
+            </Step>
+        </MemoryInjectionPipeline>
+
+        <InjectionComponents>
+            <Component name="MemoryInjectionService">
+                <Description>Memory injection service for preparing context</Description>
+                <Interface>
+                    <Method name="prepareInjection" returnType="MemoryInjection">
+                        <Param name="userId" type="string"/>
+                        <Param name="conversationId" type="string"/>
+                    </Method>
+                </Interface>
+            </Component>
+            <Component name="LLMContextBuilder">
+                <Description>LLM context builder for prompt formatting</Description>
+                <Interface>
+                    <Method name="buildContext" returnType="string">
+                        <Param name="userId" type="string"/>
+                        <Param name="conversationId" type="string"/>
+                        <Param name="currentMessage" type="string"/>
+                    </Method>
+                </Interface>
+            </Component>
+            <Component name="MemoryRelevanceScorer">
+                <Description>Memory relevance scoring and ranking</Description>
+                <ScoringFactors>
+                    <Factor name="Confidence Score" weight="50%"/>
+                    <Factor name="Recency" weight="20%"/>
+                    <Factor name="Usage Count" weight="15%"/>
+                    <Factor name="Category Importance" weight="10%"/>
+                    <Factor name="Source Type" weight="5%"/>
+                </ScoringFactors>
+            </Component>
+        </InjectionComponents>
+
+        <PerformanceRequirements>
+            <Requirement metric="Memory Injection Time" target="&lt;50ms">
+                <Implementation>Cached queries and pre-computed scores</Implementation>
+            </Requirement>
+            <Requirement metric="Context Building" target="&lt;100ms">
+                <Implementation>Optimized template system</Implementation>
+            </Requirement>
+            <Requirement metric="Agent Memory Loading" target="&lt;200ms">
+                <Implementation>Efficient memory retrieval and filtering</Implementation>
+            </Requirement>
+            <Requirement metric="Cache Hit Rate" target="&gt;80%">
+                <Implementation>Intelligent caching strategy</Implementation>
+            </Requirement>
+        </PerformanceRequirements>
+    </TechnicalRequirements>
+
+    <ExistingCodebase>
+        <MemoryService>
+            <File path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/services/memory_service.py">
+                <Description>Complete memory CRUD operations with PostgreSQL backend</Description>
+                <Capabilities>
+                    <Capability>create_memory() - Create new memory records</Capability>
+                    <Capability>get_memory() - Retrieve specific memories</Capability>
+                    <Capability>update_memory() - Update existing memories</Capability>
+                    <Capability>delete_memory() - Soft delete memories</Capability>
+                    <Capability>get_user_memories() - Filter and paginate memories</Capability>
+                    <Capability>search_memories() - Full-text search with ranking</Capability>
+                </Capabilities>
+                <DatabaseSchema>
+                    <Table name="user_memories">
+                        <Columns>id, user_id, fact, category, confidence, source_type, source_message_id, conversation_id, metadata, expires_at, access_count, last_accessed_at, is_deleted, created_at, updated_at</Columns>
+                    </Table>
+                    <Table name="memory_categories">
+                        <Columns>id, user_id, name, description, color, icon, is_system_category, created_at, updated_at</Columns>
+                    </Table>
+                </DatabaseSchema>
+                <Validation>
+                    <Method>_validate_category() - Validates 7 standard categories</Method>
+                    <Method>_validate_confidence() - Validates 0.0-1.0 confidence scores</Method>
+                    <Method>_validate_source_type() - Validates source types</Method>
+                    <Method>_detect_and_mask_pii() - PII detection and masking</Method>
+                </Validation>
+            </File>
+        </MemoryService>
+
+        <MemoryExtractionService>
+            <File path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/services/memory_extraction_service.py">
+                <Description>Automatic memory extraction from conversations using LLM and pattern matching</Description>
+                <Components>
+                    <Component name="MemoryPatternExtractor">
+                        <Description>Pattern-based extraction using regex</Description>
+                        <Patterns>
+                            <Pattern category="priority">i need|i must|important to me</Pattern>
+                            <Pattern category="decision">i've decided|i decide|we've decided</Pattern>
+                            <Pattern category="preference">i prefer|i like|i'd rather</Pattern>
+                            <Pattern category="context">background info|context|for reference</Pattern>
+                        </Patterns>
+                    </Component>
+                    <Component name="LLMMemoryExtractor">
+                        <Description>LLM-based extraction using OpenAI API</Description>
+                        <Model>deepseek-chat</Model>
+                        <Temperature>0.1</Temperature>
+                    </Component>
+                </Components>
+                <ExtractionModes>
+                    <Mode name="AUTO">Automatic extraction from recent messages</Mode>
+                    <Mode name="MANUAL">Manual extraction request</Mode>
+                    <Mode name="BATCH">Batch processing of conversations</Mode>
+                </ExtractionModes>
+            </File>
+        </MemoryExtractionService>
+
+        <EmbeddingService>
+            <File path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/services/embedding_service.py">
+                <Description>Content chunking and vector generation for RAG system</Description>
+                <Model>text-embedding-3-small</Model>
+                <Dimensions>1536</Dimensions>
+                <Chunking>
+                    <MaxTokensPerChunk>500</MaxTokensPerChunk>
+                    <ChunkOverlapTokens>50</ChunkOverlapTokens>
+                    <BatchSize>10</BatchSize>
+                </Chunking>
+                <Capabilities>
+                    <Capability>generate_embeddings() - Process content into searchable chunks</Capability>
+                    <Capability>_chunk_content() - Smart content chunking</Capability>
+                    <Capability>_generate_batch_embeddings_with_retry() - Robust embedding generation</Capability>
+                </Capabilities>
+            </File>
+        </EmbeddingService>
+
+        <UploadAPI>
+            <File path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/api/upload.py">
+                <Description>File upload API with parsing and RAG integration</Description>
+                <Endpoints>
+                    <Endpoint method="POST" path="/api/upload/files">
+                        <Description>Upload and process multiple files</Description>
+                    </Endpoint>
+                    <Endpoint method="GET" path="/api/upload/formats">
+                        <Description>Get supported file formats</Description>
+                    </Endpoint>
+                    <Endpoint method="POST" path="/api/upload/validate">
+                        <Description>Validate files without processing</Description>
+                    </Endpoint>
+                </Endpoints>
+                <Integration>
+                    <Component>ParserFactory - File format detection and parsing</Component>
+                    <Component>EmbeddingService - Vector generation</Component>
+                    <Component>RAGService - Vector database indexing</Component>
+                </Integration>
+            </File>
+        </UploadAPI>
+
+        <SlackIntegration>
+            <File path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/services/slack_client.py">
+                <Description>Slack API client with rate limiting and authentication</Description>
+                <Capabilities>
+                    <Capability>create_client() - Authenticated Slack client</Capability>
+                    <Capability>get_channels() - Channel listing with pagination</Capability>
+                    <Capability>get_messages() - Message retrieval with filters</Capability>
+                    <Capability>get_thread_replies() - Thread conversation extraction</Capability>
+                </Capabilities>
+                <RateLimiting>
+                    <MaxRequests>50</MaxRequests>
+                    <TimeWindow>60s</TimeWindow>
+                </RateLimiting>
+            </File>
+        </SlackIntegration>
+    </ExistingCodebase>
+
+    <DatabaseSchema>
+        <MemoryTables>
+            <Table name="user_memories">
+                <Columns>
+                    <Column name="id" type="UUID" primaryKey="true"/>
+                    <Column name="user_id" type="UUID" nullable="false"/>
+                    <Column name="fact" type="TEXT" nullable="false"/>
+                    <Column name="category" type="VARCHAR(50)" nullable="false"/>
+                    <Column name="confidence" type="DECIMAL(3,2)" nullable="false"/>
+                    <Column name="source_type" type="VARCHAR(50)" nullable="false"/>
+                    <Column name="source_message_id" type="UUID" nullable="true"/>
+                    <Column name="conversation_id" type="UUID" nullable="true"/>
+                    <Column name="metadata" type="JSONB" nullable="true"/>
+                    <Column name="expires_at" type="TIMESTAMP" nullable="true"/>
+                    <Column name="access_count" type="INTEGER" default="0"/>
+                    <Column name="last_accessed_at" type="TIMESTAMP" nullable="true"/>
+                    <Column name="is_deleted" type="BOOLEAN" default="false"/>
+                    <Column name="created_at" type="TIMESTAMP" default="NOW()"/>
+                    <Column name="updated_at" type="TIMESTAMP" default="NOW()"/>
+                </Columns>
+                <Indexes>
+                    <Index name="idx_user_memories_user_id" columns="user_id"/>
+                    <Index name="idx_user_memories_category" columns="category"/>
+                    <Index name="idx_user_memories_confidence" columns="confidence"/>
+                    <Index name="idx_user_memories_created_at" columns="created_at"/>
+                    <Index name="idx_user_memories_search" type="GIN" columns="to_tsvector('english', fact)"/>
+                </Indexes>
+            </Table>
+
+            <Table name="standing_instructions">
+                <Columns>
+                    <Column name="id" type="UUID" primaryKey="true"/>
+                    <Column name="user_id" type="UUID" nullable="false"/>
+                    <Column name="instruction_text" type="TEXT" nullable="false"/>
+                    <Column name="category" type="VARCHAR(50)" nullable="false"/>
+                    <Column name="priority" type="INTEGER" default="0"/>
+                    <Column name="context_hints" type="JSONB" nullable="true"/>
+                    <Column name="enabled" type="BOOLEAN" default="true"/>
+                    <Column name="usage_count" type="INTEGER" default="0"/>
+                    <Column name="last_used_at" type="TIMESTAMP" nullable="true"/>
+                    <Column name="created_at" type="TIMESTAMP" default="NOW()"/>
+                    <Column name="updated_at" type="TIMESTAMP" default="NOW()"/>
+                </Columns>
+                <Indexes>
+                    <Index name="idx_standing_instructions_user_id" columns="user_id"/>
+                    <Index name="idx_standing_instructions_priority" columns="priority DESC"/>
+                    <Index name="idx_standing_instructions_enabled" columns="enabled"/>
+                </Indexes>
+            </Table>
+        </MemoryTables>
+    </DatabaseSchema>
+
+    <ImplementationPatterns>
+        <MemoryRankingAlgorithm>
+            <SQLQuery>
+                <![CDATA[
+                WITH ranked_memories AS (
+                    SELECT
+                        fact,
+                        category,
+                        confidence,
+                        source_type,
+                        created_at,
+                        (confidence * 0.5 +
+                         EXTRACT(EPOCH FROM (NOW() - created_at)) / 86400.0 * -0.001 +
+                         access_count * 0.01 +
+                         CASE WHEN source_type = 'auto_summary' THEN 0.2 ELSE 0 END +
+                         CASE WHEN category = 'priority' THEN 0.1 ELSE 0 END +
+                         CASE WHEN category = 'decision' THEN 0.05 ELSE 0 END
+                        ) as memory_score
+                    FROM user_memories
+                    WHERE user_id = $1
+                        AND is_deleted = FALSE
+                        AND (expires_at IS NULL OR expires_at > NOW())
+                )
+                SELECT fact, category, confidence, source_type, created_at
+                FROM ranked_memories
+                ORDER BY memory_score DESC
+                LIMIT 5;
+                ]]>
+            </SQLQuery>
+            <ScoringWeights>
+                <Weight name="confidence" value="50%"/>
+                <Weight name="recency" value="20%"/>
+                <Weight name="usage_count" value="15%"/>
+                <Weight name="category_importance" value="10%"/>
+                <Weight name="source_type" value="5%"/>
+            </ScoringWeights>
+        </MemoryRankingAlgorithm>
+
+        <LLMContextTemplate>
+            <Template>
+                <![CDATA[
+                You are Manus, M3rcury's strategic intelligence advisor.
+
+                STANDING INSTRUCTIONS:
+                {standing_instructions}
+
+                USER CONTEXT (Key memories):
+                {memories}
+
+                RECENT CONVERSATION CONTEXT:
+                {recent_context}
+
+                RESPONSE GUIDELINES:
+                - Use the standing instructions and memories above to provide personalized advice
+                - Reference the user's priorities and current focus areas when relevant
+                - Consider recent decisions when making recommendations
+                - Always cite sources and provide evidence-based insights
+
+                Current conversation continues below:
+                ]]>
+            </Template>
+        </LLMContextTemplate>
+    </ImplementationPatterns>
+
+    <AcceptanceCriteria>
+        <AC id="AC4.3.1">
+            <Title>Memory injection service implemented with top-5 memory retrieval</Title>
+            <Criteria>
+                <Item>Retrieval of top-5 most relevant memories using scoring algorithm</Item>
+                <Item>Standing instructions prioritized by priority and recent usage</Item>
+                <Item>Sub-50ms injection time through optimized queries and caching</Item>
+                <Item>Memory relevance scoring with configurable weights</Item>
+                <Item>Context-aware filtering based on conversation topic</Item>
+            </Criteria>
+        </AC>
+
+        <AC id="AC4.3.2">
+            <Title>LLM context builder with formatted injection system</Title>
+            <Criteria>
+                <Item>System prompt enhancement with memory and instruction context</Item>
+                <Item>Proper formatting for LLM consumption with clear sections</Item>
+                <Item>Memory aging information included (e.g., "2d ago", "1w ago")</Item>
+                <Item>Confidence scores displayed for transparency</Item>
+                <Item>Fallback handling when injection fails</Item>
+            </Criteria>
+        </AC>
+
+        <AC id="AC4.3.3">
+            <Title>Chat integration with automatic memory injection</Title>
+            <Criteria>
+                <Item>Memory injection at conversation start without user action</Item>
+                <Item>Context updates during long conversations</Item>
+                <Item>Memory usage tracking for analytics and optimization</Item>
+                <Item>Seamless integration with existing chat system</Item>
+                <Item>Error handling with graceful degradation</Item>
+            </Criteria>
+        </AC>
+
+        <AC id="AC4.3.4">
+            <Title>Agent Mode integration with memory-aware execution</Title>
+            <Criteria>
+                <Item>Memory context included in agent task execution</Item>
+                <Item>Standing instructions applied to agent behavior</Item>
+                <Item>Memory extraction from agent actions and results</Item>
+                <Item>Task-specific memory retrieval and filtering</Item>
+                <Item>Performance optimization for agent workflows</Item>
+            </Criteria>
+        </AC>
+
+        <AC id="AC4.3.5">
+            <Title>Memory relevance scoring and ranking algorithm</Title>
+            <Criteria>
+                <Item>Composite scoring algorithm with configurable weights</Item>
+                <Item>Category-specific importance weighting</Item>
+                <Item>Temporal decay for older memories</Item>
+                <Item>Usage-based boosting for frequently accessed memories</Item>
+                <Item>Real-time score calculation and updates</Item>
+            </Criteria>
+        </AC>
+
+        <AC id="AC4.3.6">
+            <Title>Performance optimizations and caching implemented</Title>
+            <Criteria>
+                <Item>Memory injection cache with 5-minute TTL</Item>
+                <Item>Pre-computed memory scores for faster retrieval</Item>
+                <Item>Materialized views for complex queries</Item>
+                <Item>Connection pooling and query optimization</Item>
+                <Item>Background refresh of cached data</Item>
+            </Criteria>
+        </AC>
+
+        <AC id="AC4.3.7">
+            <Title>Memory usage tracking and analytics</Title>
+            <Criteria>
+                <Item>Injection logging for all memory usage</Item>
+                <Item>Effectiveness tracking based on conversation outcomes</Item>
+                <Item>Memory access frequency monitoring</Item>
+                <Item>Performance metrics collection and reporting</Item>
+                <Item>User feedback integration for memory quality</Item>
+            </Criteria>
+        </AC>
+    </AcceptanceCriteria>
+
+    <ImplementationDetails>
+        <MemoryInjectionService>
+            <Interface>
+                <![CDATA[
+                interface MemoryInjection {
+                    userId: string;
+                    conversationId: string;
+                    standingInstructions: StandingInstruction[];
+                    memories: Memory[];
+                    injectionText: string;
+                    injectionTime: number;
+                }
+
+                class MemoryInjectionService {
+                    private cache = new Map<string, CachedInjection>();
+
+                    async prepareInjection(userId: string, conversationId: string): Promise<MemoryInjection>
+                    private async getTopMemories(userId: string): Promise<Memory[]>
+                    private formatForLLM(instructions: StandingInstruction[], memories: Memory[]): string
+                    private formatAge(createdAt: Date): string
+                    private formatSource(sourceType: string): string
+                }
+                ]]>
+            </Interface>
+            <CachingStrategy>
+                <TTL>5 minutes</TTL>
+                <CacheKey>${userId}:${conversationId}</CacheKey>
+                <BackgroundRefresh>true</BackgroundRefresh>
+            </CachingStrategy>
+        </MemoryInjectionService>
+
+        <ChatContextBuilder>
+            <Implementation>
+                <![CDATA[
+                class ChatContextBuilder {
+                    constructor(
+                        private memoryInjectionService: MemoryInjectionService,
+                        private conversationService: ConversationService
+                    ) {}
+
+                    async buildContext(
+                        userId: string,
+                        conversationId: string,
+                        currentMessage: string
+                    ): Promise<string> {
+                        const memoryInjection = await this.memoryInjectionService.prepareInjection(
+                            userId, conversationId
+                        );
+                        const recentContext = await this.getRecentConversationContext(conversationId, 5);
+
+                        return this.buildSystemPrompt(memoryInjection, recentContext);
+                    }
+
+                    private buildSystemPrompt(injection: MemoryInjection, recentContext: string): string
+                    private async getRecentConversationContext(conversationId: string, messageCount: number): Promise<string>
+                    private async trackMemoryUsage(userId: string, injection: MemoryInjection): Promise<void>
+                }
+                ]]>
+            </Implementation>
+        </ChatContextBuilder>
+
+        <AgentModeIntegration>
+            <Implementation>
+                <![CDATA[
+                class MemoryAwareAgent {
+                    async executeTask(task: AgentTask, userId: string): Promise<AgentResult> {
+                        // 1. Load task-relevant memories
+                        const taskMemories = await this.getTaskRelevantMemories(task, userId);
+
+                        // 2. Load standing instructions for agent behavior
+                        const agentInstructions = await this.getAgentInstructions(userId);
+
+                        // 3. Build enhanced system prompt with memory context
+                        const enhancedPrompt = this.buildAgentPrompt(task, taskMemories, agentInstructions);
+
+                        // 4. Execute with memory context
+                        const result = await this.executeWithMemory(task, enhancedPrompt);
+
+                        // 5. Extract and store new memories from execution
+                        await this.extractMemoriesFromExecution(result, userId, task.conversationId);
+
+                        return result;
+                    }
+
+                    private async getTaskRelevantMemories(task: AgentTask, userId: string): Promise<Memory[]>
+                    private async getAgentInstructions(userId: string): Promise<StandingInstruction[]>
+                    private buildAgentPrompt(task: AgentTask, memories: Memory[], instructions: StandingInstruction[]): string
+                    private async extractMemoriesFromExecution(result: AgentResult, userId: string, conversationId: string): Promise<void>
+                }
+                ]]>
+            </Implementation>
+        </AgentModeIntegration>
+    </ImplementationDetails>
+
+    <RiskMitigation>
+        <Risk id="performance" severity="medium">
+            <Description>Memory injection could slow down conversation start</Description>
+            <Mitigation>Comprehensive caching and query optimization with sub-50ms target</Mitigation>
+        </Risk>
+        <Risk id="context_overflow" severity="medium">
+            <Description>Too much memory context could overwhelm LLM prompt</Description>
+            <Mitigation>Intelligent memory selection and ranking, limit to top-5 memories</Mitigation>
+        </Risk>
+        <Risk id="privacy" severity="low">
+            <Description>Potential privacy issues with memory storage</Description>
+            <Mitigation>Existing PII detection and masking, user isolation, secure memory handling</Mitigation>
+        </Risk>
+        <Risk id="dependency" severity="low">
+            <Description>System could fail if memory injection fails</Description>
+            <Mitigation>Graceful degradation with fallback handling, error recovery mechanisms</Mitigation>
+        </Risk>
+    </RiskMitigation>
+
+    <TestingStrategy>
+        <UnitTests>
+            <Test name="MemoryInjectionService.prepareInjection()">
+                <Coverage>Cache behavior, database queries, formatting logic</Coverage>
+            </Test>
+            <Test name="ChatContextBuilder.buildContext()">
+                <Coverage>System prompt generation, memory integration</Coverage>
+            </Test>
+            <Test name="MemoryRelevanceScorer.calculateScore()">
+                <Coverage>Scoring algorithm, weight calculations</Coverage>
+            </Test>
+        </UnitTests>
+        <IntegrationTests>
+            <Test name="End-to-end memory injection flow">
+                <Coverage>Conversation start, memory retrieval, context building</Coverage>
+            </Test>
+            <Test name="Agent Mode memory integration">
+                <Coverage>Task execution with memory context</Coverage>
+            </Test>
+            <Test name="Performance under load">
+                <Coverage>Concurrent users, cache performance</Coverage>
+            </Test>
+        </IntegrationTests>
+        <PerformanceTests>
+            <Metric name="Memory injection latency" target="&lt;50ms"/>
+            <Metric name="Context building time" target="&lt;100ms"/>
+            <Metric name="Cache hit rate" target="&gt;80%"/>
+            <Metric name="Concurrent user support" target="100 users"/>
+        </PerformanceTests>
+    </TestingStrategy>
+
+    <DefinitionOfDone>
+        <Item>Memory injection service implemented with sub-50ms performance</Item>
+        <Item>LLM context builder with formatted injection system</Item>
+        <Item>Chat integration with automatic memory injection</Item>
+        <Item>Agent Mode integration with memory-aware execution</Item>
+        <Item>Memory relevance scoring and ranking algorithm</Item>
+        <Item>Performance optimizations and caching implemented</Item>
+        <Item>Memory usage tracking and analytics</Item>
+        <Item>Test coverage &gt;90% for all injection operations</Item>
+        <Item>Performance targets validated with load testing</Item>
+        <Item>Error handling and graceful degradation implemented</Item>
+    </DefinitionOfDone>
+
+    <Notes>
+        <Note priority="high">
+            Memory injection is the critical bridge between stored knowledge and active conversation. This implementation ensures that Manus always has the most relevant context available without requiring users to repeat important information.
+        </Note>
+        <Note priority="medium">
+            The integration with Agent Mode extends memory awareness beyond chat, enabling personalized task execution and intelligent agent behavior based on user preferences and history.
+        </Note>
+        <Note priority="low">
+            Performance targets are aggressive but achievable with the existing memory service infrastructure and proper caching strategies.
+        </Note>
+    </Notes>
+</StoryContext>
