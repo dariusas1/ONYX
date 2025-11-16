@@ -1,0 +1,60 @@
+# =============================================================================
+# Grafana Datasource Configuration for Prometheus
+# =============================================================================
+# Configures Prometheus as the primary datasource for Grafana dashboards
+# =============================================================================
+
+apiVersion: 1
+
+# List of datasources to add/update in Grafana
+datasources:
+  # Prometheus datasource
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    database: ""
+    user: ""
+    password: ""
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "60s"
+      httpMethod: "POST"
+      manageAlerts: true
+      prometheusType: "Prometheus"
+      prometheusVersion: "2.40.0"
+      cacheLevel: "High"
+      disableRecordingRules: false
+      incrementalQueryOverlapWindow: "10m"
+      resultFormat: "table"
+      exemplarTraceIdDestinations:
+        - datasourceUid: jaeger
+          name: traceID
+    secureJsonData: {}
+
+  # Optional: Loki datasource for logs
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - datasourceUid: jaeger
+          matcherRegex: "traceID=(\\w+)"
+          name: TraceID
+          url: "$${__value.raw}"
+          urlDisplayLabel: "View Trace"
+    secureJsonData: {}
+
+# =============================================================================
+# Datasource Configuration Details
+# =============================================================================
+# - Prometheus: Primary metrics collection and querying
+# - Time interval aligned with scrape interval (15s)
+# - Query timeout set to 60s for complex queries
+# - Cache level set to High for better performance
+# =============================================================================

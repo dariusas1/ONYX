@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="{bmad_folder}/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>epic-6</epicId>
+    <storyId>6-3</storyId>
+    <title>Google Docs Editing Capabilities</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-15T20:30:00Z</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/6-3-google-docs-editing-capabilities.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an agent</asA>
+    <iWant>edit existing Google Docs with content insertion, replacement, and formatting updates</iWant>
+    <soThat>I can modify and refine documents dynamically as part of strategic workflows and document refinement processes</soThat>
+    <tasks>- Task 1: Google Docs API v1 Integration (AC: #1, #8)
+  - [ ] Subtask 1.1: Implement Google Docs API client service with batchUpdate support
+  - [ ] Subtask 1.2: Add OAuth2 token integration and authentication flow
+  - [ ] Subtask 1.3: Create edit_google_doc tool interface with input validation
+  - [ ] Subtask 1.4: Add error handling for API failures and permission issues
+
+- Task 2: Document Content Insertion (AC: #2, #4, #9)
+  - [ ] Subtask 2.1: Implement insertTextAtPosition function for content placement
+  - [ ] Subtask 2.2: Add support for relative positioning (beginning, end, after element)
+  - [ ] Subtask 2.3: Create Markdown to Google Docs formatting conversion
+  - [ ] Subtask 2.4: Test content insertion with various document structures
+
+- Task 3: Text Replacement and Range Updates (AC: #3, #4)
+  - [ ] Subtask 3.1: Implement replaceTextInRange function with range validation
+  - [ ] Subtask 3.2: Add support for partial content replacement and updates
+  - [ ] Subtask 3.3: Create range detection algorithms for content identification
+  - [ ] Subtask 3.4: Test replacement operations with different content types
+
+- Task 4: Formatting and Structure Preservation (AC: #4, #9)
+  - [ ] Subtask 4.1: Implement Google Docs formatting preservation during edits
+  - [ ] Subtask 4.2: Add support for maintaining headings, lists, and text styles
+  - [ ] Subtask 4.3: Create formatting conversion utilities for Markdown integration
+  - [ ] Subtask 4.4: Test formatting preservation with complex document structures
+
+- Task 5: Version History and Audit Trail (AC: #5)
+  - [ ] Subtask 5.1: Integrate with Google Docs version history API
+  - [ ] Subtask 5.2: Add change tracking and edit metadata logging
+  - [ ] Subtask 5.3: Create audit trail functionality for document modifications
+  - [ ] Subtask 5.4: Test version history integration and change tracking
+
+- Task 6: Performance Optimization (AC: #7)
+  - [ ] Subtask 6.1: Optimize API calls and batch update operations
+  - [ ] Subtask 6.2: Implement caching for document structure and formatting
+  - [ ] Subtask 6.3: Add performance monitoring and timeout handling
+  - [ ] Subtask 6.4: Benchmark edit operations and validate &lt;2s target
+
+- Task 7: Error Handling and Validation (AC: #6, #8)
+  - [ ] Subtask 7.1: Implement comprehensive error handling for all edit operations
+  - [ ] Subtask 7.2: Add input validation for document IDs and edit parameters
+  - [ ] Subtask 7.3: Create retry mechanisms for transient API failures
+  - [ ] Subtask 7.4: Test error scenarios and recovery procedures
+
+- Task 8: Integration Testing (AC: #10)
+  - [ ] Subtask 8.1: Create comprehensive test suite for edit_google_doc tool
+  - [ ] Subtask 8.2: Test integration with existing OAuth2 foundation
+  - [ ] Subtask 8.3: Validate metadata updates and agent context tracking
+  - [ ] Subtask 8.4: Perform end-to-end testing with real Google Docs</tasks>
+  </story>
+
+  <acceptanceCriteria>1. **AC6.3.1**: Agent can invoke edit_google_doc tool with document_id and action parameters
+2. **AC6.3.2**: Document content insertion works at specified positions (beginning, middle, end)
+3. **AC6.3.3**: Text replacement functionality updates existing content within specified ranges
+4. **AC6.3.4**: Formatting updates preserve Google Docs structure (headings, lists, bold, italics)
+5. **AC6.3.5**: All changes are tracked in Google Docs version history for audit trails
+6. **AC6.3.6**: Error handling manages permission issues, invalid document IDs, and API failures
+7. **AC6.3.7**: Performance target: document editing operations complete in &lt;2 seconds
+8. **AC6.3.8**: Integration with OAuth2 foundation for secure authentication and token management
+9. **AC6.3.9**: Markdown input properly converted to Google Docs format during editing
+10. **AC6.3.10**: Document metadata updated with edit timestamp and agent context</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/stories/6-1-oauth2-setup-integration.context.xml</path>
+        <title>OAuth2 Setup &amp; Integration Context</title>
+        <section>OAuth2 Foundation</section>
+        <snippet>Complete OAuth2 implementation with GoogleOAuthService class, AES-256 encryption, database schema, API endpoints, and 95% completion status. Provides authentication foundation for all Google Workspace integrations. Includes token refresh, encrypted storage, and automatic credential management.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/6-2-google-docs-creation-tools.context.xml</path>
+        <title>Google Docs Creation Tools Context</title>
+        <section>Document Creation Foundation</section>
+        <snippet>Comprehensive Google Docs creation patterns with OAuth2 integration, Markdown conversion, folder management, and agent tool patterns. Provides foundation for editing operations with existing Google Docs API v1 integration patterns and batchUpdate operations.</snippet>
+      </doc>
+      <doc>
+        <path>.bmad-ephemeral/stories/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification</title>
+        <section>Google Workspace Tools Architecture</section>
+        <snippet>Comprehensive technical specification for Epic 6 covering Google Workspace tools integration, OAuth2 setup, Docs API v1 integration with batchUpdate patterns, and detailed implementation architecture for document editing operations including insertText, replaceText, and formatting preservation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>ONYX Architecture Documentation</title>
+        <section>System Architecture</section>
+        <snippet>Complete ONYX system architecture including microservices, authentication, database schema, API routing, and agent integration patterns. Provides foundation for Google Docs editing service integration with existing service patterns.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics/epic-6-tech-spec.md</path>
+        <title>Epic 6 Technical Specification</title>
+        <section>Google Docs API Integration Patterns</section>
+        <snippet>Detailed Google Docs API v1 integration patterns including batchUpdate operations, document editing workflows, error handling, and performance optimization strategies for &lt;2 second edit operations target.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <code>
+        <path>onyx-core/services/google_oauth.py</path>
+        <kind>service</kind>
+        <symbol>GoogleOAuthService</symbol>
+        <lines>21-313</lines>
+        <reason>Foundation OAuth2 service for Google Workspace authentication. Handles authorization URL generation, token exchange, encrypted storage, and automatic refresh. Provides get_credentials() method for API access. Essential for secure Google Docs API v1 editing operations.</reason>
+      </code>
+      <code>
+        <path>onyx-core/api/google_drive.py</path>
+        <kind>router</kind>
+        <symbol>APIRouter</symbol>
+        <lines>19-511</lines>
+        <reason>FastAPI router with OAuth endpoints and API patterns. Template for adding Google Docs editing endpoints alongside existing OAuth infrastructure. Shows authentication patterns, error handling, and structured response formats.</reason>
+      </code>
+      <code>
+        <path>onyx-core/services/content_extractor.py</path>
+        <kind>service</kind>
+        <symbol>ContentExtractor</symbol>
+        <lines>14-200</lines>
+        <reason>Existing Google Docs API integration patterns with googleapiclient.discovery.build and Drive API service usage. Shows export_media patterns and Google Docs MIME type handling. Template for Docs API v1 editing operations.</reason>
+      </code>
+      <code>
+        <path>onyx-core/api/web_tools.py</path>
+        <kind>router</kind>
+        <symbol>APIRouter</symbol>
+        <lines>30-528</lines>
+        <reason>Agent tool integration pattern with FastAPI router. Shows tool registration, parameter validation, authentication, and structured responses. Template for edit_google_doc tool implementation with proper agent workflow integration.</reason>
+      </code>
+      <code>
+        <path>onyx-core/services/google_drive_sync.py</path>
+        <kind>service</kind>
+        <symbol>GoogleDriveSync</symbol>
+        <lines>24-100</lines>
+        <reason>Google Drive API integration patterns showing file management, folder operations, and permission handling. Provides foundation for Google Docs file access validation and permission checking before editing operations.</reason>
+      </code>
+    </code>
+    <dependencies>
+      <python>
+        <package name="google-api-python-client" version="2.108.0">Google API client library for Docs API v1 batchUpdate operations and editing functions</package>
+        <package name="google-auth" version="2.25.2">Google authentication library for OAuth2 credentials and Docs API access</package>
+        <package name="google-auth-oauthlib" version="1.2.0">OAuth2 flow handling for Google Docs API permissions</package>
+        <package name="google-auth-httplib2" version="0.2.0">HTTP transport for Google Docs API requests with retry logic</package>
+        <package name="fastapi" version="0.104.1">Web framework for edit_google_doc tool API endpoints</package>
+        <package name="cryptography" version="42.0.8">AES-256 encryption for secure token storage in OAuth2 integration</package>
+        <package name="psycopg2-binary" version="2.9.9">PostgreSQL database for document edit history and audit trails</package>
+        <package name="pydantic" version="2.5.0">Data validation and serialization for edit operation parameters</package>
+      </python>
+      <javascript>
+        <package name="next" version="^14.0.0">Frontend framework for UI components displaying edit operations</package>
+        <package name="react" version="^18.0.0">Component library for agent interface with edit tool integration</package>
+        <package name="typescript" version="^5.3.0">Type safety for edit_google_doc tool interfaces and parameters</package>
+      </javascript>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>OAuth2 Authentication: Must use existing GoogleOAuthService from Story 6.1 for authentication. Cannot bypass or duplicate OAuth implementation. Must add Google Docs API scopes to existing configuration.</constraint>
+    <constraint>Google Docs API v1: Must use Google Docs API v1 with batchUpdate endpoint for all editing operations. Follow existing ContentExtractor patterns for API client setup.</constraint>
+    <constraint>Scopes Extension: Must extend existing OAuth2 configuration with Google Docs editing scopes: https://www.googleapis.com/auth/documents for read/write access.</constraint>
+    <constraint>Performance: Document editing operations must complete in &lt;2 seconds including API calls, processing, and response generation. Implement caching and optimization strategies.</constraint>
+    <constraint>Version History: Must integrate with Google Docs native version history for audit trails. All changes must be trackable through Google's revision management system.</constraint>
+    <constraint>Error Handling: Must follow existing OAuth2 error handling patterns. Include specific Google Docs API error codes, rate limiting, and permission validation.</constraint>
+    <constraint>Database Integration: Must extend existing database schema with edit operation tracking. Use same PostgreSQL patterns as OAuth2 implementation for audit trails.</constraint>
+    <constraint>Agent Tool Pattern: Must follow existing agent tool patterns from web_tools.py. Include authentication, parameter validation, structured responses, and audit logging.</constraint>
+    <constraint>Markdown Conversion: Must implement robust Markdown to Google Docs formatting conversion for preserving structure during edits. Handle headings, lists, formatting, and links.</constraint>
+    <constraint>Permission Validation: Must validate document access permissions before all editing operations using existing Drive API integration patterns.</constraint>
+    <constraint>Batch Operations: Must use Google Docs API batchUpdate for efficiency. Group multiple edits into single API calls to meet performance targets.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>GoogleOAuthService.get_credentials()</name>
+      <kind>method</kind>
+      <signature>get_credentials(user_id: str) -&gt; Optional[Credentials]</signature>
+      <path>onyx-core/services/google_oauth.py</path>
+      <description>Retrieves authenticated Google credentials for Docs API access. Provides automatic token refresh and decryption. Essential for secure document editing operations.</description>
+    </interface>
+    <interface>
+      <name>Google Docs API v1 batchUpdate</name>
+      <kind>api</kind>
+      <signature>docs_service.documents().batchUpdate(documentId, body={'requests': []})</signature>
+      <path>Google Docs API v1</path>
+      <description>Primary interface for document editing operations. Supports insertText, replaceText, deleteContent, and formatting updates in batch operations for efficiency.</description>
+    </interface>
+    <interface>
+      <name>ContentExtractor._extract_google_doc()</name>
+      <kind>method</kind>
+      <signature>_extract_google_doc(file_id: str, file_name: str) -&gt; Optional[str]</signature>
+      <path>onyx-core/services/content_extractor.py</path>
+      <description>Shows Google Docs API v1 usage patterns with drive_service.files().export_media(). Template for document editing operations with proper API client setup.</description>
+    </interface>
+    <interface>
+      <name>Agent Tool Registry Pattern</name>
+      <kind>interface</kind>
+      <signature>register_tool(name: str, tool_definition: Dict) -&gt; void</signature>
+      <path>onyx-core/api/web_tools.py</path>
+      <description>Agent tool registration pattern with parameter validation, authentication, and structured responses. Used for edit_google_doc tool implementation with proper agent workflow integration.</description>
+    </interface>
+    <interface>
+      <name>FastAPI Router Pattern</name>
+      <kind>interface</kind>
+      <signature>@router.post("/endpoint", response_model=ResponseModel)</signature>
+      <path>onyx-core/api/google_drive.py</path>
+      <description>API endpoint pattern with authentication, request/response models, and error handling. Template for Google Docs editing endpoints with OAuth2 integration.</description>
+    </interface>
+    <interface>
+      <name>Google Drive Permission Validation</name>
+      <kind>method</kind>
+      <signature>validate_document_access(doc_id: str) -&gt; bool</signature>
+      <path>onyx-core/services/google_drive_sync.py</path>
+      <description>Permission validation interface using existing Drive API integration patterns. Ensures user has edit access before performing document modifications.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Follow existing test patterns from OAuth2 implementation and Google Docs creation tools. Unit tests for GoogleDocsEditService class with mocking of Google Docs API v1 batchUpdate operations. Integration tests with Google Docs API test environment for editing operations. Performance tests to ensure &lt;2s edit operations target. Agent tool integration tests for end-to-end edit workflows. Error handling tests for permission issues, invalid document IDs, quota limits, and API failures. Security tests for token encryption and user authorization validation. Use pytest with asyncio support. Mock Google Docs API responses to avoid dependency on external services. Test both successful editing operations and comprehensive error scenarios. Validate Markdown to Google Docs formatting conversion accuracy.</standards>
+    <locations>
+      <location>tests/unit/test_google_docs_edit_service.py</location>
+      <location>tests/integration/test-google-docs-editing.sh</location>
+      <location>tests/test_api/test_google_docs_edit.py</location>
+      <location>tests/performance/test_docs_editing_speed.py</location>
+      <location>tests/security/test_google_docs_edit_auth.py</location>
+      <location>tests/unit/test_markdown_to_docs_conversion.py</location>
+      <location>tests/integration/test_batch_update_operations.py</location>
+    </locations>
+    <ideas>
+      <idea ac="AC6.3.1">Test edit_google_doc tool with valid document_id and various action parameters (insert, replace, append)</idea>
+      <idea ac="AC6.3.2">Test content insertion at beginning, middle, and end positions with index-based and relative positioning</idea>
+      <idea ac="AC6.3.3">Test text replacement with range specifications including startIndex and endIndex validation</idea>
+      <idea ac="AC6.3.4">Test formatting preservation during edits including headings, lists, bold, italics, and link formatting</idea>
+      <idea ac="AC6.3.5">Test Google Docs version history integration to verify all changes are properly tracked and auditable</idea>
+      <idea ac="AC6.3.6">Test error handling for permission denied, invalid document IDs, quota exceeded, and network failures</idea>
+      <idea ac="AC6.3.7">Performance test with timing assertions for editing operations to validate &lt;2s target</idea>
+      <idea ac="AC6.3.8">Test OAuth2 integration with existing authentication flow and token refresh mechanisms</idea>
+      <idea ac="AC6.3.9">Test Markdown to Google Docs conversion including complex formatting, code blocks, and nested structures</idea>
+      <idea ac="AC6.3.10">Test document metadata updates including edit timestamps, agent context, and operation logging</idea>
+    </ideas>
+  </tests>
+</story-context>

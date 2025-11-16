@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useRef, useEffect, KeyboardEvent, ChangeEvent } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Play } from 'lucide-react';
+import { useMode } from '../contexts/ModeContext';
 
 export interface InputBoxProps {
   value: string;
@@ -17,10 +18,22 @@ export function InputBox({
   onChange,
   onSubmit,
   disabled = false,
-  placeholder = 'Type your message...',
+  placeholder: _placeholder, // Use the mode-specific placeholder
   className = '',
 }: InputBoxProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Mode operations for dynamic UI changes
+  const { isAgentMode, isLoading } = useMode();
+
+  // Mode-specific placeholders and text
+  const getButtonText = () => isAgentMode ? 'Execute Task' : 'Send';
+  const getInputPlaceholder = () => isAgentMode
+    ? 'Describe the task you want the agent to execute...'
+    : 'Type your message...';
+
+  // Use mode-specific placeholder
+  const placeholder = getInputPlaceholder();
 
   // Auto-resize textarea based on content
   useEffect(() => {
@@ -93,16 +106,32 @@ export function InputBox({
             </div>
           </div>
 
-          {/* Send button */}
+          {/* Mode-specific button */}
           <button
             type="button"
             onClick={handleSubmit}
             disabled={disabled || !value.trim()}
-            className="btn btn-primary h-11 w-11 flex items-center justify-center flex-shrink-0"
-            aria-label="Send message"
-            title="Send message (Enter)"
+            className={`
+              h-11 w-11 flex items-center justify-center flex-shrink-0
+              transition-all duration-300 ease-in-out
+              ${isAgentMode
+                ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                : 'btn btn-primary'
+              }
+              ${disabled || !value.trim()
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:opacity-80'
+              }
+              ${isLoading ? 'scale-95' : 'scale-100'}
+            `}
+            aria-label={isAgentMode ? 'Execute task' : 'Send message'}
+            title={isAgentMode ? 'Execute task (Enter)' : 'Send message (Enter)'}
           >
-            <Send className="w-5 h-5" aria-hidden="true" />
+            {isAgentMode ? (
+              <Play className="w-5 h-5" aria-hidden="true" />
+            ) : (
+              <Send className="w-5 h-5" aria-hidden="true" />
+            )}
           </button>
         </div>
       </div>

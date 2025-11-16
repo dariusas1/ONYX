@@ -1,0 +1,272 @@
+<story-context id="4-1-memory-schema-storage-system" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>1</storyId>
+    <title>Memory Schema & Storage System</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-15T00:00:00Z</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/4-1-memory-schema-storage-system.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a user of Manus</asA>
+    <iWant>I want my conversations to generate persistent memories that are stored in a structured database</iWant>
+    <soThat>Manus can recall important context, preferences, and decisions across sessions</soThat>
+    <tasks>
+1. Design and implement PostgreSQL database schema for memory storage
+2. Create CRUD API endpoints with proper validation and error handling
+3. Implement memory categorization system with 7 standard categories
+4. Build confidence scoring and source tracking mechanisms
+5. Optimize database queries for sub-50ms performance targets
+6. Implement security and privacy controls with user isolation
+7. Create comprehensive search and filtering functionality
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criteria id="AC4.1.1">
+      <title>Database schema implemented with all specified tables, indexes, and constraints</title>
+      <description>PostgreSQL tables created with proper relationships, performance indexes for user_id, category, confidence, and created_at, foreign key constraints ensuring data integrity, and JSONB metadata fields for flexible schema evolution</description>
+    </criteria>
+    <criteria id="AC4.1.2">
+      <title>Memory CRUD API endpoints functional with proper validation</title>
+      <description>POST /api/memory - Create new memories with validation, GET /api/memory/:id - Retrieve specific memory by ID, PUT /api/memory/:id - Update memory with change tracking, DELETE /api/memory/:id - Soft delete with audit logging, and GET /api/memory - List memories with filtering and pagination</description>
+    </criteria>
+    <criteria id="AC4.1.3">
+      <title>Memory categorization system with 7 standard categories</title>
+      <description>Each memory assigned to one of 7 standard categories (priority, decision, context, preference, relationship, goal, summary), category-based filtering and organization, custom category creation for personalization, category-specific memory scoring algorithms, and UI components for category management</description>
+    </criteria>
+    <criteria id="AC4.1.4">
+      <title>Confidence scoring and source tracking implemented</title>
+      <description>Memories stored with confidence scores (0.0-1.0), source type tracking for memory provenance, source message linking for conversation context, memory quality ranking based on confidence and usage, and automatic confidence adjustment based on user feedback</description>
+    </criteria>
+    <criteria id="AC4.1.5">
+      <title>Performance targets achieved for memory operations</title>
+      <description>Memory creation &lt;100ms average response time, memory retrieval queries &lt;50ms with proper indexing, search functionality &lt;200ms for typical queries, support for 10,000+ memories per user without degradation, and database query optimization with EXPLAIN ANALYZE validation</description>
+    </criteria>
+    <criteria id="AC4.1.6">
+      <title>Security and privacy controls implemented</title>
+      <description>User isolation ensures memories are private per user, input validation prevents SQL injection and XSS, PII detection with optional automatic masking, audit logging for all memory CRUD operations, and GDPR compliance with right to deletion</description>
+    </criteria>
+    <criteria id="AC4.1.7">
+      <title>Memory search and filtering functionality</title>
+      <description>Full-text search across memory fact content, category-based filtering with multi-select support, date range filtering for temporal queries, confidence score filtering for quality control, and sorting options (recency, confidence, category, usage)</description>
+    </criteria>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epics.md">
+        <title>Epic 4: Persistent Memory & Learning</title>
+        <section>Story 4.1: User Memory Schema & Storage</section>
+        <snippet>Goal: Manus learns from interactions, recalls standing instructions, and improves over time. Scope: Supabase memory schema, memory injection at chat start, standing instructions UI, auto-summarization pipeline.</snippet>
+      </doc>
+      <doc path="docs/architecture.md">
+        <title>ONYX Architecture Document</title>
+        <section>Data Architecture - PostgreSQL Schema</section>
+        <snippet>Database Tables: users, conversations, messages, memories, standing_instructions, tasks, documents, api_keys, audit_logs. API Response Format: Success response with success boolean and data object.</snippet>
+      </doc>
+      <doc path="docs/architecture.md">
+        <title>Database Patterns and Indexing</title>
+        <section>Performance Optimization</section>
+        <snippet>Database Indexing: CREATE INDEX idx_memories_user ON memories(user_id); CREATE INDEX idx_memories_embedding ON memories USING ivfflat (embedding vector_cosine_ops). Query Optimization: Load only necessary columns; pagination for lists.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file path="suna/src/app/api/health/health.js">
+        <kind>API Endpoint</kind>
+        <symbol>handler</symbol>
+        <lines>137-260</lines>
+        <reason>Example of Next.js API route structure with comprehensive error handling, logging, and response patterns that should be followed for memory API endpoints</reason>
+      </file>
+      <file path="suna/src/app/api/metrics/route.ts">
+        <kind>API Endpoint</kind>
+        <symbol>GET</symbol>
+        <lines>13-36</lines>
+        <reason>Demonstrates Next.js API route pattern with proper TypeScript typing, error handling, and response headers that should be replicated for memory endpoints</reason>
+      </file>
+      <file path="suna/package.json">
+        <kind>Dependencies</kind>
+        <symbol>package.json</symbol>
+        <lines>1-52</lines>
+        <reason>Frontend framework configuration showing Next.js 14, TypeScript, Tailwind CSS, and testing setup that memory API should integrate with</reason>
+      </file>
+      <file path="onyx-core/main.py">
+        <kind>FastAPI Application</kind>
+        <symbol>FastAPI</symbol>
+        <lines>1-50</lines>
+        <reason>Backend FastAPI application structure showing middleware, authentication, and lifecycle management patterns for memory service integration</reason>
+      </file>
+      <file path="onyx-core/requirements.txt">
+        <kind>Dependencies</kind>
+        <symbol>requirements.txt</symbol>
+        <lines>1-86</lines>
+        <reason>Python backend dependencies including FastAPI, PostgreSQL (asyncpg, SQLAlchemy), Redis, and testing frameworks required for memory implementation</reason>
+      </file>
+      <file path="tests/unit/test_encryption.py">
+        <kind>Test Pattern</kind>
+        <symbol>test_encryption_service_initialization</symbol>
+        <lines>21-28</lines>
+        <reason>Demonstrates pytest testing patterns with fixtures, environment mocking, and service testing approach for memory service tests</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <frontend>
+        <name>Next.js</name>
+        <version>14.0.0</version>
+        <purpose>Frontend framework with App Router for memory UI components</purpose>
+      </frontend>
+      <frontend>
+        <name>TypeScript</name>
+        <version>5.3.0</version>
+        <purpose>Type safety for memory interfaces and API contracts</purpose>
+      </frontend>
+      <frontend>
+        <name>Tailwind CSS</name>
+        <version>3.4.0</version>
+        <purpose>Styling for memory management UI components</purpose>
+      </frontend>
+      <frontend>
+        <name>Jest</name>
+        <version>29.0.0</version>
+        <purpose>Frontend testing framework for memory UI components</purpose>
+      </frontend>
+
+      <backend>
+        <name>FastAPI</name>
+        <version>0.104.1</version>
+        <purpose>Python web framework for memory CRUD API endpoints</purpose>
+      </backend>
+      <backend>
+        <name>PostgreSQL</name>
+        <version>15+</version>
+        <purpose>Primary database for memory storage with full-text search</purpose>
+      </backend>
+      <backend>
+        <name>asyncpg</name>
+        <version>0.29.0</version>
+        <purpose>Async PostgreSQL driver for high-performance memory queries</purpose>
+      </backend>
+      <backend>
+        <name>SQLAlchemy</name>
+        <version>2.0.23</version>
+        <purpose>ORM for database models and migrations</purpose>
+      </backend>
+      <backend>
+        <name>Alembic</name>
+        <version>1.12.1</version>
+        <purpose>Database migration management for schema evolution</purpose>
+      </backend>
+      <backend>
+        <name>Redis</name>
+        <version>5.0.1</version>
+        <purpose>Caching layer for memory query optimization</purpose>
+      </backend>
+      <backend>
+        <name>pytest</name>
+        <version>7.4.3</version>
+        <purpose>Testing framework for memory service unit and integration tests</purpose>
+      </backend>
+      <backend>
+        <name>pydantic</name>
+        <version>2.5.0</version>
+        <purpose>Data validation and serialization for memory API</purpose>
+      </backend>
+      <backend>
+        <name>cryptography</name>
+        <version>42.0.8</version>
+        <purpose>Encryption for PII detection and data protection</purpose>
+      </backend>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="database">Use PostgreSQL with asyncpg driver for sub-50ms query performance. Implement proper indexing strategy on user_id, category, confidence, and created_at columns. Use JSONB for metadata field to support schema evolution.</constraint>
+    <constraint type="api">Follow existing Next.js API route patterns with TypeScript interfaces. Implement proper error handling with structured response format: {success: boolean, data: any, error?: string}. Use proper HTTP status codes and validation.</constraint>
+    <constraint type="security">Implement user isolation at database level with proper foreign key constraints. Use parameterized queries to prevent SQL injection. Implement PII detection with optional masking. Add audit logging for all CRUD operations.</constraint>
+    <constraint type="performance">Target memory creation &lt;100ms, retrieval &lt;50ms. Use Redis caching for frequently accessed memories. Implement connection pooling with pgBouncer. Monitor query performance with EXPLAIN ANALYZE.</constraint>
+    <constraint type="testing">Achieve &gt;90% test coverage for all memory operations. Write unit tests for service layer, integration tests for API endpoints, and performance tests for query optimization. Use pytest fixtures and mocking patterns.</constraint>
+    <constraint type="architecture">Follow existing service layer patterns in onyx-core/services/. Use async/await patterns throughout. Implement proper logging with structured JSON format. Use environment variables for configuration management.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Memory Storage API">
+      <kind>REST Endpoints</kind>
+      <signature>POST /api/memory - CreateMemoryRequest → MemoryResponse
+GET /api/memory/:id → MemoryResponse
+PUT /api/memory/:id - UpdateMemoryRequest → MemoryResponse
+DELETE /api/memory/:id → DeleteResponse
+GET /api/memory - MemoryFilters → MemoryListResponse</signature>
+      <path>suna/src/app/api/memory/route.ts</path>
+    </interface>
+    <interface name="Memory Database Schema">
+      <kind>SQL Schema</kind>
+      <signature>CREATE TABLE user_memories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    fact TEXT NOT NULL,
+    category TEXT NOT NULL CHECK (category IN ('priority', 'decision', 'context', 'preference', 'relationship', 'goal', 'summary')),
+    confidence FLOAT NOT NULL DEFAULT 0.8 CHECK (confidence >= 0 AND confidence <= 1),
+    source_type TEXT NOT NULL CHECK (source_type IN ('manual', 'extracted_from_chat', 'auto_summary', 'standing_instruction')),
+    source_message_id UUID REFERENCES messages(id),
+    conversation_id UUID REFERENCES conversations(id),
+    metadata JSONB DEFAULT '{}',
+    expires_at TIMESTAMP,
+    access_count INTEGER DEFAULT 0,
+    last_accessed_at TIMESTAMP DEFAULT NOW(),
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);</signature>
+      <path>onyx-core/migrations/001_create_memories_table.py</path>
+    </interface>
+    <interface name="Memory Service Layer">
+      <kind>TypeScript Interface</kind>
+      <signature>interface MemoryStorage {
+    createMemory(request: CreateMemoryRequest): Promise&lt;Memory&gt;;
+    updateMemory(id: string, updates: UpdateMemoryRequest): Promise&lt;Memory&gt;;
+    deleteMemory(id: string): Promise&lt;boolean&gt;;
+    getMemory(id: string): Promise&lt;Memory | null&gt;;
+    getUserMemories(userId: string, filters?: MemoryFilters): Promise&lt;Memory[]&gt;;
+    searchMemories(userId: string, query: string): Promise&lt;Memory[]&gt;;
+}</signature>
+      <path>suna/src/lib/services/memory-service.ts</path>
+    </interface>
+    <interface name="Python Memory Service">
+      <kind>Python Class</kind>
+      <signature>class MemoryService:
+    async def create_memory(self, request: CreateMemoryRequest) -> Memory:
+        """Create new memory with validation and duplicate detection"""
+
+    async def get_user_memories(self, user_id: str, filters: MemoryFilters) -> List[Memory]:
+        """Retrieve memories with filtering and pagination"""
+
+    async def search_memories(self, user_id: str, query: str) -> List[Memory]:
+        """Full-text search across memory facts"</signature>
+      <path>onyx-core/services/memory_service.py</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Use pytest with async support for testing. Follow existing test patterns with fixtures for environment setup. Achieve >90% code coverage. Implement unit tests for service logic, integration tests for API endpoints, and performance tests for query optimization. Use mock objects for external dependencies. Test both happy paths and error conditions.</standards>
+    <locations>
+      <path>suna/src/__tests__/</path>
+      <path>suna/src/app/api/memory/__tests__/</path>
+      <path>onyx-core/tests/unit/test_memory_service.py</path>
+      <path>onyx-core/tests/integration/test_memory_api.py</path>
+      <path>onyx-core/tests/performance/test_memory_queries.py</path>
+    </locations>
+    <ideas>
+      <test mapping="AC4.1.1">test_database_schema_creation - Verify all tables created with proper constraints and indexes. Test migration rollback functionality.</test>
+      <test mapping="AC4.1.2">test_memory_crud_operations - Test create, read, update, delete operations with proper validation. Test error handling for invalid inputs.</test>
+      <test mapping="AC4.1.3">test_memory_categorization - Test assignment to 7 standard categories. Test category filtering and custom category creation.</test>
+      <test mapping="AC4.1.4">test_confidence_scoring - Test confidence score validation and range checking. Test source type tracking and provenance.</test>
+      <test mapping="AC4.1.5">test_performance_targets - Performance tests for memory creation (&lt;100ms) and retrieval (&lt;50ms). Load testing with 10,000+ memories.</test>
+      <test mapping="AC4.1.6">test_security_privacy - Test user isolation and data access controls. Test PII detection and masking functionality.</test>
+      <test mapping="AC4.1.7">test_search_filtering - Test full-text search across memory content. Test filtering by category, date range, and confidence.</test>
+    </ideas>
+  </tests>
+</story-context>

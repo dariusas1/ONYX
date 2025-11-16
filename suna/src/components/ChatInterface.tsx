@@ -1,8 +1,12 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { MessageList, Message } from './MessageList';
 import { InputBox } from './InputBox';
+import { useMode } from '../contexts/ModeContext';
+import { useWorkspace } from '../contexts/WorkspaceContext';
+import { WorkspacePanel } from './WorkspacePanel/WorkspacePanel';
 
 export interface ChatInterfaceProps {
   conversationId?: string;
@@ -16,6 +20,17 @@ export function ChatInterface({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+
+  // Mode operations for Agent Mode functionality
+  const { isAgentMode, isLoading } = useMode();
+
+  // Workspace operations for VNC functionality
+  const { isWorkspaceVisible, toggleWorkspace } = useWorkspace();
+
+  // Get Agent Mode warning message
+  const getAgentModeWarning = () => {
+    return 'Agent will execute actions. Review approval gates.';
+  };
 
   // Note: conversationId will be used in Story 2.3 for message persistence
 
@@ -52,18 +67,46 @@ export function ChatInterface({
   );
 
   return (
-    <div className={`flex-1 flex flex-col ${className}`} role="main">
-      <MessageList
-        messages={messages}
-        isStreaming={isStreaming}
-        className="flex-1"
+    <>
+      <div className={`flex-1 flex flex-col ${className}`} role="main">
+        {/* Agent Mode Warning Banner */}
+        {isAgentMode && (
+          <div
+            className={`
+              flex items-center gap-3 px-4 py-3 bg-yellow-500/10 border-b border-yellow-500/20
+              transition-all duration-300 ease-in-out
+              ${isLoading ? 'opacity-50' : 'opacity-100'}
+            `}
+            role="alert"
+            aria-live="polite"
+          >
+            <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" aria-hidden="true" />
+            <div className="flex-1">
+              <span className="text-yellow-500 font-medium">
+                {getAgentModeWarning()}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <MessageList
+          messages={messages}
+          isStreaming={isStreaming}
+          className="flex-1"
+        />
+        <InputBox
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSubmit}
+          disabled={isStreaming}
+        />
+      </div>
+
+      {/* Workspace Panel */}
+      <WorkspacePanel
+        isOpen={isWorkspaceVisible}
+        onToggle={toggleWorkspace}
       />
-      <InputBox
-        value={input}
-        onChange={setInput}
-        onSubmit={handleSubmit}
-        disabled={isStreaming}
-      />
-    </div>
+    </>
   );
 }

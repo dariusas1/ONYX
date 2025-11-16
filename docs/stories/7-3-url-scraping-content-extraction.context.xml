@@ -1,0 +1,527 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>7-3-url-scraping-content-extraction</story-id>
+    <story-title>URL Scraping &amp; Content Extraction</story-title>
+    <epic-id>epic-7</epic-id>
+    <epic-title>Web Automation &amp; Search</epic-title>
+    <priority>P1</priority>
+    <status>ready-for-dev</status>
+    <estimated-points>8</estimated_points>
+    <context-generated>2025-11-15</context-generated>
+  </metadata>
+
+  <story-overview>
+    <summary>
+      Implement URL scraping and content extraction service that can navigate to web pages,
+      render JavaScript-heavy content, clean HTML using Mozilla Readability, extract main content
+      as Markdown, and return structured metadata. Performance target: &lt;5s execution time
+      from navigation to clean content with comprehensive error handling.
+    </summary>
+
+    <business-value>
+      Without content extraction, agents cannot:
+      - Access and process article content from news sites and blogs
+      - Extract clean, readable content from JavaScript-heavy modern websites
+      - Convert web content to structured formats for analysis
+      - Filter out ads, navigation, and irrelevant content automatically
+      - Provide clean content for RAG ingestion and knowledge acquisition
+
+      This capability transforms Manus from an internal search system into a comprehensive
+      external intelligence gathering platform that can process and learn from web content.
+    </business-value>
+
+    <blocking-dependencies>
+      This story depends on:
+      - Story 7-1: Playwright Browser Setup (complete)
+      - Story 7-2: Web Search Tool (complete)
+    </blocking-dependencies>
+  </story-overview>
+
+  <epic-technical-specification>
+    <epic-overview>
+      Epic 7 enables Manus Internal to perform autonomous web research, market analysis, and competitive intelligence
+      through headless browser automation and intelligent web search. The web automation layer provides the foundation
+      for agent-driven research workflows where Manus can autonomously search for information, navigate websites,
+      extract relevant content, and compile comprehensive reports.
+    </epic-overview>
+
+    <service-architecture>
+      <diagram>
+┌─────────────────────────────────────────────────────────┐
+│  Suna (Frontend) - Agent Mode UI                       │
+└─────────────────┬───────────────────────────────────────┘
+                  │ POST /api/agent (task submission)
+                  ↓
+┌─────────────────────────────────────────────────────────┐
+│  Onyx Core (Python) - Tool Orchestration               │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │  Tool Router: select_tool(task) → web_search      │ │
+│  │             → scrape_url → fill_form → screenshot │ │
+│  └───────────────────────────────────────────────────┘ │
+└────┬─────────┬──────────┬──────────┬──────────────┬────┘
+     │         │          │          │              │
+     ↓         ↓          ↓          ↓              ↓
+┌─────────┐ ┌──────┐ ┌────────┐ ┌────────┐ ┌──────────────┐
+│SerpAPI/ │ │Redis │ │Playwright│ │Scraper│ │Screenshot   │
+│Exa API  │ │Cache │ │Browser   │ │Service│ │Service      │
+└─────────┘ └──────┘ └────────┘ └────────┘ └──────────────┘
+      </diagram>
+
+      <scraper-service-architecture>
+┌─────────────────────────────────────────────────────────┐
+│  Onyx Core (Python) - Tool Orchestration               │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │  Scraper Service: scrape_url(url) → content       │ │
+│  │                     → clean_html → markdown       │ │
+│  │                     → metadata extraction        │ │
+│  └───────────────────────────────────────────────────┘ │
+└────────────────────┬────────────────────────────────────┘
+                     │ API calls + Browser Manager integration
+                     ↓
+┌─────────────────────────────────────────────────────────┐
+│  Playwright Container (Docker)                          │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │  Headless Chrome + Firefox                        │ │
+│  │  Playwright Python API                            │ │
+│  │  Browser Manager Service                          │ │
+│  │  Page Navigation &amp; JavaScript Rendering        │ │
+│  └───────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+      </scraper-service-architecture>
+    </service-architecture>
+
+    <modules-and-services>
+      <module name="scraper-service" purpose="Content extraction" technology="Readability + Playwright">
+        <responsibilities>
+          <item>Page navigation via Browser Manager</item>
+          <item>HTML cleaning using Mozilla Readability</item>
+          <item>Markdown conversion from cleaned HTML</item>
+          <item>Metadata extraction (title, author, publish_date)</item>
+          <item>Error handling for network failures</item>
+        </responsibilities>
+        <integration-point>Onyx Core → Browser Manager → Playwright</integration-point>
+      </module>
+
+      <module name="cache-layer" purpose="Result caching" technology="Redis">
+        <responsibilities>
+          <item>Scraped content caching (24h TTL)</item>
+          <item>Cache key generation based on URL hash</item>
+          <item>Cache hit/miss metrics tracking</item>
+        </responsibilities>
+        <integration-point>Scraper Service → Redis</integration-point>
+      </module>
+    </modules-and-services>
+
+    <performance-requirements>
+      <scraper-operations>
+        <metric name="Page navigation" target="&lt;3s" timeout="10s" note="JavaScript rendering included" />
+        <metric name="Content cleaning" target="&lt;500ms" timeout="2s" note="Readability processing" />
+        <metric name="Markdown conversion" target="&lt;200ms" timeout="1s" note="HTML to Markdown" />
+        <metric name="Total execution" target="&lt;5s (95th %ile)" timeout="10s" note="End-to-end scraping" />
+      </scraper-operations>
+
+      <resource-management>
+        <constraint name="Cache TTL" value="24 hours for scraped content" />
+        <constraint name="Cache hit target" value="&gt;70% for repeated URLs" />
+        <constraint name="Error rate" value="&lt;5% failure rate for well-formed requests" />
+        <constraint name="Rate limiting" value="Respectful delays per domain" />
+      </resource-management>
+    </performance-requirements>
+
+    <acceptance-criteria>
+      <criterion id="AC7.3.1">
+        <description>Agent can invoke scrape_url tool with URL parameter</description>
+        <verification>
+          - Unit test: Tool registration in Onyx Core tool registry
+          - Integration test: API endpoint accepts POST /tools/scrape_url
+          - Schema validation: ScrapedContent response model validation
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.3.2">
+        <description>Page loaded and HTML rendered (handles JavaScript)</description>
+        <verification>
+          - Integration test: Navigate to React-heavy site, verify dynamic content
+          - JavaScript test: Use modern sites with client-side rendering
+          - Wait strategy: Verify proper wait conditions for content load
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.3.3">
+        <description>HTML cleaned (remove ads, scripts, navigation) using Readability</description>
+        <verification>
+          - Unit test: Readability library integration tests
+          - Content test: Verify ads, navigation, scripts removed from output
+          - Quality test: Clean content contains only main article content
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.3.4">
+        <description>Main content extracted and converted to Markdown</description>
+        <verification>
+          - Unit test: HTML to Markdown conversion accuracy
+          - Format test: Markdown structure preserved (headers, lists, links)
+          - Content test: Essential content maintained in conversion
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.3.5">
+        <description>Execution time &lt;5s from navigation to clean content</description>
+        <verification>
+          - Performance test: 50 URL scrapes, measure p95 latency &lt;5s
+          - Monitoring: Real-time performance tracking in logs
+          - Timeout test: 10s hard timeout with graceful fallback
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.3.6">
+        <description>Returns text_content, metadata (title, author, publish_date)</description>
+        <verification>
+          - Unit test: Metadata extraction from HTML head and meta tags
+          - Schema test: ScrapedContent model validation
+          - Real test: Extract metadata from various site structures
+        </verification>
+      </criterion>
+
+      <criterion id="AC7.3.7">
+        <description>Error handling: 404s, timeouts, blocked sites return structured errors</description>
+        <verification>
+          - Unit test: HTTP error handling (404, 403, 500, timeouts)
+          - Error test: Structured error response format consistency
+          - Recovery test: Graceful degradation for partial failures
+        </verification>
+      </criterion>
+    </acceptance-criteria>
+  </epic-technical-specification>
+
+  <existing-infrastructure>
+    <browser-manager-service>
+      <file path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/services/browser_manager.py">
+        <status>Complete (Story 7-1)</status>
+        <capabilities>
+          <item>Singleton browser manager with serial execution</item>
+          <item>Headless Chrome browser automation</item>
+          <item>Page navigation with configurable wait strategies</item>
+          <item>Text content extraction from pages</item>
+          <item>Memory monitoring and auto-restart</item>
+          <item>Security URL validation and blocklist</item>
+          <item>Zombie process monitoring</item>
+        </capabilities>
+        <api-methods>
+          <method name="navigate(url, wait_until)" returns="Page object" />
+          <method name="extract_text(page)" returns="str: visible text" />
+          <method name="close_page(page)" returns="None" />
+          <method name="screenshot(page)" returns="bytes: PNG data" />
+          <method name="check_memory()" returns="int: memory usage in MB" />
+        </api-methods>
+        <performance-targets>
+          <target name="Browser startup" value="&lt;2s" />
+          <target name="Page navigation" value="&lt;3s (95th %ile)" />
+          <target name="Memory limit" value="800MB auto-restart" />
+          <target name="Serial execution" value="Max 1 browser instance" />
+        </performance-targets>
+      </file>
+    </browser-manager-service>
+
+    <content-extractor-service>
+      <file path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/services/content_extractor.py">
+        <status>Existing (Google Drive focused)</status>
+        <capabilities>
+          <item>Google Docs extraction (plain text, HTML fallback)</item>
+          <item>PDF text extraction using PyPDF2</item>
+          <item>Plain text, Markdown, HTML file extraction</item>
+          <item>Google Sheets CSV export</item>
+        </capabilities>
+        <integration-pattern>
+          Service-based extraction with MIME type routing and error handling.
+          Can be extended for web content extraction patterns.
+        </integration-pattern>
+      </file>
+    </content-extractor-service>
+
+    <cache-manager-service>
+      <file path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/services/cache_manager.py">
+        <status>Complete (Story 7-2)</status>
+        <capabilities>
+          <item>Redis-backed caching with TTL support</item>
+          <item>JSON serialization for structured data</item>
+          <item>Cache hit/miss tracking and debugging</item>
+          <item>URL credential masking for secure logging</item>
+          <item>Async Redis operations</item>
+        </capabilities>
+        <api-methods>
+          <method name="get(key)" returns="dict or None" />
+          <method name="set(key, value, ttl)" returns="bool" />
+          <method name="exists(key)" returns="bool" />
+          <method name="get_ttl(key)" returns="int or None" />
+        </api-methods>
+        <configuration>
+          <setting name="Default TTL" value="86400 seconds (24 hours)" />
+          <setting name="Redis URL" value="REDIS_URL environment variable" />
+        </configuration>
+      </file>
+    </cache-manager-service>
+
+    <api-structure>
+      <main-application path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/main.py">
+        <framework>FastAPI with async/await patterns</framework>
+        <existing-endpoints>
+          <endpoint method="GET" path="/search" purpose="RAG document search" />
+          <endpoint method="POST" path="/documents" purpose="Add document to RAG" />
+          <endpoint method="GET" path="/documents/count" purpose="Get document count" />
+        </existing-endpoints>
+        <error-handling>
+          <pattern>Global exception handler with structured JSON responses</pattern>
+          <format>{"success": false, "error": {"code": "ERROR_CODE", "message": "...", "details": "..."}}</format>
+        </error-handling>
+        <middleware>
+          <middleware>CORS configuration for frontend integration</middleware>
+          <middleware>Authentication via JWT tokens</middleware>
+        </middleware>
+      </main-application>
+
+      <router-pattern path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/api/google_drive.py">
+        <structure>APIRouter with FastAPI dependency injection</structure>
+        <patterns>
+          <pattern>Request/Response models using Pydantic</pattern>
+          <pattern>Authentication decorators for protected endpoints</pattern>
+          <pattern>Structured error handling with HTTPException</pattern>
+          <pattern>Comprehensive logging for debugging</pattern>
+        </patterns>
+      </router-pattern>
+    </api-structure>
+
+    <docker-environment>
+      <playwright-container>
+        <status>Configured (Story 7-1)</status>
+        <image>mcr.microsoft.com/playwright/python:v1.40.0-jammy</image>
+        <environment>
+          <var name="PLAYWRIGHT_BROWSERS_PATH">/ms-playwright</var>
+          <var name="BROWSER_HEADLESS">true</var>
+          <var name="BROWSER_TIMEOUT">10000</var>
+        </environment>
+        <resources>
+          <memory-limit>2g</memory-limit>
+          <cpu-limit>1.5</cpu-limit>
+        </resources>
+      </playwright-container>
+
+      <redis-service>
+        <status>Running (Epic 1)</status>
+        <purpose>Caching for scraped content and search results</purpose>
+        <configuration>
+          <setting name="Data persistence" value="redis_data volume" />
+          <setting name="Network" value="manus-network bridge (172.20.0.0/16)" />
+        </configuration>
+      </redis-service>
+    </docker-environment>
+  </existing-infrastructure>
+
+  <technical-dependencies>
+    <python-dependencies>
+      <dependency name="playwright" version="1.40.0" status="installed" purpose="Browser automation" />
+      <dependency name="psutil" version="5.9.0" status="installed" purpose="Memory monitoring" />
+      <dependency name="beautifulsoup4" version="4.12.2" status="installed" purpose="HTML parsing" />
+      <dependency name="redis" version="5.0.1" status="installed" purpose="Cache client" />
+    </python-dependencies>
+
+    <missing-dependencies>
+      <dependency name="readability-lxml" purpose="Mozilla Readability algorithm">
+        <installation>pip install readability-lxml</installation>
+        <description>Python implementation of Mozilla Readability for content extraction</description>
+      </dependency>
+      <dependency name="html2text" purpose="HTML to Markdown conversion">
+        <installation>pip install html2text</installation>
+        <description>Convert cleaned HTML to readable Markdown format</description>
+      </dependency>
+      <dependency name="python-dateutil" purpose="Date parsing from metadata">
+        <installation>pip install python-dateutil</installation>
+        <description>Parse various date formats from HTML metadata</description>
+      </dependency>
+    </missing-dependencies>
+
+    <external-libraries>
+      <library name="Mozilla Readability" purpose="Content cleaning algorithm">
+        <implementation>readability-lxml Python package</implementation>
+        <functionality>Remove ads, navigation, scripts; extract main content</functionality>
+      </library>
+      <library name="html2text" purpose="Markdown conversion">
+        <implementation>html2text Python package</implementation>
+        <functionality>Convert HTML to structured Markdown format</functionality>
+      </library>
+    </external-libraries>
+  </technical-dependencies>
+
+  <implementation-patterns>
+    <browser-integration>
+      <pattern>Use BrowserManager.get_instance() for singleton access</pattern>
+      <example>
+        from services.browser_manager import BrowserManager
+        manager = await BrowserManager.get_instance()
+        page = await manager.navigate(url, wait_until="domcontentloaded")
+      </example>
+      <error-handling>
+        <scenario>Navigation timeout</scenario>
+        <handling>Return structured error with timeout details</handling>
+      </error-handling>
+    </browser-integration>
+
+    <service-pattern>
+      <pattern>Service class with dependency injection</pattern>
+      <example>
+        class ScraperService:
+            def __init__(self, browser_manager, cache_manager):
+                self.browser_manager = browser_manager
+                self.cache_manager = cache_manager
+      </example>
+    </service-pattern>
+
+    <caching-pattern>
+      <pattern>Cache key generation with URL hash</pattern>
+      <example>
+        import hashlib
+        cache_key = f"scraped:{hashlib.sha256(url.encode()).hexdigest()}"
+      </example>
+      <ttl>24 hours for scraped content</ttl>
+    </caching-pattern>
+
+    <error-handling-pattern>
+      <pattern>Structured error responses with error codes</pattern>
+      <example>
+        return {
+            "success": False,
+            "error": {
+                "code": "PAGE_LOAD_TIMEOUT",
+                "message": "Page load exceeded timeout",
+                "details": f"URL: {url}, Timeout: {timeout}ms"
+            }
+        }
+      </example>
+      <error-codes>
+        <code name="INVALID_URL" description="URL format validation failed" />
+        <code name="PAGE_LOAD_TIMEOUT" description="Navigation exceeded timeout" />
+        <code name="CONTENT_EXTRACTION_FAILED" description="Readability processing failed" />
+        <code name="BROWSER_LAUNCH_FAILED" description="Playwright browser unavailable" />
+        <code name="RATE_LIMITED" description="Too many requests to domain" />
+      </error-codes>
+    </error-handling-pattern>
+
+    <api-pattern>
+      <pattern>FastAPI router with Pydantic models</pattern>
+      <example>
+        @router.post("/tools/scrape_url")
+        async def scrape_url(
+            request: ScrapeUrlRequest,
+            current_user: dict = Depends(require_authenticated_user)
+        ):
+      </example>
+    </api-pattern>
+  </implementation-patterns>
+
+  <testing-requirements>
+    <unit-tests>
+      <test>Content extraction with Readability</test>
+      <test>HTML to Markdown conversion accuracy</test>
+      <test>Metadata extraction from various HTML structures</test>
+      <test>Cache key generation and TTL handling</test>
+      <test>Error handling for all failure scenarios</test>
+    </unit-tests>
+
+    <integration-tests>
+      <test>End-to-end URL scraping workflow</test>
+      <test>JavaScript-heavy site content extraction</test>
+      <test>Browser Manager integration</test>
+      <test>Redis caching integration</test>
+      <test>API endpoint validation</test>
+    </integration-tests>
+
+    <performance-tests>
+      <test>50 URL scrapes with p95 latency &lt;5s</test>
+      <test>Cache hit/miss performance measurements</test>
+      <test>Memory usage monitoring during operations</test>
+      <test>Concurrent request handling (serial execution)</test>
+    </performance-tests>
+
+    <error-case-tests>
+      <test>404 and 403 HTTP status handling</test>
+      <test>Network timeout and connection failures</test>
+      <test>Invalid URL format validation</test>
+      <test>Malformed HTML processing</test>
+      <test>Blocked content detection</test>
+    </error-case-tests>
+  </testing-requirements>
+
+  <security-considerations>
+    <url-validation>
+      <requirement>Validate URL format before navigation</requirement>
+      <implementation>Block internal IPs, localhost, file:// URLs</implementation>
+      <blocklist>
+        <pattern>localhost, 127.0.0.1, 10.*, 192.168.*, 172.16-31.*</pattern>
+      </blocklist>
+    </url-validation>
+
+    <content-security>
+      <requirement>Sanitize extracted content before processing</requirement>
+      <implementation>Remove potentially malicious scripts from output</implementation>
+    </content-security>
+
+    <rate-limiting>
+      <requirement>Implement respectful scraping delays per domain</requirement>
+      <implementation>Track last request time per domain</implementation>
+    </rate-limiting>
+
+    <user-agent>
+      <requirement>Identify as Manus bot for transparency</requirement>
+      <implementation>Manus Internal Bot (+https://m3rcury.com/manus-bot)</implementation>
+    </user-agent>
+  </security-considerations>
+
+  <deployment-notes>
+    <docker-integration>
+      <note>Scraper service runs in onyx-core container, uses existing Playwright container</note>
+      <environment>Variables: REDIS_URL, BROWSER_TIMEOUT, LOG_LEVEL</environment>
+    </docker-integration>
+
+    <monitoring>
+      <metric name="scrape_requests_total" type="counter" />
+      <metric name="scrape_duration_seconds" type="histogram" />
+      <metric name="scrape_cache_hit_rate" type="gauge" />
+      <metric name="scrape_errors_total" type="counter" labels="error_type" />
+    </monitoring>
+
+    <logging>
+      <format>Structured JSON with request_id, user_id, url, success/failure</format>
+      <levels>INFO for operations, WARN for retries, ERROR for failures</levels>
+    </logging>
+  </deployment-notes>
+
+  <definition-of-done>
+    <checklist>
+      <item>Scraper service implemented with all core functionality</item>
+      <item>Readability library integrated for content cleaning</item>
+      <item>HTML to Markdown conversion working</item>
+      <item>Metadata extraction (title, author, publish_date) implemented</item>
+      <item>All 7 acceptance criteria verified and passing</item>
+      <item>Unit tests: &gt;95% coverage of scraper service</item>
+      <item>Integration tests: End-to-end scraping workflows passing</item>
+      <item>Performance tests: p95 latency &lt;5s for scraping</item>
+      <item>Error handling: Structured responses for all failure scenarios</item>
+      <item>Caching: Redis integration with 24h TTL</item>
+      <item>Documentation: API endpoints documented with examples</item>
+      <item>Code review: Approved by senior engineer</item>
+      <item>Merged to main branch and deployed to staging</item>
+    </checklist>
+  </definition-of-done>
+
+  <related-documentation>
+    <document path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/docs/stories/7-1-playwright-browser-setup-headless-automation.md" type="Foundation Story" />
+    <document path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/docs/stories/7-1-playwright-browser-setup-headless-automation.context.xml" type="Browser Manager Context" />
+    <document path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/services/browser_manager.py" type="Browser Manager Implementation" />
+    <document path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/services/cache_manager.py" type="Cache Manager Implementation" />
+    <document path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/main.py" type="API Structure" />
+    <document path="/Users/darius/Documents/1-Active-Projects/M3rcury/ONYX/onyx-core/api/google_drive.py" type="API Pattern Reference" />
+    <document path="https://github.com/buriy/python-readability" type="Readability Library Documentation (External)" />
+    <document path="https://github.com/Alir3z4/html2text" type="HTML2Text Library Documentation (External)" />
+  </related-documentation>
+</story-context>

@@ -1,0 +1,211 @@
+# Story 8-2: VNC Embed in Suna UI
+
+**Epic**: Epic 8 - Live Workspace (noVNC)
+**Story ID**: 8-2
+**Title**: VNC Embed in Suna UI
+**Status**: In Progress
+**Priority**: P0 (High)
+**Estimated Points**: 8
+**Assigned To**: Dev Team
+**Sprint**: Sprint 8
+
+## Description
+
+Integrate noVNC viewer component into the Suna UI to provide users with a live workspace view. This story enables users to see and interact with a remote desktop environment directly within the chat interface, supporting responsive design and workspace management controls.
+
+## Prerequisites
+
+- **Story 2-1**: Suna UI foundation complete
+- **Story 8-1**: noVNC server setup and running on port 6080
+
+## Acceptance Criteria
+
+### AC8.2.1: Workspace Toggle Control
+- **Given**: User viewing Suna chat interface
+- **When**: User clicks "Show Workspace" button or toggle
+- **Then**: VNC viewer panel appears in right sidebar (30% width)
+- **And**: Workspace can be hidden by clicking "Hide Workspace"
+
+### AC8.2.2: VNC Connection & Display
+- **Given**: Workspace panel is visible
+- **When**: VNC viewer initializes
+- **Then**: Connects to noVNC WebSocket server (ws://localhost:6080)
+- **And**: Live desktop displayed in real-time
+- **And**: Connection status indicator shows connection state
+
+### AC8.2.3: Responsive Design
+- **Given**: User on tablet or desktop
+- **When**: Viewing workspace panel
+- **Then**: VNC viewer adapts to screen size
+- **And**: Works on tablets (landscape orientation)
+- **And**: Maintains aspect ratio and usability
+
+### AC8.2.4: Workspace Controls
+- **Given**: Workspace panel visible
+- **When**: User interacts with workspace controls
+- **Then**: Can maximize/workspace to fullscreen
+- **And**: Can disconnect/pause workspace viewing
+- **And**: Can reconnect to workspace session
+- **And**: Quality/settings controls available
+
+### AC8.2.5: Error Handling
+- **Given**: VNC connection issues
+- **When**: Server unavailable or network problems
+- **Then**: Graceful error handling with user feedback
+- **And**: Retry connection mechanism
+- **And**: Clear error messages and recovery options
+
+### AC8.2.6: Performance Optimization
+- **Given**: Active VNC session
+- **When**: User interacts with workspace
+- **Then**: Smooth real-time updates (target: 30fps)
+- **And**: Minimal latency for user interactions
+- **And**: Efficient bandwidth usage
+
+### AC8.2.7: Integration with Suna UI
+- **Given**: VNC workspace active
+- **When**: User navigates Suna interface
+- **Then**: Workspace state maintained across page changes
+- **And**: Chat functionality remains accessible
+- **And**: Workspace doesn't interfere with core chat features
+
+## Technical Requirements
+
+### Frontend Components
+1. **VNCViewer Component**: React component wrapping noVNC client
+2. **WorkspacePanel Component**: Sidebar panel for VNC viewer
+3. **WorkspaceControls Component**: Control buttons and settings
+4. **ConnectionManager Service**: WebSocket connection management
+
+### Integration Points
+- **noVNC JavaScript Client**: Integration with noVNC library
+- **WebSocket Connection**: Connect to ws://localhost:6080
+- **Suna UI Layout**: Right sidebar integration (30% width)
+- **Responsive Design**: Tablet and desktop support
+
+### Security Considerations
+- Secure WebSocket connection (wss:// in production)
+- Access controls for workspace viewing
+- Session management and timeouts
+- Error handling for connection failures
+
+## Implementation Tasks
+
+### Task 1: Project Setup and Dependencies
+- [ ] Install noVNC JavaScript client dependency
+- [ ] Create VNC viewer component structure
+- [ ] Set up WebSocket connection management
+- [ ] Configure build system for noVNC integration
+
+### Task 2: VNC Viewer Component Development
+- [ ] Create VNCViewer React component
+- [ ] Implement noVNC client initialization
+- [ ] Add connection status management
+- [ ] Implement display scaling and resizing
+
+### Task 3: Workspace Panel Integration
+- [ ] Create WorkspacePanel component
+- [ ] Implement sidebar layout (30% width)
+- [ ] Add workspace toggle functionality
+- [ ] Integrate with Suna UI theme and styling
+
+### Task 4: Workspace Controls Implementation
+- [ ] Create WorkspaceControls component
+- [ ] Add fullscreen/maximize functionality
+- [ ] Implement disconnect/reconnect controls
+- [ ] Add quality and settings controls
+
+### Task 5: Responsive Design Implementation
+- [ ] Implement tablet-responsive layout
+- [ ] Add landscape orientation support
+- [ ] Optimize for different screen sizes
+- [ ] Ensure touch interactions work on tablets
+
+### Task 6: Error Handling and Connection Management
+- [ ] Implement connection error handling
+- [ ] Add retry mechanism for failed connections
+- [ ] Create user-friendly error messages
+- [ ] Add connection status indicators
+
+### Task 7: Performance Optimization
+- [ ] Optimize VNC display performance
+- [ ] Implement efficient update mechanisms
+- [ ] Add bandwidth optimization settings
+- [ ] Monitor and improve frame rates
+
+### Task 8: Integration Testing
+- [ ] Test VNC connection to noVNC server
+- [ ] Verify responsive design on tablets
+- [ ] Test error handling scenarios
+- [ ] Validate integration with Suna UI
+
+## Dependencies
+
+- **Internal**: Story 2-1 (Suna UI), Story 8-1 (noVNC Server Setup)
+- **External**: noVNC JavaScript client library, WebSocket API
+
+## Acceptance Test Scenarios
+
+### Scenario 1: Basic Workspace Display
+```gherkin
+Given User is logged into Suna chat interface
+And noVNC server is running on port 6080
+When User clicks "Show Workspace" button
+Then VNC viewer appears in right sidebar (30% width)
+And Live desktop display is visible
+And Connection status shows "Connected"
+```
+
+### Scenario 2: Responsive Design
+```gherkin
+Given Workspace panel is visible on desktop
+When User switches to tablet in landscape mode
+Then VNC viewer adapts to tablet screen size
+And Desktop remains interactive and usable
+And All controls are accessible via touch
+```
+
+### Scenario 3: Workspace Controls
+```gherkin
+Given Workspace panel is visible
+When User clicks "Maximize" button
+Then VNC viewer expands to fullscreen
+When User clicks "Exit Fullscreen"
+Then VNC viewer returns to sidebar size
+When User clicks "Disconnect"
+Then VNC connection is paused
+And "Connect" button becomes available
+```
+
+### Scenario 4: Error Handling
+```gherkin
+Given User attempts to show workspace
+And noVNC server is not running
+Then Error message displays connection failure
+And Retry button is available
+When User clicks retry
+Then System attempts to reconnect
+And Appropriate status is shown
+```
+
+## Definition of Done
+
+- [ ] All acceptance criteria verified and passing
+- [ ] VNC viewer successfully connects to noVNC server
+- [ ] Responsive design works on tablets (landscape)
+- [ ] All workspace controls implemented and functional
+- [ ] Error handling covers all failure scenarios
+- [ ] Integration with Suna UI is seamless
+- [ ] Performance targets achieved (30fps, low latency)
+- [ ] Code reviewed and approved
+- [ ] Tests written and passing
+- [ ] Documentation updated
+- [ ] Story status updated to "done"
+
+## Notes
+
+- This story enables users to have a live workspace view within the chat interface
+- Performance optimization is critical for good user experience
+- Security considerations important for workspace access
+- Responsive design essential for tablet support
+- Error handling must be robust for connection issues

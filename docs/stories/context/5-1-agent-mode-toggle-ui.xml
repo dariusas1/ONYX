@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-metadata>
+    <story-id>5-1-agent-mode-toggle-ui</story-id>
+    <title>Agent Mode Toggle &amp; UI</title>
+    <status>drafted</status>
+    <epic>epic-5</epic>
+    <epic-name>Agent Mode &amp; Task Execution</epic-name>
+    <priority>P0</priority>
+    <estimated-points>6</estimated_points>
+    <sprint>Sprint 7</sprint>
+    <created-date>2025-11-15</created-date>
+    <context-generated>2025-11-15T15:30:00Z</context-generated>
+  </story-metadata>
+
+  <project-context>
+    <project-name>ONYX - Manus Internal</project-name>
+    <project-description>Internal AI assistant platform for Manus with chat interface, RAG capabilities, and autonomous agent execution</project-description>
+    <tech-stack>
+      <frontend>
+        <framework>Next.js 14</framework>
+        <language>TypeScript/React</language>
+        <styling>TailwindCSS</styling>
+        <ui-components>Lucide React Icons</ui-components>
+        <component-library>Custom Component System</component-library>
+      </frontend>
+      <backend>
+        <framework>Node.js</framework>
+        <language>Python</language>
+        <database>PostgreSQL + Qdrant (Vector DB)</database>
+        <auth>Supabase Auth</auth>
+        <storage>Supabase Storage</storage>
+      </backend>
+      <infrastructure>
+        <containerization>Docker</containerization>
+        <orchestration>Docker Compose</orchestration>
+        <monitoring>Prometheus + Grafana</monitoring>
+        <error-tracking>Sentry</error-tracking>
+      </infrastructure>
+    </tech-stack>
+  </project-context>
+
+  <codebase-structure>
+    <frontend-structure>
+      <path>suna/src/</path>
+      <components>
+        <component name="Header" path="suna/src/components/Header.tsx" description="Main application header with logo and navigation">
+          <current-state>Basic header with logo and menu button placeholder</current-state>
+          <integration-points>Top-right area reserved for Agent Mode toggle</integration-points>
+          <dependencies>Lucide React (Menu icon), TailwindCSS classes</dependencies>
+        </component>
+        <component name="ChatInterface" path="suna/src/components/ChatInterface.tsx" description="Main chat interface with message list and input">
+          <current-state>Basic chat UI with placeholder message handling</current-state>
+          <integration-points>Needs mode-specific button and warning message integration</integration-points>
+          <dependencies>MessageList, InputBox components</dependencies>
+        </component>
+        <component name="InputBox" path="suna/src/components/InputBox.tsx" description="Message input component with Send button">
+          <current-state>Textarea with Send button, basic submit handling</current-state>
+          <integration-points>Send button needs to change to "Execute Task" in Agent Mode</integration-points>
+          <dependencies>Lucide React (Send icon), TailwindCSS classes</dependencies>
+        </component>
+        <component name="MessageList" path="suna/src/components/MessageList.tsx" description="Message display component">
+          <current-state>Message rendering with user/assistant styling</current-state>
+          <integration-points>May need Agent Mode warning banner integration</integration-points>
+        </component>
+      </components>
+      <contexts>
+        <context name="Mode Management" status="not-implemented" description="Global mode state management">
+          <planned-location>suna/src/contexts/ModeContext.jsx</planned-location>
+          <purpose>Manage Chat Mode vs Agent Mode state globally</purpose>
+          <features>localStorage persistence, Supabase sync, mode transitions</features>
+        </context>
+      </contexts>
+      <hooks>
+        <hook name="useMode" status="not-implemented" description="Custom hook for mode operations">
+          <planned-location>suna/src/hooks/useMode.js</planned-location>
+          <purpose>Provide mode state and operations to components</purpose>
+        </hook>
+      </hooks>
+      <services>
+        <service name="settingsService" status="not-implemented" description="Supabase settings API integration">
+          <planned-location>suna/src/services/settingsService.js</planned-location>
+          <purpose>Handle user settings CRUD operations with Supabase</purpose>
+        </service>
+      </services>
+      <utilities>
+        <utility name="storage" status="not-implemented" description="localStorage utilities">
+          <planned-location>suna/src/utils/storage.js</planned-location>
+          <purpose>Provide consistent localStorage operations</purpose>
+        </utility>
+      </utilities>
+      <styles>
+        <style-sheet path="suna/src/styles/globals.css" description="Global styles and theme">
+          <theme>Manus Dark Theme with CSS custom properties</theme>
+          <color-scheme>
+            <primary>--manus-accent: #2563EB</primary>
+            <surface>--manus-surface: #1E293B</surface>
+            <text>--manus-text: #E2E8F0</text>
+            <border>--manus-border: #334155</border>
+            <muted>--manus-muted: #64748B</muted>
+          </color-scheme>
+          <component-styles>
+            <button-styles>btn, btn-primary, btn-secondary classes</button-styles>
+            <input-styles>input class with focus management</input-styles>
+            <message-styles>message, message-user, message-assistant classes</message-styles>
+          </component-styles>
+        </style-sheet>
+      </styles>
+    </frontend-structure>
+  </codebase-structure>
+
+  <acceptance-criteria>
+    <criteria id="AC5.1.1">
+      <description>Toggle switch for Agent Mode is prominently displayed in Suna UI header (top-right)</description>
+      <implementation-location>suna/src/components/Header.tsx</implementation-location>
+      <technical-details>
+        <component-type>ToggleSwitch React component</component-type>
+        <position>Header top-right, before menu button</position>
+        <visual-design>Prominent but not distracting, consistent with theme</visual-design>
+      </technical-details>
+    </criteria>
+    <criteria id="AC5.1.2">
+      <description>Toggle changes state seamlessly between Chat Mode and Agent Mode with visual feedback</description>
+      <implementation-location>ModeContext + ToggleSwitch component</implementation-location>
+      <technical-details>
+        <state-management>React Context with useReducer</state-management>
+        <animations>Smooth transitions with CSS transforms</animations>
+        <feedback>Immediate visual response, loading states</feedback>
+      </technical-details>
+    </criteria>
+    <criteria id="AC5.1.3">
+      <description>Agent Mode displays warning message: "Agent will execute actions. Review approval gates."</description>
+      <implementation-location>suna/src/components/ChatInterface.tsx</implementation-location>
+      <technical-details>
+        <warning-banner>Conditionally rendered based on mode state</warning-banner>
+        <styling>Warning color scheme (yellow/orange accents)</styling>
+        <accessibility>Screen reader announcement</accessibility>
+      </technical-details>
+    </criteria>
+    <criteria id="AC5.1.4">
+      <description>"Execute Task" button replaces "Send" button in Agent Mode</description>
+      <implementation-location>suna/src/components/InputBox.tsx</implementation-location>
+      <technical-details>
+        <conditional-rendering>Mode-based button text and styling</conditional-rendering>
+        <icon-change>Send icon → Play/Execute icon</icon-change>
+        <styling>Different button style for Agent Mode</styling>
+      </technical-details>
+    </criteria>
+    <criteria id="AC5.1.5">
+      <description>"Send" button only shown in Chat Mode (no Agent Mode functionality)</description>
+      <implementation-location>suna/src/components/InputBox.tsx</implementation-location>
+      <technical-details>
+        <conditional-logic>Mode state determines button variant</conditional-logic>
+        <functionality>Chat Mode: normal message send, Agent Mode: task execution</functionality>
+      </technical-details>
+    </criteria>
+    <criteria id="AC5.1.6">
+      <description>User's mode preference is saved to localStorage for immediate persistence</description>
+      <implementation-location>suna/src/utils/storage.js + ModeContext</implementation-location>
+      <technical-details>
+        <storage-key>onyx_agent_mode</storage-key>
+        <persistence-strategy>Immediate localStorage write on mode change</persistence-strategy>
+        <fallback>Works without network connection</fallback>
+      </technical-details>
+    </criteria>
+    <criteria id="AC5.1.7">
+      <description>Mode preference is synced to Supabase user_settings table for cross-device consistency</description>
+      <implementation-location>suna/src/services/settingsService.js</implementation-location>
+      <technical-details>
+        <database-table>user_settings</database-table>
+        <api-endpoints>CRUD operations for mode preferences</api-endpoints>
+        <sync-strategy>Optimistic updates with rollback on failure</sync-strategy>
+      </technical-details>
+    </criteria>
+    <criteria id="AC5.1.8">
+      <description>Help text or tooltip explains Agent Mode functionality when user hovers over toggle</description>
+      <implementation-location>ToggleSwitch component</implementation-location>
+      <technical-details>
+        <tooltip-library>Custom tooltip component</tooltip-library>
+        <content>"Agent Mode enables autonomous task execution. Review approval gates before executing."</content>
+        <accessibility>Keyboard accessible tooltip</accessibility>
+      </technical-details>
+    </criteria>
+    <criteria id="AC5.1.9">
+      <description>Mode state is properly maintained across page refreshes and browser sessions</description>
+      <implementation-location>ModeContext + localStorage</implementation-location>
+      <technical-details>
+        <initialization>Load mode from localStorage on app start</initialization>
+        <fallback>Default to Chat Mode if no saved preference</fallback>
+        <consistency>Sync with Supabase when available</consistency>
+      </technical-details>
+    </criteria>
+    <criteria id="AC5.1.10">
+      <description>UI clearly indicates current mode through visual styling (color, labels, icons)</description>
+      <implementation-location>All affected components</implementation-location>
+      <technical-details>
+        <visual-indicators>Color changes, icons, mode labels</visual-indicators>
+        <consistency>Unified visual language across components</consistency>
+        <accessibility>Clear mode indication for screen readers</accessibility>
+      </technical-details>
+    </criteria>
+  </acceptance-criteria>
+
+  <task-breakdown>
+    <task id="task-1" title="Implement Agent Mode Toggle Component">
+      <acceptance-criteria>1, 2, 8, 10</acceptance-criteria>
+      <subtasks>
+        <subtask id="1.1" title="Create ToggleSwitch React component with smooth animations">
+          <location>suna/src/components/ToggleSwitch/ToggleSwitch.jsx</location>
+          <description>Build reusable toggle component with smooth transitions</description>
+        </subtask>
+        <subtask id="1.2" title="Integrate toggle into Suna header layout (top-right positioning)">
+          <location>suna/src/components/Header.tsx</location>
+          <description>Add ToggleSwitch to header with proper positioning</description>
+        </subtask>
+        <subtask id="1.3" title="Add visual mode indicators (icons, colors, labels)">
+          <location>ToggleSwitch component + global styles</location>
+          <description>Implement clear visual indicators for current mode</description>
+        </subtask>
+        <subtask id="1.4" title="Implement hover tooltip with Agent Mode explanation">
+          <location>ToggleSwitch component</location>
+          <description>Add informative tooltip on hover</description>
+        </subtask>
+        <subtask id="1.5" title="Add responsive design for mobile/tablet views">
+          <location>ToggleSwitch component styles</location>
+          <description>Ensure toggle works on all device sizes</description>
+        </subtask>
+      </subtasks>
+    </task>
+    <task id="task-2" title="Implement Mode State Management">
+      <acceptance-criteria>6, 7, 9</acceptance-criteria>
+      <subtasks>
+        <subtask id="2.1" title="Create mode context/provider for global state management">
+          <location>suna/src/contexts/ModeContext.jsx</location>
+          <description>Implement React Context with useReducer for mode state</description>
+        </subtask>
+        <subtask id="2.2" title="Implement localStorage persistence for immediate mode storage">
+          <location>suna/src/utils/storage.js</location>
+          <description>Add localStorage utilities for mode persistence</description>
+        </subtask>
+        <subtask id="2.3" title="Add Supabase user_settings table integration for cloud sync">
+          <location>suna/src/services/settingsService.js</location>
+          <description>Implement cloud sync with Supabase</description>
+        </subtask>
+        <subtask id="2.4" title="Handle mode restoration on app initialization">
+          <location>ModeContext + app initialization</location>
+          <description>Load and restore saved mode preference</description>
+        </subtask>
+        <subtask id="2.5" title="Implement conflict resolution between local and cloud preferences">
+          <location>settingsService + ModeContext</location>
+          <description>Handle conflicts between localStorage and Supabase</description>
+        </subtask>
+      </subtasks>
+    </task>
+    <task id="task-3" title="Update Chat Interface Based on Mode">
+      <acceptance-criteria>3, 4, 5</acceptance-criteria>
+      <subtasks>
+        <subtask id="3.1" title="Show/hide Agent Mode warning banner based on current mode">
+          <location>suna/src/components/ChatInterface.tsx</location>
+          <description>Add conditional warning banner</description>
+        </subtask>
+        <subtask id="3.2" title="Replace 'Send' button with 'Execute Task' button in Agent Mode">
+          <location>suna/src/components/InputBox.tsx</location>
+          <description>Update button based on mode state</description>
+        </subtask>
+        <subtask id="3.3" title="Update chat input placeholder text based on mode">
+          <location>suna/src/components/InputBox.tsx</location>
+          <description>Change placeholder text for different modes</description>
+        </subtask>
+        <subtask id="3.4" title="Modify chat functionality to handle mode-specific behavior">
+          <location>ChatInterface + InputBox components</location>
+          <description>Update submit handlers for mode-specific actions</description>
+        </subtask>
+        <subtask id="3.5" title="Add mode transitions with smooth animations">
+          <location>Component styles + CSS</location>
+          <description>Implement smooth mode transition animations</description>
+        </subtask>
+      </subtasks>
+    </task>
+    <task id="task-4" title="Backend Integration and User Settings">
+      <acceptance-criteria>7</acceptance-criteria>
+      <subtasks>
+        <subtask id="4.1" title="Update Supabase schema for user_settings table (if not exists)">
+          <location>Database schema/migrations</location>
+          <description>Ensure user_settings table exists with proper structure</description>
+        </subtask>
+        <subtask id="4.2" title="Create API endpoints for mode preference CRUD operations">
+          <location>Backend API routes</location>
+          <description>Implement settings API endpoints</description>
+        </subtask>
+        <subtask id="4.3" title="Implement authentication checks for user settings access">
+          <location>API middleware</location>
+          <description>Add proper authentication to settings endpoints</description>
+        </subtask>
+        <subtask id="4.4" title="Add error handling for settings sync failures">
+          <location>settingsService + error handling</location>
+          <description>Implement robust error handling and recovery</description>
+        </subtask>
+        <subtask id="4.5" title="Implement optimistic updates with rollback on sync failure">
+          <location>ModeContext + settingsService</location>
+          <description>Add optimistic updates with rollback capability</description>
+        </subtask>
+      </subtasks>
+    </task>
+    <task id="task-5" title="Testing and Quality Assurance">
+      <acceptance-criteria>All AC</acceptance-criteria>
+      <subtasks>
+        <subtask id="5.1" title="Unit tests for toggle component and state management">
+          <location>tests/components/ToggleSwitch.test.js</location>
+          <description>Comprehensive unit tests with 90% coverage</description>
+        </subtask>
+        <subtask id="5.2" title="Integration tests for localStorage and Supabase sync">
+          <location>tests/integration/mode-sync.test.js</location>
+          <description>Test persistence and sync workflows</description>
+        </subtask>
+        <subtask id="5.3" title="E2E tests for mode switching and persistence">
+          <location>tests/e2e/mode-toggling.test.js</location>
+          <description>Full user journey testing</description>
+        </subtask>
+        <subtask id="5.4" title="Accessibility testing (keyboard navigation, screen readers)">
+          <location>tests/accessibility/mode-toggle.test.js</location>
+          <description>WCAG AA compliance testing</description>
+        </subtask>
+        <subtask id="5.5" title="Cross-browser compatibility testing">
+          <location>Browser testing matrix</location>
+          <description>Test on Chrome, Firefox, Safari, Edge</description>
+        </subtask>
+        <subtask id="5.6" title="Performance testing for mode transitions">
+          <location>Performance testing</location>
+          <description>Ensure &lt;100ms mode transitions</description>
+        </subtask>
+      </subtasks>
+    </task>
+  </task-breakdown>
+
+  <dependencies>
+    <prerequisites>
+      <dependency id="epic-2" description="Chat Interface &amp; Conversation Management">
+        <reason>Story 5.1 builds upon the chat interface foundation</reason>
+        <status>done</status>
+      </dependency>
+    </prerequisites>
+    <blocks>
+      <blocked id="stories-5-2-5-8" description="All subsequent Agent Mode stories">
+        <reason>Toggle UI is foundation for all Agent Mode functionality</reason>
+      </blocked>
+    </blocks>
+    <related>
+      <related id="story-4-3" description="Memory Injection &amp; Agent Integration">
+        <reason>Agent Mode will need memory integration for context</reason>
+      </related>
+    </related>
+  </dependencies>
+
+  <architecture-patterns>
+    <pattern name="Component Architecture">
+      <type>Atomic Design</type>
+      <description>Toggle component as atom, integrated into header organism</description>
+      <benefits>Reusability, maintainability, clear separation of concerns</benefits>
+    </pattern>
+    <pattern name="State Management">
+      <type>React Context + useReducer</type>
+      <description>Global mode state with predictable state updates</description>
+      <benefits>Predictable state, easy testing, component decoupling</benefits>
+    </pattern>
+    <pattern name="Persistence Strategy">
+      <type>Dual Persistence</type>
+      <description>localStorage (immediate) + Supabase (cloud sync)</description>
+      <benefits>Offline capability, cross-device sync, fast UX</benefits>
+    </pattern>
+    <pattern name="API Integration">
+      <type>RESTful endpoints</type>
+      <description>Following existing Supabase patterns in codebase</description>
+      <benefits>Consistency with existing code, familiar patterns</benefits>
+    </pattern>
+  </architecture-patterns>
+
+  <technical-constraints>
+    <constraint name="Performance">
+      <requirement>Mode transitions &lt;100ms</requirement>
+      <implementation>Debounce Supabase sync, optimize animations</implementation>
+    </constraint>
+    <constraint name="Accessibility">
+      <requirement>WCAG AA compliance</requirement>
+      <implementation>Keyboard navigation, screen reader support, focus management</implementation>
+    </constraint>
+    <constraint name="Error Handling">
+      <requirement>Graceful degradation on sync failures</requirement>
+      <implementation>Error boundaries, retry logic, user feedback</implementation>
+    </constraint>
+    <constraint name="Security">
+      <requirement>Proper authentication for user settings</requirement>
+      <implementation>Supabase RLS policies, authentication middleware</implementation>
+    </constraint>
+  </technical-constraints>
+
+  <testing-strategy>
+    <unit-testing>
+      <coverage-target>90%</coverage-target>
+      <framework>Jest + React Testing Library</framework>
+      <focus>Toggle logic, state management, storage operations</focus>
+    </unit-testing>
+    <integration-testing>
+      <focus>localStorage + Supabase sync workflows</focus>
+      <tools>Jest with mocked Supabase client</tools>
+    </integration-testing>
+    <e2e-testing>
+      <focus>Full user journey from toggle to persistence</focus>
+      <tools>Playwright or Cypress</tools>
+    </e2e-testing>
+    <accessibility-testing>
+      <focus>Keyboard navigation, screen reader compatibility</focus>
+      <tools>axe-core, manual testing</tools>
+    </accessibility-testing>
+  </testing-strategy>
+
+  <risk-assessment>
+    <risk level="low" description="Component follows established patterns in Suna codebase">
+      <mitigation>Follow existing component patterns and styling</mitigation>
+    </risk>
+    <risk level="medium" description="Supabase sync complexity and conflict resolution">
+      <mitigation>Implement optimistic updates with rollback, extensive testing of sync scenarios</mitigation>
+    </risk>
+    <risk level="low" description="Performance impact on UI responsiveness">
+      <mitigation>Optimize animations, debounce sync operations, use React.memo</mitigation>
+    </risk>
+  </risk-assessment>
+
+  <success-metrics>
+    <metric name="Performance">
+      <target>Mode transitions &lt;100ms</target>
+      <measurement>Performance monitoring + user testing</measurement>
+    </metric>
+    <metric name="Reliability">
+      <target>Mode preference persists across sessions (99.9% reliability)</target>
+      <measurement>Error tracking + user feedback</measurement>
+    </metric>
+    <metric name="UX Quality">
+      <target>Zero UI layout shifts during mode transitions</target>
+      <measurement>Layout stability testing</measurement>
+    </metric>
+    <metric name="Sync Success">
+      <target>Settings sync success rate &gt;95%</target>
+      <measurement>API monitoring + error tracking</measurement>
+    </metric>
+    <metric name="Accessibility">
+      <target>WCAG AA compliance for keyboard and screen reader users</target>
+      <measurement>Automated testing + manual audits</measurement>
+    </metric>
+  </success-metrics>
+
+  <file-list>
+    <file type="existing" path="suna/src/components/Header.tsx" modification="integrate-toggle">
+      <description>Add ToggleSwitch component to header top-right</description>
+    </file>
+    <file type="existing" path="suna/src/components/ChatInterface.tsx" modification="add-warning">
+      <description>Add Agent Mode warning banner and mode-specific behavior</description>
+    </file>
+    <file type="existing" path="suna/src/components/InputBox.tsx" modification="conditional-button">
+      <description>Change button text and behavior based on mode</description>
+    </file>
+    <file type="existing" path="suna/src/styles/globals.css" modification="add-modes">
+      <description>Add mode-specific styling and animations</description>
+    </file>
+    <file type="planned" path="suna/src/components/ToggleSwitch/ToggleSwitch.jsx" new="true">
+      <description>New toggle component with smooth animations and tooltip</description>
+    </file>
+    <file type="planned" path="suna/src/contexts/ModeContext.jsx" new="true">
+      <description>Global mode state management with persistence</description>
+    </file>
+    <file type="planned" path="suna/src/hooks/useMode.js" new="true">
+      <description>Custom hook for mode operations and state</description>
+    </file>
+    <file type="planned" path="suna/src/services/settingsService.js" new="true">
+      <description>Supabase settings API integration service</description>
+    </file>
+    <file type="planned" path="suna/src/utils/storage.js" new="true">
+      <description>localStorage utilities for mode persistence</description>
+    </file>
+  </file-list>
+
+  <integration-points>
+    <component name="Header">
+      <integration-type>UI Integration</integration-type>
+      <description>Top-right positioning of ToggleSwitch component</description>
+      <dependencies>ToggleSwitch component, ModeContext</dependencies>
+    </component>
+    <component name="ChatInterface">
+      <integration-type>State Integration</integration-type>
+      <description>Conditional rendering based on mode state</description>
+      <dependencies>ModeContext, warning banner component</dependencies>
+    </component>
+    <component name="InputBox">
+      <integration-type>Conditional UI</integration-type>
+      <description>Mode-specific button text and behavior</description>
+      <dependencies>ModeContext, mode-specific handlers</dependencies>
+    </component>
+    <component name="ModeContext">
+      <integration-type>State Provider</integration-type>
+      <description>Global mode state and operations</description>
+      <dependencies>localStorage, settingsService, React Context</dependencies>
+    </component>
+    <component name="settingsService">
+      <integration-type>API Integration</integration-type>
+      <description>Supabase user_settings CRUD operations</description>
+      <dependencies>Supabase client, authentication</dependencies>
+    </component>
+  </integration-points>
+
+  <next-steps>
+    <step id="1" priority="high" title="Ready for Development">
+      <description>Story has comprehensive specifications and is ready for development Sprint 8</description>
+      <deliverables>Complete task breakdown, acceptance criteria, and technical specifications</deliverables>
+    </step>
+    <step id="2" priority="medium" title="Development Sprint">
+      <description>Implement all tasks following the specified architecture patterns</description>
+      <dependencies>Story assignment to developer, Sprint 8 planning</dependencies>
+    </step>
+    <step id="3" priority="medium" title="Testing and Validation">
+      <description>Execute comprehensive testing strategy including unit, integration, and E2E tests</description>
+      <success-criteria>All acceptance criteria met with 90% test coverage</success-criteria>
+    </step>
+  </next-steps>
+</story-context>
