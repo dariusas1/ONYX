@@ -28,7 +28,7 @@ const initialConfig: VNCConnectionConfig = {
   host: window.location.hostname,
   port: 6080,
   path: '/websockify',
-  encrypt: false,
+  encrypt: window.location.protocol === 'https:',
   resizeSession: true
 };
 
@@ -222,6 +222,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const rfbRef = React.useRef<RFB | null>(null);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
+  // Performance monitoring state
+  const frameRateRef = React.useRef<number>(0);
+  const frameCountRef = React.useRef<number>(0);
+  const lastFrameTimeRef = React.useRef<number>(Date.now());
+  const bandwidthRef = React.useRef<number>(0);
+  const lastBytesRef = React.useRef<number>(0);
+  const frameRateIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+
   // Load saved settings from localStorage
   useEffect(() => {
     try {
@@ -263,6 +271,100 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.warn('Failed to save view mode to localStorage:', error);
     }
   }, [state.viewMode]);
+
+  // Performance monitoring functions
+  const startPerformanceMonitoring = useCallback(() => {
+    // Reset counters
+    frameCountRef.current = 0;
+    lastFrameTimeRef.current = Date.now();
+    lastBytesRef.current = 0;
+
+    // Start frame rate monitoring (calculate every second)
+    frameRateIntervalRef.current = setInterval(() => {
+      const now = Date.now();
+      const deltaTime = (now - lastFrameTimeRef.current) / 1000; // seconds
+
+      if (deltaTime > 0) {
+        const currentFrameRate = frameCountRef.current / deltaTime;
+        frameRateRef.current = Math.round(currentFrameRate);
+
+        // Calculate bandwidth (simplified)
+        const currentBandwidth = bandwidthRef.current;
+
+        // Update metrics in state
+        dispatch({
+          type: 'UPDATE_METRICS',
+          payload: {
+            frameRate: frameRateRef.current,
+            bandwidth: currentBandwidth,
+            totalBytes: lastBytesRef.current
+          }
+        });
+
+        // Reset counters for next interval
+        frameCountRef.current = 0;
+        lastFrameTimeRef.current = now;
+        bandwidthRef.current = 0;
+
+        // Quality adjustment based on performance
+        adjustQualityBasedOnPerformance(currentFrameRate, currentBandwidth);
+      }
+    }, 1000);
+
+    // Listen for frame updates from noVNC
+    if (rfbRef.current) {
+      rfbRef.current.addEventListener('fbframebufferupdate', () => {
+        frameCountRef.current++;
+
+        // Estimate bandwidth (simplified calculation)
+        // In a real implementation, you'd track actual bytes transferred
+        const estimatedFrameBytes = 1920 * 1080 * 4 / 10; // Rough estimate
+        bandwidthRef.current += estimatedFrameBytes / 1024; // KB
+        lastBytesRef.current += estimatedFrameBytes;
+      });
+    }
+  }, []);
+
+  const stopPerformanceMonitoring = useCallback(() => {
+    if (frameRateIntervalRef.current) {
+      clearInterval(frameRateIntervalRef.current);
+      frameRateIntervalRef.current = null;
+    }
+  }, []);
+
+  const adjustQualityBasedOnPerformance = useCallback((frameRate: number, bandwidth: number) => {
+    const targetFrameRate = 30;
+    const maxBandwidth = 5000; // 5 Mbps
+
+    // Auto-adjust quality to maintain target performance
+    if (frameRate < targetFrameRate * 0.8 || bandwidth > maxBandwidth) {
+      // Performance is poor, reduce quality
+      const newQuality = Math.min(state.qualitySettings.quality + 1, 9);
+      const newCompression = Math.min(state.qualitySettings.compression + 1, 9);
+
+      if (newQuality !== state.qualitySettings.quality ||
+          newCompression !== state.qualitySettings.compression) {
+        dispatch({
+          type: 'SET_QUALITY_SETTINGS',
+          payload: { quality: newQuality, compression: newCompression }
+        });
+        console.log(`Auto-adjusted quality for performance: Quality=${newQuality}, Compression=${newCompression}`);
+      }
+    } else if (frameRate > targetFrameRate * 1.2 && bandwidth < maxBandwidth * 0.7) {
+      // Performance is good, can improve quality
+      const newQuality = Math.max(state.qualitySettings.quality - 1, 0);
+      const newCompression = Math.max(state.qualitySettings.compression - 1, 0);
+
+      if (newQuality !== state.qualitySettings.quality ||
+          newCompression !== state.qualitySettings.compression) {
+        dispatch({
+          type: 'SET_QUALITY_SETTINGS',
+          payload: { quality: newQuality, compression: newCompression }
+        });
+        console.log(`Auto-improved quality: Quality=${newQuality}, Compression=${newCompression}`);
+      }
+    }
+  }, [state.qualitySettings.quality, state.qualitySettings.compression]);
 
   // Latency measurement
   const measureLatency = useCallback(() => {
@@ -316,11 +418,19 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
 
       if (containerRef.current) {
-        const rfb = new RFB(containerRef.current, `ws://${state.config.host}:${state.config.port}${state.config.path}`, {
+        // Determine WebSocket protocol based on current page protocol
+        const wsProtocol = state.config.encrypt ? 'wss' : 'ws';
+        const wsUrl = `${wsProtocol}://${state.config.host}:${state.config.port}${state.config.path}`;
+
+        const rfb = new RFB(containerRef.current, wsUrl, {
           encrypt: state.config.encrypt,
           resizeSession: state.config.resizeSession,
           retry: true,
-          retry_delay: 2000
+          retry_delay: 2000,
+          // Add authentication token if available
+          shared: true,
+          local_cursor: true,
+          dotCursor: false
         });
 
         rfbRef.current = rfb;
@@ -329,12 +439,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           dispatch({ type: 'SET_CONNECTED', payload: true });
           dispatch({ type: 'SET_CONNECTION_STATE', payload: 'connected' });
           console.log('VNC connected successfully');
+
+          // Start performance monitoring
+          startPerformanceMonitoring();
         });
 
         rfb.addEventListener('disconnect', () => {
           dispatch({ type: 'SET_CONNECTED', payload: false });
           dispatch({ type: 'SET_CONNECTION_STATE', payload: 'disconnected' });
           console.log('VNC disconnected');
+
+          // Stop performance monitoring
+          stopPerformanceMonitoring();
         });
 
         rfb.addEventListener('securityfailure', () => {
@@ -343,11 +459,49 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         });
 
         rfb.addEventListener('credentialsrequired', () => {
-          console.log('VNC credentials required');
+          console.log('VNC credentials required - attempting JWT authentication');
+
+          // Get authentication token from session storage or local storage
+          const getAuthToken = () => {
+            // Try NextAuth session first
+            try {
+              const sessionData = sessionStorage.getItem('next-auth.session-token');
+              if (sessionData) return sessionData;
+            } catch (e) {
+              console.warn('Failed to get NextAuth session token:', e);
+            }
+
+            // Fallback to workspace-specific token
+            try {
+              const workspaceToken = localStorage.getItem('workspace-auth-token');
+              if (workspaceToken) return workspaceToken;
+            } catch (e) {
+              console.warn('Failed to get workspace token:', e);
+            }
+
+            return null;
+          };
+
+          const authToken = getAuthToken();
+
+          if (authToken) {
+            // Send JWT token as VNC password
+            rfb.sendCredentials({ password: authToken });
+            console.log('Sent JWT authentication token to VNC server');
+          } else {
+            console.error('No authentication token available for VNC connection');
+            dispatch({ type: 'SET_CONNECTION_STATE', payload: 'error' });
+          }
         });
 
         rfb.addEventListener('serververification', () => {
-          console.log('VNC server verification required');
+          console.log('VNC server verification required - validating server certificate');
+
+          // In production, implement proper server certificate validation
+          // For now, we'll accept the connection but log the verification requirement
+          if (state.config.encrypt) {
+            console.warn('SECURITY: Implement proper server certificate validation for WSS connections');
+          }
         });
 
         // Update quality settings when connected
@@ -488,6 +642,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      stopPerformanceMonitoring();
       if (rfbRef.current) {
         rfbRef.current.disconnect();
       }

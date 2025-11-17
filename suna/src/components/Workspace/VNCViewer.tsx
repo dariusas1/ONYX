@@ -46,34 +46,216 @@ export const VNCViewer: React.FC<VNCViewerProps> = ({ className = '', onConnecti
     }
   }, [session.connectionState, session.isConnected, connect]);
 
-  // Handle keyboard events for VNC shortcuts
+  // Handle keyboard events for VNC input
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (!session.isConnected || !hasControl) return;
 
-    // Handle common VNC shortcuts
-    if (event.ctrlKey || event.metaKey) {
-      switch (event.key) {
-        case '+':
-        case '=':
-          // Zoom in
-          setLocalScale(prev => Math.min(prev + 0.1, 2.0));
-          event.preventDefault();
-          break;
-        case '-':
-          // Zoom out
-          setLocalScale(prev => Math.max(prev - 0.1, 0.5));
-          event.preventDefault();
-          break;
-        case '0':
-          // Reset zoom
-          setLocalScale(1.0);
-          event.preventDefault();
-          break;
+    // Forward keyboard event to VNC
+    if (rfbRef.current) {
+      // Map DOM keyboard event to VNC keysym
+      let keysym = 0;
+
+      // Handle special keys and modifiers
+      if (event.ctrlKey || event.metaKey) {
+        keysym |= 0x0001; // Control mask
+      }
+      if (event.shiftKey) {
+        keysym |= 0x0002; // Shift mask
+      }
+      if (event.altKey) {
+        keysym |= 0x0004; // Alt mask
+      }
+
+      // Handle common VNC shortcuts locally
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case '+':
+          case '=':
+            // Zoom in
+            setLocalScale(prev => Math.min(prev + 0.1, 2.0));
+            event.preventDefault();
+            return;
+          case '-':
+            // Zoom out
+            setLocalScale(prev => Math.max(prev - 0.1, 0.5));
+            event.preventDefault();
+            return;
+          case '0':
+            // Reset zoom
+            setLocalScale(1.0);
+            event.preventDefault();
+            return;
+        }
+      }
+
+      // Convert key to VNC keysym (simplified mapping)
+      const keyMap: { [key: string]: number } = {
+        'Enter': 0xFF0D,
+        'Escape': 0xFF1B,
+        'Backspace': 0xFF08,
+        'Tab': 0xFF09,
+        'Delete': 0xFFFF,
+        'Home': 0xFF50,
+        'End': 0xFF57,
+        'PageUp': 0xFF55,
+        'PageDown': 0xFF56,
+        'ArrowUp': 0xFF52,
+        'ArrowDown': 0xFF54,
+        'ArrowLeft': 0xFF51,
+        'ArrowRight': 0xFF53,
+        'F1': 0xFFBE,
+        'F2': 0xFFBF,
+        'F3': 0xFFC0,
+        'F4': 0xFFC1,
+        'F5': 0xFFC2,
+        'F6': 0xFFC3,
+        'F7': 0xFFC4,
+        'F8': 0xFFC5,
+        'F9': 0xFFC6,
+        'F10': 0xFFC7,
+        'F11': 0xFFC8,
+        'F12': 0xFFC9,
+      };
+
+      // Map keys
+      if (keyMap[event.key]) {
+        keysym |= keyMap[event.key];
+      } else if (event.key.length === 1) {
+        // Regular printable character
+        keysym |= event.key.charCodeAt(0);
+      } else {
+        // Default to space if we can't map it
+        keysym |= 0x020;
+      }
+
+      // Send key event to VNC
+      try {
+        rfbRef.current.sendKey({
+          keysym,
+          keyCode: event.keyCode,
+        });
+      } catch (error) {
+        console.error('Failed to send keyboard event to VNC:', error);
       }
     }
-  }, [session.isConnected, hasControl]);
+  }, [session.isConnected, hasControl, rfbRef]);
 
-  // Add keyboard event listeners
+  // Handle mouse events for VNC input
+  const handleMouseDown = useCallback((event: React.MouseEvent) => {
+    if (!session.isConnected || !hasControl || !rfbRef.current) return;
+
+    // Get mouse position relative to VNC container
+    const rect = localContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Map mouse button to VNC button mask
+    let buttonMask = 0;
+    switch (event.button) {
+      case 0: // Left click
+        buttonMask = 1;
+        break;
+      case 1: // Middle click
+        buttonMask = 4;
+        break;
+      case 2: // Right click
+        buttonMask = 2;
+        break;
+      case 3: // Back button
+        buttonMask = 8;
+        break;
+      case 4: // Forward button
+        buttonMask = 16;
+        break;
+    }
+
+    try {
+      rfbRef.current.sendMouseButton(x, y, buttonMask, true);
+    } catch (error) {
+      console.error('Failed to send mouse down event to VNC:', error);
+    }
+  }, [session.isConnected, hasControl, rfbRef]);
+
+  const handleMouseUp = useCallback((event: React.MouseEvent) => {
+    if (!session.isConnected || !hasControl || !rfbRef.current) return;
+
+    const rect = localContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    let buttonMask = 0;
+    switch (event.button) {
+      case 0: // Left click
+        buttonMask = 1;
+        break;
+      case 1: // Middle click
+        buttonMask = 4;
+        break;
+      case 2: // Right click
+        buttonMask = 2;
+        break;
+      case 3: // Back button
+        buttonMask = 8;
+        break;
+      case 4: // Forward button
+        buttonMask = 16;
+        break;
+    }
+
+    try {
+      rfbRef.current.sendMouseButton(x, y, buttonMask, false);
+    } catch (error) {
+      console.error('Failed to send mouse up event to VNC:', error);
+    }
+  }, [session.isConnected, hasControl, rfbRef]);
+
+  const handleMouseMove = useCallback((event: React.MouseEvent) => {
+    if (!session.isConnected || !hasControl || !rfbRef.current) return;
+
+    const rect = localContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    try {
+      rfbRef.current.sendMouseMove(x, y);
+    } catch (error) {
+      console.error('Failed to send mouse move event to VNC:', error);
+    }
+  }, [session.isConnected, hasControl, rfbRef]);
+
+  const handleWheel = useCallback((event: React.WheelEvent) => {
+    if (!session.isConnected || !hasControl || !rfbRef.current) return;
+
+    event.preventDefault();
+
+    const rect = localContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Normalize scroll delta and convert to VNC scroll button
+    const delta = event.deltaY || event.deltaX;
+    const scrollButton = delta > 0 ? 5 : 4; // Scroll down = 5, Scroll up = 4
+
+    try {
+      rfbRef.current.sendMouseButton(x, y, scrollButton, true);
+      // Immediately release the scroll button
+      setTimeout(() => {
+        rfbRef.current?.sendMouseButton(x, y, scrollButton, false);
+      }, 50);
+    } catch (error) {
+      console.error('Failed to send mouse wheel event to VNC:', error);
+    }
+  }, [session.isConnected, hasControl, rfbRef]);
+
+  // Add event listeners
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -278,11 +460,18 @@ export const VNCViewer: React.FC<VNCViewerProps> = ({ className = '', onConnecti
         {/* VNC Container */}
         <div
           ref={localContainerRef}
-          className={`w-full h-full ${!session.isConnected ? 'opacity-0' : 'opacity-100'}`}
+          className={`w-full h-full ${!session.isConnected ? 'opacity-0' : 'opacity-100'} ${hasControl ? 'cursor-auto' : 'cursor-not-allowed'}`}
           style={{
             transform: `scale(${localScale})`,
             transformOrigin: 'center center'
           }}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          onWheel={handleWheel}
+          onContextMenu={(e) => e.preventDefault()} // Prevent context menu
+          tabIndex={0} // Make focusable for keyboard events
+          autoFocus
         />
 
         {/* Zoom indicator */}
