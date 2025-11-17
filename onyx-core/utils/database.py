@@ -30,7 +30,9 @@ class DatabaseService:
         user = os.getenv("POSTGRES_USER", "manus")
         password = os.getenv("POSTGRES_PASSWORD", "")
 
-        return f"host={host} port={port} dbname={database} user={user} password={password}"
+        return (
+            f"host={host} port={port} dbname={database} user={user} password={password}"
+        )
 
     def connect(self):
         """Establish database connection"""
@@ -110,7 +112,9 @@ class DatabaseService:
                     ),
                 )
                 self.conn.commit()
-                logger.info(f"Stored OAuth tokens for user {user_id}, provider {provider}")
+                logger.info(
+                    f"Stored OAuth tokens for user {user_id}, provider {provider}"
+                )
                 return True
         except Exception as e:
             logger.error(f"Failed to store OAuth tokens: {e}")
@@ -162,7 +166,9 @@ class DatabaseService:
                     (user_id, provider),
                 )
                 self.conn.commit()
-                logger.info(f"Deleted OAuth tokens for user {user_id}, provider {provider}")
+                logger.info(
+                    f"Deleted OAuth tokens for user {user_id}, provider {provider}"
+                )
                 return True
         except Exception as e:
             logger.error(f"Failed to delete OAuth tokens: {e}")
@@ -279,7 +285,11 @@ class DatabaseService:
         try:
             self.connect()
             with self.conn.cursor() as cur:
-                completed_at = datetime.now() if status in ["success", "failed", "cancelled"] else None
+                completed_at = (
+                    datetime.now()
+                    if status in ["success", "failed", "cancelled"]
+                    else None
+                )
 
                 cur.execute(
                     """
@@ -343,7 +353,9 @@ class DatabaseService:
             logger.error(f"Failed to retrieve sync job: {e}")
             return None
 
-    def get_latest_sync_jobs(self, user_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_latest_sync_jobs(
+        self, user_id: str, limit: int = 10
+    ) -> List[Dict[str, Any]]:
         """Get latest sync jobs for a user"""
         try:
             self.connect()
@@ -470,6 +482,60 @@ class DatabaseService:
         except Exception as e:
             logger.error(f"Failed to retrieve document: {e}")
             return None
+
+    # =========================================================================
+    # Google Docs Edit Operations (Story 6-3)
+    # =========================================================================
+
+    def log_google_docs_operation(self, operation_data: Dict[str, Any]) -> bool:
+        """
+        Log a Google Docs edit operation for audit trail
+
+        Args:
+            operation_data: Dict with keys:
+                - user_id: UUID of user performing edit
+                - document_id: Google Docs document ID
+                - operation_type: Type of operation (insert, replace, format)
+                - details: Dict of operation-specific details
+                - status: Operation status (success, failed, pending)
+                - result: Dict of operation results
+                - error_message: Error message if failed
+                - timestamp: ISO timestamp of operation
+
+        Returns:
+            True if successful
+        """
+        try:
+            self.connect()
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO google_docs_edit_operations
+                    (user_id, document_id, operation_type, details, status, result, error_message, timestamp)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        operation_data.get("user_id"),
+                        operation_data.get("document_id"),
+                        operation_data.get("operation_type"),
+                        Json(operation_data.get("details", {})),
+                        operation_data.get("status", "pending"),
+                        Json(operation_data.get("result", {})),
+                        operation_data.get("error_message"),
+                        operation_data.get("timestamp", datetime.now().isoformat()),
+                    ),
+                )
+                self.conn.commit()
+                logger.info(
+                    f"Logged {operation_data.get('operation_type')} operation "
+                    f"for document {operation_data.get('document_id')}: "
+                    f"{operation_data.get('status')}"
+                )
+                return True
+
+        except Exception as e:
+            logger.error(f"Failed to log Google Docs operation: {e}")
+            return False
 
 
 # Global database service instance

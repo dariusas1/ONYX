@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, Monitor, Home } from 'lucide-react';
+import Link from 'next/link';
 import { useMode } from '../contexts/ModeContext';
 import ToggleSwitch from './ToggleSwitch/ToggleSwitch';
 
@@ -28,6 +29,27 @@ export function Header({ className = '' }: HeaderProps) {
 
       {/* Navigation/Actions */}
       <div className="flex items-center gap-3">
+        {/* Navigation Links */}
+        <nav className="flex items-center gap-2" role="navigation" aria-label="Main navigation">
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-manus-bg transition-colors duration-200 text-manus-text"
+            aria-label="Home"
+          >
+            <Home className="w-4 h-4" />
+            <span className="hidden sm:inline">Home</span>
+          </Link>
+
+          <Link
+            href="/workspace"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-manus-bg transition-colors duration-200 text-manus-text"
+            aria-label="VNC Workspace"
+          >
+            <Monitor className="w-4 h-4" />
+            <span className="hidden sm:inline">Workspace</span>
+          </Link>
+        </nav>
+
         {/* Agent Mode Toggle */}
         <div className="flex items-center">
           <ToggleSwitch

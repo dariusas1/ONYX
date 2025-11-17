@@ -11,6 +11,7 @@ import logging
 
 from services.google_oauth import get_oauth_service
 from services.sync_scheduler import get_scheduler
+from services.google_docs_edit import get_google_docs_edit_service
 from utils.database import get_db_service
 from utils.auth import get_current_user, require_authenticated_user
 
@@ -42,6 +43,96 @@ class ScheduleSyncRequest(BaseModel):
 
 
 # =============================================================================
+# Google Docs Editing Request/Response Models
+# =============================================================================
+
+
+class InsertContentRequest(BaseModel):
+    """Request to insert content into Google Doc"""
+
+    document_id: str = ...
+    content_markdown: str = ...
+    position: str = "end"  # beginning, end, after_heading, before_heading, offset
+    heading_text: Optional[str] = None
+    offset: Optional[int] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "document_id": "1abc123...",
+                "content_markdown": "# New Section\n\nThis is new content.",
+                "position": "end",
+            }
+        }
+
+
+class ReplaceContentRequest(BaseModel):
+    """Request to replace content in Google Doc"""
+
+    document_id: str = ...
+    search_text: str = ...
+    replacement_markdown: str = ...
+    use_regex: bool = False
+    replace_all: bool = True
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "document_id": "1abc123...",
+                "search_text": "TODO",
+                "replacement_markdown": "✓ DONE",
+                "use_regex": False,
+                "replace_all": True,
+            }
+        }
+
+
+class UpdateFormattingRequest(BaseModel):
+    """Request to update formatting in Google Doc"""
+
+    document_id: str = ...
+    start_index: int = ...
+    end_index: int = ...
+    formatting: Dict[str, Any] = {}
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "document_id": "1abc123...",
+                "start_index": 50,
+                "end_index": 100,
+                "formatting": {
+                    "bold": True,
+                    "fontSize": 14,
+                },
+            }
+        }
+
+
+class EditGoogleDocResponse(BaseModel):
+    """Response from Google Docs edit operation"""
+
+    success: bool = ...
+    message: str = ...
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    execution_time_ms: int = 0
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Successfully inserted 245 characters",
+                "data": {
+                    "content_id_ranges": [],
+                    "character_inserted": 245,
+                },
+                "execution_time_ms": 450,
+            }
+        }
+
+
+# =============================================================================
 # OAuth Endpoints
 # =============================================================================
 
@@ -49,7 +140,7 @@ class ScheduleSyncRequest(BaseModel):
 @router.get("/auth/authorize")
 async def get_authorization_url(
     current_user: dict = Depends(require_authenticated_user),
-    state: Optional[str] = None
+    state: Optional[str] = None,
 ):
     """
     Get Google OAuth authorization URL
@@ -91,7 +182,7 @@ async def get_authorization_url(
 @router.post("/auth/callback")
 async def oauth_callback(
     callback_data: OAuthCallbackRequest,
-    current_user: dict = Depends(require_authenticated_user)
+    current_user: dict = Depends(require_authenticated_user),
 ):
     """
     Handle OAuth callback after user authorizes
@@ -112,8 +203,8 @@ async def oauth_callback(
         #     raise HTTPException(status_code=400, detail="Invalid state parameter")
 
         # Exchange authorization code for tokens
-        access_token, refresh_token, expiry, scopes = oauth_service.exchange_code_for_tokens(
-            callback_data.code
+        access_token, refresh_token, expiry, scopes = (
+            oauth_service.exchange_code_for_tokens(callback_data.code)
         )
 
         # Store encrypted tokens
@@ -144,7 +235,7 @@ async def oauth_callback(
 
 @router.post("/auth/disconnect")
 async def disconnect_google_drive(
-    current_user: dict = Depends(require_authenticated_user)
+    current_user: dict = Depends(require_authenticated_user),
 ):
     """
     Disconnect Google Drive for a user (revoke tokens)
@@ -179,15 +270,11 @@ async def disconnect_google_drive(
 
     except Exception as e:
         logger.error(f"Failed to disconnect Google Drive: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to disconnect: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to disconnect: {str(e)}")
 
 
 @router.get("/auth/status")
-async def get_auth_status(
-    current_user: dict = Depends(require_authenticated_user)
-):
+async def get_auth_status(current_user: dict = Depends(require_authenticated_user)):
     """
     Check if user has authenticated Google Drive
 
@@ -225,8 +312,7 @@ async def get_auth_status(
 
 @router.post("/sync")
 async def trigger_sync(
-    sync_request: SyncRequest,
-    current_user: dict = Depends(require_authenticated_user)
+    sync_request: SyncRequest, current_user: dict = Depends(require_authenticated_user)
 ):
     """
     Trigger a manual Google Drive sync
@@ -268,8 +354,7 @@ async def trigger_sync(
 
 @router.get("/sync/status/{job_id}")
 async def get_sync_status(
-    job_id: str,
-    current_user: dict = Depends(require_authenticated_user)
+    job_id: str, current_user: dict = Depends(require_authenticated_user)
 ):
     """
     Get sync job status
@@ -292,7 +377,7 @@ async def get_sync_status(
         if str(job["user_id"]) != current_user["user_id"]:
             raise HTTPException(
                 status_code=403,
-                detail="Access denied: This sync job belongs to another user"
+                detail="Access denied: This sync job belongs to another user",
             )
 
         return {
@@ -302,8 +387,12 @@ async def get_sync_status(
                 "user_id": str(job["user_id"]),
                 "source_type": job["source_type"],
                 "status": job["status"],
-                "started_at": job["started_at"].isoformat() if job["started_at"] else None,
-                "completed_at": job["completed_at"].isoformat() if job["completed_at"] else None,
+                "started_at": job["started_at"].isoformat()
+                if job["started_at"]
+                else None,
+                "completed_at": job["completed_at"].isoformat()
+                if job["completed_at"]
+                else None,
                 "documents_synced": job["documents_synced"],
                 "documents_failed": job["documents_failed"],
                 "error_message": job["error_message"],
@@ -323,7 +412,7 @@ async def get_sync_status(
 @router.get("/sync/history")
 async def get_sync_history(
     current_user: dict = Depends(require_authenticated_user),
-    limit: int = Query(10, le=50)
+    limit: int = Query(10, le=50),
 ):
     """
     Get sync job history for a user
@@ -346,8 +435,12 @@ async def get_sync_history(
                 "job_id": str(job["id"]),
                 "source_type": job["source_type"],
                 "status": job["status"],
-                "started_at": job["started_at"].isoformat() if job["started_at"] else None,
-                "completed_at": job["completed_at"].isoformat() if job["completed_at"] else None,
+                "started_at": job["started_at"].isoformat()
+                if job["started_at"]
+                else None,
+                "completed_at": job["completed_at"].isoformat()
+                if job["completed_at"]
+                else None,
                 "documents_synced": job["documents_synced"],
                 "documents_failed": job["documents_failed"],
                 "error_message": job.get("error_message"),
@@ -374,7 +467,7 @@ async def get_sync_history(
 @router.post("/sync/schedule")
 async def schedule_sync(
     schedule_request: ScheduleSyncRequest,
-    current_user: dict = Depends(require_authenticated_user)
+    current_user: dict = Depends(require_authenticated_user),
 ):
     """
     Schedule periodic sync for a user
@@ -415,9 +508,7 @@ async def schedule_sync(
 
 
 @router.delete("/sync/schedule")
-async def unschedule_sync(
-    current_user: dict = Depends(require_authenticated_user)
-):
+async def unschedule_sync(current_user: dict = Depends(require_authenticated_user)):
     """
     Unschedule periodic sync for a user
 
@@ -448,9 +539,7 @@ async def unschedule_sync(
 
 
 @router.get("/sync/dashboard")
-async def get_sync_dashboard(
-    current_user: dict = Depends(require_authenticated_user)
-):
+async def get_sync_dashboard(current_user: dict = Depends(require_authenticated_user)):
     """
     Get comprehensive sync status for dashboard display
 
@@ -478,7 +567,9 @@ async def get_sync_dashboard(
         # Calculate next sync time (if scheduled)
         scheduler = get_scheduler()
         scheduled_jobs = [
-            job for job in scheduler.get_scheduled_jobs() if job["job_id"] == f"sync-{user_id}"
+            job
+            for job in scheduler.get_scheduled_jobs()
+            if job["job_id"] == f"sync-{user_id}"
         ]
         next_sync = scheduled_jobs[0]["next_run"] if scheduled_jobs else None
 
@@ -487,17 +578,25 @@ async def get_sync_dashboard(
             "data": {
                 "user_id": user_id,
                 "is_authenticated": is_authenticated,
-                "last_sync_at": sync_state["last_sync_at"].isoformat() if sync_state and sync_state.get("last_sync_at") else None,
+                "last_sync_at": sync_state["last_sync_at"].isoformat()
+                if sync_state and sync_state.get("last_sync_at")
+                else None,
                 "files_synced": sync_state["files_synced"] if sync_state else 0,
                 "files_failed": sync_state["files_failed"] if sync_state else 0,
                 "last_error": sync_state.get("last_error") if sync_state else None,
                 "latest_job": {
                     "status": latest_job["status"],
-                    "started_at": latest_job["started_at"].isoformat() if latest_job["started_at"] else None,
-                    "completed_at": latest_job["completed_at"].isoformat() if latest_job["completed_at"] else None,
+                    "started_at": latest_job["started_at"].isoformat()
+                    if latest_job["started_at"]
+                    else None,
+                    "completed_at": latest_job["completed_at"].isoformat()
+                    if latest_job["completed_at"]
+                    else None,
                     "documents_synced": latest_job["documents_synced"],
                     "documents_failed": latest_job["documents_failed"],
-                } if latest_job else None,
+                }
+                if latest_job
+                else None,
                 "next_sync_at": next_sync,
                 "is_scheduled": len(scheduled_jobs) > 0,
             },
@@ -507,4 +606,196 @@ async def get_sync_dashboard(
         logger.error(f"Failed to get sync dashboard: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to get dashboard data: {str(e)}"
+        )
+
+
+# =============================================================================
+# Google Docs Editing Endpoints (Story 6-3)
+# =============================================================================
+
+
+@router.post("/docs/insert", response_model=EditGoogleDocResponse)
+async def insert_content(
+    request: InsertContentRequest,
+    current_user: dict = Depends(require_authenticated_user),
+) -> EditGoogleDocResponse:
+    """
+    Insert content at specified position in a Google Doc
+
+    AC6.3.1: Agent can invoke edit_google_doc tool with document_id and action parameters
+    AC6.3.2: Content insertion works at specified positions (beginning, middle, end)
+    AC6.3.9: Markdown input properly converted to Google Docs format during editing
+    AC6.3.10: Document metadata updated with edit timestamp and agent context
+
+    Args:
+        request: Insert content request
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        EditGoogleDocResponse with operation results
+    """
+    try:
+        user_id = current_user["user_id"]
+
+        # Get edit service for user
+        edit_service = get_google_docs_edit_service(user_id)
+
+        # Insert content
+        result = edit_service.insert_content(
+            document_id=request.document_id,
+            content_markdown=request.content_markdown,
+            position=request.position,
+            heading_text=request.heading_text,
+            offset=request.offset,
+        )
+
+        if result["success"]:
+            return EditGoogleDocResponse(
+                success=True,
+                message=result["message"],
+                data={
+                    "content_id_ranges": result.get("content_id_ranges", []),
+                    "character_inserted": result.get("character_inserted", 0),
+                },
+                execution_time_ms=result.get("execution_time_ms", 0),
+            )
+        else:
+            return EditGoogleDocResponse(
+                success=False,
+                message="Insert operation failed",
+                error=result.get("error", "Unknown error"),
+                execution_time_ms=result.get("execution_time_ms", 0),
+            )
+
+    except ValueError as e:
+        logger.error(f"Invalid input for insert operation: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+    except Exception as e:
+        logger.error(f"Insert content operation failed: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Insert operation failed: {str(e)}"
+        )
+
+
+@router.post("/docs/replace", response_model=EditGoogleDocResponse)
+async def replace_content(
+    request: ReplaceContentRequest,
+    current_user: dict = Depends(require_authenticated_user),
+) -> EditGoogleDocResponse:
+    """
+    Replace text in a Google Doc
+
+    AC6.3.3: Text replacement functionality updates existing content within specified ranges
+    AC6.3.4: Formatting updates preserve Google Docs structure
+    AC6.3.9: Markdown input properly converted to Google Docs format during editing
+
+    Args:
+        request: Replace content request
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        EditGoogleDocResponse with operation results
+    """
+    try:
+        user_id = current_user["user_id"]
+
+        # Get edit service for user
+        edit_service = get_google_docs_edit_service(user_id)
+
+        # Replace content
+        result = edit_service.replace_content(
+            document_id=request.document_id,
+            search_text=request.search_text,
+            replacement_markdown=request.replacement_markdown,
+            use_regex=request.use_regex,
+            replace_all=request.replace_all,
+        )
+
+        if result["success"]:
+            return EditGoogleDocResponse(
+                success=True,
+                message=result["message"],
+                data={
+                    "replacements_count": result.get("replacements_count", 0),
+                    "character_changes": result.get("character_changes", 0),
+                },
+                execution_time_ms=result.get("execution_time_ms", 0),
+            )
+        else:
+            return EditGoogleDocResponse(
+                success=False,
+                message="Replace operation failed",
+                error=result.get("error", "Unknown error"),
+                execution_time_ms=result.get("execution_time_ms", 0),
+            )
+
+    except ValueError as e:
+        logger.error(f"Invalid input for replace operation: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+    except Exception as e:
+        logger.error(f"Replace content operation failed: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Replace operation failed: {str(e)}"
+        )
+
+
+@router.post("/docs/format", response_model=EditGoogleDocResponse)
+async def update_formatting(
+    request: UpdateFormattingRequest,
+    current_user: dict = Depends(require_authenticated_user),
+) -> EditGoogleDocResponse:
+    """
+    Update formatting for a text range in a Google Doc
+
+    AC6.3.4: Formatting updates preserve Google Docs structure (headings, lists, bold, italics)
+    AC6.3.10: Document metadata updated with edit timestamp and agent context
+
+    Args:
+        request: Update formatting request
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        EditGoogleDocResponse with operation results
+    """
+    try:
+        user_id = current_user["user_id"]
+
+        # Get edit service for user
+        edit_service = get_google_docs_edit_service(user_id)
+
+        # Update formatting
+        result = edit_service.update_formatting(
+            document_id=request.document_id,
+            start_index=request.start_index,
+            end_index=request.end_index,
+            formatting=request.formatting,
+        )
+
+        if result["success"]:
+            return EditGoogleDocResponse(
+                success=True,
+                message=result["message"],
+                data={
+                    "formatting_applied": len(request.formatting),
+                },
+                execution_time_ms=result.get("execution_time_ms", 0),
+            )
+        else:
+            return EditGoogleDocResponse(
+                success=False,
+                message="Format operation failed",
+                error=result.get("error", "Unknown error"),
+                execution_time_ms=result.get("execution_time_ms", 0),
+            )
+
+    except ValueError as e:
+        logger.error(f"Invalid input for format operation: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+    except Exception as e:
+        logger.error(f"Format operation failed: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Format operation failed: {str(e)}"
         )
