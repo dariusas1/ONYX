@@ -184,16 +184,16 @@ epics:
           - "AC8.1.4: Basic desktop access functional"
       - story_id: "8-2-workspace-session-management"
         title: "VNC Embed in Suna UI"
-        status: "drafted"
+        status: "in_progress"
         priority: "P1"
         estimated_points: 5
-        assigned_to: null
+        assigned_to: "Dev Team"
         sprint: "Sprint 8"
         created_date: "2025-11-16"
-        started_date: null
+        started_date: "2025-11-16"
         completed_date: null
         blocked_reason: null
-        notes: "📝 DRAFTED: Story specification complete with detailed requirements, acceptance criteria, and implementation tasks. Ready for development assignment and planning. Builds on noVNC server foundation from Story 8-1."
+        notes: "🚀 IN PROGRESS: Development started for VNC embedding in Suna UI. Implementing workspace session management with noVNC integration, responsive layout, and founder intervention workflows."
         dependencies: ["8-1-novnc-server-setup"]
         acceptance_criteria:
           - "AC8.2.1: VNC viewer embedded in Suna UI sidebar/overlay"
