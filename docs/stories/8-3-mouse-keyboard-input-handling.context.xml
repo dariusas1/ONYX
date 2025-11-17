@@ -1,0 +1,144 @@
+<story-context id="8-3-mouse-keyboard-input-handling" v="1.0">
+  <metadata>
+    <epicId>epic-8</epicId>
+    <storyId>8-3</storyId>
+    <title>Mouse &amp; Keyboard Input Handling</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-16</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/8-3-mouse-keyboard-input-handling.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a user working with the remote workspace</asA>
+    <iWant>comprehensive mouse and keyboard input handling with sub-500ms latency</iWant>
+    <soThat>I can interact naturally and efficiently with the remote desktop environment</soThat>
+    <tasks>Task 1: Mouse Input Capture and Processing (4 subtasks)
+Task 2: Keyboard Input Processing (4 subtasks)
+Task 3: Input Latency Optimization (4 subtasks)
+Task 4: Mobile Touch Support (4 subtasks)
+Task 5: Performance Monitoring (4 subtasks)</tasks>
+  </story>
+
+  <acceptanceCriteria>AC8.3.1: Mouse movement captured and forwarded to VNC server
+AC8.3.2: Mouse clicks (left/right/middle) executed on remote desktop
+AC8.3.3: Keyboard input captured and sent to remote desktop
+AC8.3.4: Special keys (Cmd/Ctrl/Alt/Shift) handled correctly
+AC8.3.5: Latency &lt;500ms round-trip (browser → VNC → VPS → browser)
+AC8.3.6: Cursor visibility and tracking on remote desktop
+AC8.3.7: Mobile touch input support for tablets and phones</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/stories/8-1-novnc-server-setup.md</path>
+        <title>Story 8-1: noVNC Server Setup</title>
+        <section>Foundation Story</section>
+        <snippet>Foundation story for Epic 8. Set up noVNC VNC server for remote desktop access with WebSocket support. Blocks all subsequent workspace stories. VNC server listening on :6080 (WebSocket) when noVNC service started. Supports resolution 1920x1080 with optimal display configuration. Framerate 30fps target achieved with performance optimization.</snippet>
+      </doc>
+      <doc>
+        <path>docker-compose.yaml</path>
+        <title>Docker Compose Configuration</title>
+        <section>noVNC Service Configuration</section>
+        <snippet>noVNC remote desktop service with ports 6080:6080, 5900:5900, 9091:9091. Environment variables for display configuration (1920x1080), VNC settings, compression, security with encrypted password storage, WebSocket buffer sizes, and metrics endpoint. Integration with manus-network and resource limits (1g memory, 1.0 CPU).</snippet>
+      </doc>
+      <doc>
+        <path>novnc/startup.sh</path>
+        <title>noVNC Service Startup Script</title>
+        <section>VNC Server Configuration</section>
+        <snippet>Comprehensive startup script with encrypted VNC password generation, Xvfb setup with 1920x1080 resolution, window manager integration, VNC server with performance optimizations (compression level 6, quality 8), health check endpoint, Prometheus metrics endpoint, and main service orchestration with signal handling.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>suna/src/components/ChatInterface.tsx</path>
+        <kind>react-component</kind>
+        <symbol>ChatInterface</symbol>
+        <lines>22-23</lines>
+        <reason>Example of React event handling patterns and message submission flow that can be adapted for input handling</reason>
+      </artifact>
+      <artifact>
+        <path>suna/src/components/Header.tsx</path>
+        <kind>react-component</kind>
+        <symbol>Header</symbol>
+        <lines>29-32</lines>
+        <reason>Shows ToggleSwitch integration pattern for Agent Mode, can be adapted for input mode toggles</reason>
+      </artifact>
+      <artifact>
+        <path>suna/node_modules/@novnc/novnc/lib/input/keyboard.js</path>
+        <kind>javascript-library</kind>
+        <symbol>keyboard handling</symbol>
+        <lines>1-200</lines>
+        <reason>noVNC keyboard input handling library for key mapping and event processing</reason>
+      </artifact>
+      <artifact>
+        <path>suna/node_modules/@novnc/novnc/lib/util/cursor.js</path>
+        <kind>javascript-library</kind>
+        <symbol>cursor tracking</symbol>
+        <lines>1-100</lines>
+        <reason>noVNC cursor visibility and tracking utilities for remote desktop interaction</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="nodejs">
+        <package name="@novnc/novnc" version="latest" purpose="VNC client library with WebSocket support and input handling"/>
+        <package name="next" version="^14.0.0" purpose="React framework for frontend UI"/>
+        <package name="react" version="^18.0.0" purpose="UI component library"/>
+        <package name="typescript" version="^5.3.0" purpose="Type safety and development"/>
+      </ecosystem>
+      <ecosystem name="docker">
+        <package name="fredblgr/no-vnc" version="latest" purpose="noVNC server container with WebSocket support"/>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Performance target: Input latency must be &lt;500ms round-trip time for all input events</constraint>
+    <constraint>Integration requirement: Must build on existing noVNC WebSocket infrastructure from Story 8-1</constraint>
+    <constraint>Security requirement: Input validation and rate limiting to prevent malicious input injection</constraint>
+    <constraint>Authentication requirement: Input channel must be bound to authenticated user sessions</constraint>
+    <constraint>Browser compatibility: Must support Chrome, Firefox, Safari, Edge with consistent behavior</constraint>
+    <constraint>Mobile support: Touch input translation and gesture support for tablets and phones</constraint>
+    <constraint>Monitoring: Input quality metrics and latency tracking with alerting for degradation</constraint>
+    <constraint>Resource management: Input buffering and batching to optimize network usage</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>VNC WebSocket Input API</name>
+      <kind>WebSocket protocol</kind>
+      <signature>ws://localhost:6080/?input=mouse|keyboard</signature>
+      <path>docker-compose.yaml:305-372</path>
+    </interface>
+    <interface>
+      <name>React Input Event Handler</name>
+      <kind>React component interface</kind>
+      <signature>onMouseDown(event: MouseEvent) =&gt; void, onKeyDown(event: KeyboardEvent) =&gt; void</signature>
+      <path>suna/src/components/ChatInterface.tsx:29-57</path>
+    </interface>
+    <interface>
+      <name>Performance Metrics Endpoint</name>
+      <kind>HTTP API</kind>
+      <signature>GET http://localhost:9091/metrics</signature>
+      <path>novnc/startup.sh:141-300</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Testing follows Jest + React Testing Library patterns. Component testing with mocked dependencies, user event simulation, and async behavior testing. Performance testing with latency measurement. Cross-browser compatibility testing required. Mobile device testing on real hardware. Integration testing with noVNC server and WebSocket connections.</standards>
+    <locations>
+      <location>suna/__tests__/components/</location>
+      <location>suna/__tests__/</location>
+      <location>tests/</location>
+    </locations>
+    <ideas>
+      <test id="AC8.3.1">Test mouse movement capture with event coordinates and forwarding to VNC server</test>
+      <test id="AC8.3.2">Test mouse click events (left/right/middle) with proper button detection</test>
+      <test id="AC8.3.3">Test keyboard input capture including typing and special key handling</test>
+      <test id="AC8.3.4">Test modifier key combinations (Ctrl+C, Alt+Tab, Shift+Click)</test>
+      <test id="AC8.3.5">Performance test measuring round-trip latency under 500ms target</test>
+      <test id="AC8.3.6">Test cursor visibility tracking and synchronization</test>
+      <test id="AC8.3.7">Test mobile touch input translation and gesture recognition</test>
+    </ideas>
+  </tests>
+</story-context>
