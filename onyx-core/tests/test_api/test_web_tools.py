@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from main import app
 from api.web_tools import router
 from services.scraper_service import ScrapedContent
+from services.form_fill_service import FormFillResult, FieldInteractionResult
 
 
 class TestWebToolsAPI:
@@ -237,6 +238,78 @@ class TestWebToolsAPI:
         assert data["summary"]["successful"] == 1
         assert data["summary"]["failed"] == 1
         assert data["summary"]["success_rate"] == 0.5
+
+    @patch('api.web_tools.require_authenticated_user')
+    @patch('api.web_tools.form_fill_service')
+    def test_fill_form_success(self, mock_form_service, mock_auth, client, mock_current_user):
+        """Test successful fill_form execution."""
+        mock_auth.return_value = mock_current_user
+        mock_form_service.fill_form.return_value = FormFillResult(
+            url="https://example.com/form",
+            result_url="https://example.com/form",
+            execution_time_ms=1500,
+            submitted=False,
+            submission_message=None,
+            fields_filled=["name"],
+            fields_failed=[],
+            field_results=[
+                FieldInteractionResult(
+                    name="name",
+                    success=True,
+                    selector="#name",
+                    selector_strategy="label",
+                    field_type="text",
+                    message="filled",
+                    value_preview="Manus",
+                )
+            ],
+            warnings=[],
+            before_screenshot="AAA",
+            after_screenshot="BBB",
+        )
+
+        response = client.post("/tools/fill_form", json={
+            "url": "https://example.com/form",
+            "fields": {
+                "name": "Manus"
+            }
+        })
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["success"] is True
+        assert payload["data"]["fields_filled"] == ["name"]
+        assert payload["data"]["fields_failed"] == []
+        assert payload["metadata"]["user_id"] == "test-user-123"
+        assert payload["metadata"]["execution_time_ms"] == 1500
+
+        mock_form_service.fill_form.assert_called_once()
+
+    def test_fill_form_request_validation(self, client):
+        """Ensure validator rejects empty field payloads."""
+        response = client.post("/tools/fill_form", json={
+            "url": "https://example.com/form",
+            "fields": []
+        })
+
+        assert response.status_code == 422
+
+    @patch('api.web_tools.require_authenticated_user')
+    @patch('api.web_tools.form_fill_service')
+    def test_fill_form_service_value_error(self, mock_form_service, mock_auth, client, mock_current_user):
+        """Service validation errors return HTTP 400."""
+        mock_auth.return_value = mock_current_user
+        mock_form_service.fill_form.side_effect = ValueError("invalid form payload")
+
+        response = client.post("/tools/fill_form", json={
+            "url": "https://example.com/form",
+            "fields": {"name": "Test"},
+            "submit": True
+        })
+
+        assert response.status_code == 400
+        error = response.json()["detail"]
+        assert error["code"] == "FORM_FILL_VALIDATION_ERROR"
 
     @patch('api.web_tools.require_authenticated_user')
     def test_batch_scrape_too_many_urls(self, mock_auth, client, mock_current_user):
