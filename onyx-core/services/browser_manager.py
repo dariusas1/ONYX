@@ -315,14 +315,7 @@ class BrowserManager:
                 await page.close()
                 raise
 
-    async def screenshot(
-        self,
-        page: Page,
-        *,
-        full_page: bool = True,
-        image_type: Literal["png", "jpeg"] = "png",
-        quality: Optional[int] = None
-    ) -> bytes:
+    async def screenshot(self, page: Page, full_page: bool = True) -> bytes:
         """
         Capture screenshot of page.
 
@@ -333,24 +326,16 @@ class BrowserManager:
             full_page: Whether to capture the full scrollable page
 
         Returns:
-            bytes: Screenshot binary data (PNG or JPEG)
+            bytes: PNG screenshot data
         """
         # Enforce serial execution for screenshot operations
         async with self._operation_lock:
-            logger.info(
-                f"Capturing screenshot (full_page={full_page}, type={image_type}, quality={quality})"
-            )
+            logger.info(f"Capturing screenshot (full_page={full_page})")
 
             try:
-                screenshot_kwargs = {
-                    "full_page": full_page,
-                    "type": image_type,
-                }
-                if image_type == "jpeg" and quality is not None:
-                    screenshot_kwargs["quality"] = max(10, min(quality, 100))
-
                 screenshot_bytes = await page.screenshot(
-                    **screenshot_kwargs
+                    full_page=full_page,
+                    type='png'
                 )
                 logger.info(f"Screenshot captured: {len(screenshot_bytes)} bytes")
                 return screenshot_bytes

@@ -23,7 +23,6 @@ from services.scraper_service import ScraperService, ScrapedContent
 from services.cache_manager import CacheManager
 from services.browser_manager import BrowserManager
 from services.form_fill_service import FormFillService, FormFieldInput
-from services.screenshot_service import ScreenshotService, ScreenshotOptions
 from utils.auth import require_authenticated_user
 
 logger = logging.getLogger(__name__)
@@ -35,7 +34,6 @@ router = APIRouter(prefix="/tools", tags=["web-tools"])
 scraper_service: Optional[ScraperService] = None
 cache_manager: Optional[CacheManager] = None
 form_fill_service: Optional[FormFillService] = None
-screenshot_service: Optional[ScreenshotService] = None
 
 
 # Pydantic Models for API
@@ -246,64 +244,11 @@ class FormFillResponse(BaseModel):
     metadata: Dict[str, Any]
 
 
-WaitStrategy = Literal["load", "domcontentloaded", "networkidle"]
-
-
-class ScreenshotRequest(BaseModel):
-    """Request payload for screenshot capture."""
-
-    url: HttpUrl = Field(..., description="URL to capture")
-    full_page: bool = Field(True, description="Capture entire scrollable page")
-    width: int = Field(1920, ge=320, le=3840, description="Viewport width")
-    height: int = Field(1080, ge=200, le=2160, description="Viewport height")
-    format: Literal["png", "jpeg"] = Field("png", description="Image encoding format")
-    quality: Optional[int] = Field(
-        None,
-        ge=10,
-        le=100,
-        description="JPEG quality (ignored for PNG)",
-    )
-    wait_until: WaitStrategy = Field(
-        "networkidle",
-        description="Playwright wait_until strategy before capture",
-    )
-
-    @validator("quality")
-    def validate_quality_applicability(cls, value, values):
-        if value is not None and values.get("format") != "jpeg":
-            raise ValueError("quality is only supported for jpeg captures")
-        return value
-
-
-class ScreenshotResponseData(BaseModel):
-    """Response payload for screenshot captures."""
-
-    url: HttpUrl
-    format: Literal["png", "jpeg"]
-    width: int
-    height: int
-    image_base64: str
-    execution_time_ms: int
-    captured_at: datetime
-    file_size_bytes: int
-    storage_url: Optional[str]
-    warnings: List[str]
-
-
-class ScreenshotResponse(BaseModel):
-    """Response wrapper for screenshot endpoint."""
-
-    success: bool
-    data: ScreenshotResponseData
-    error: Optional[Dict[str, Any]]
-    metadata: Dict[str, Any]
-
-
 # Service Initialization
 
 async def initialize_services():
     """Initialize global service instances."""
-    global scraper_service, cache_manager, form_fill_service, screenshot_service
+    global scraper_service, cache_manager, form_fill_service
 
     try:
         # Initialize cache manager
@@ -315,9 +260,6 @@ async def initialize_services():
         # Initialize form fill service
         if not form_fill_service:
             form_fill_service = FormFillService()
-
-        if not screenshot_service:
-            screenshot_service = ScreenshotService()
 
         logger.info("Web tools services initialized successfully")
 
@@ -599,74 +541,6 @@ async def fill_form(
         )
 
 
-@router.post("/screenshot", response_model=ScreenshotResponse)
-async def screenshot_endpoint(
-    request: ScreenshotRequest,
-    current_user: dict = Depends(require_authenticated_user)
-) -> ScreenshotResponse:
-    """Capture rendered page screenshot with configurable options."""
-    try:
-        if not screenshot_service:
-            await initialize_services()
-
-        options = ScreenshotOptions(
-            url=str(request.url),
-            full_page=request.full_page,
-            width=request.width,
-            height=request.height,
-            image_format=request.format,
-            quality=request.quality,
-            wait_until=request.wait_until,
-        )
-
-        result = await screenshot_service.capture(options)
-        response_data = ScreenshotResponseData(
-            url=result.url,
-            format=result.format,
-            width=result.width,
-            height=result.height,
-            image_base64=result.base64_data,
-            execution_time_ms=result.execution_time_ms,
-            captured_at=result.captured_at,
-            file_size_bytes=result.file_size_bytes,
-            storage_url=result.storage_url,
-            warnings=result.warnings,
-        )
-
-        metadata = {
-            "execution_time_ms": result.execution_time_ms,
-            "user_id": current_user.get("user_id"),
-        }
-
-        return ScreenshotResponse(
-            success=True,
-            data=response_data,
-            error=None,
-            metadata=metadata,
-        )
-
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "code": "SCREENSHOT_VALIDATION_ERROR",
-                "message": str(e),
-            },
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"screenshot capture failed: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "code": "SCREENSHOT_ERROR",
-                "message": "An unexpected error occurred during screenshot capture",
-                "details": str(e),
-            },
-        )
-
-
 @router.get("/scrape_health")
 async def scrape_health_check(
     current_user: dict = Depends(require_authenticated_user)
@@ -851,49 +725,6 @@ async def register_fill_form_tool(tool_registry):
 
     except Exception as e:
         logger.error(f"Failed to register fill_form tool: {e}")
-        raise
-
-
-async def register_screenshot_tool(tool_registry):
-    """
-    Register screenshot tool in the tool registry.
-    """
-    try:
-        tool_definition = {
-            "name": "screenshot",
-            "description": "Capture full-page or viewport screenshots for audit and reporting",
-            "parameters": {
-                "url": {
-                    "type": "string",
-                    "description": "Target page URL",
-                    "required": True,
-                },
-                "full_page": {
-                    "type": "boolean",
-                    "description": "Capture entire scrollHeight or viewport only",
-                    "default": True,
-                },
-                "format": {
-                    "type": "string",
-                    "description": "png or jpeg output",
-                    "default": "png",
-                },
-            },
-            "returns": {
-                "type": "object",
-                "description": "Base64 image payload, metadata, and optional storage URL",
-            },
-            "endpoint": "/tools/screenshot",
-            "method": "POST",
-            "auth_required": True,
-            "category": "web_automation",
-        }
-
-        await tool_registry.register_tool("screenshot", tool_definition)
-        logger.info("screenshot tool registered successfully")
-
-    except Exception as e:
-        logger.error(f"Failed to register screenshot tool: {e}")
         raise
 
 

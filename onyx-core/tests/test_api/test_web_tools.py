@@ -18,7 +18,6 @@ from main import app
 from api.web_tools import router
 from services.scraper_service import ScrapedContent
 from services.form_fill_service import FormFillResult, FieldInteractionResult
-from services.screenshot_service import ScreenshotResult
 
 
 class TestWebToolsAPI:
@@ -311,47 +310,6 @@ class TestWebToolsAPI:
         assert response.status_code == 400
         error = response.json()["detail"]
         assert error["code"] == "FORM_FILL_VALIDATION_ERROR"
-
-    @patch('api.web_tools.require_authenticated_user')
-    @patch('api.web_tools.screenshot_service')
-    def test_screenshot_success(self, mock_screenshot_service, mock_auth, client, mock_current_user):
-        """Test screenshot endpoint happy path."""
-        mock_auth.return_value = mock_current_user
-        mock_screenshot_service.capture.return_value = ScreenshotResult(
-            url="https://example.com",
-            format="png",
-            width=1920,
-            height=3000,
-            base64_data="AAA",
-            execution_time_ms=1800,
-            captured_at=datetime(2025, 11, 16, 18, 0, 0, tzinfo=timezone.utc),
-            file_size_bytes=102400,
-            storage_url=None,
-            warnings=[],
-        )
-
-        response = client.post("/tools/screenshot", json={
-            "url": "https://example.com",
-            "full_page": True
-        })
-
-        assert response.status_code == 200
-        body = response.json()
-        assert body["success"] is True
-        assert body["data"]["format"] == "png"
-        assert body["data"]["height"] == 3000
-        assert body["metadata"]["execution_time_ms"] == 1800
-
-        mock_screenshot_service.capture.assert_called_once()
-
-    def test_screenshot_quality_validation(self, client):
-        """quality must only be supplied for jpeg format."""
-        response = client.post("/tools/screenshot", json={
-            "url": "https://example.com",
-            "format": "png",
-            "quality": 80
-        })
-        assert response.status_code == 422
 
     @patch('api.web_tools.require_authenticated_user')
     def test_batch_scrape_too_many_urls(self, mock_auth, client, mock_current_user):
