@@ -14,7 +14,7 @@ Story: 7-3-url-scraping-content-extraction
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, HttpUrl, validator
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union, Literal
 import logging
 import asyncio
 from datetime import datetime
@@ -22,6 +22,7 @@ from datetime import datetime
 from services.scraper_service import ScraperService, ScrapedContent
 from services.cache_manager import CacheManager
 from services.browser_manager import BrowserManager
+from services.form_fill_service import FormFillService, FormFieldInput
 from utils.auth import require_authenticated_user
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ router = APIRouter(prefix="/tools", tags=["web-tools"])
 # Global service instances (initialized on startup)
 scraper_service: Optional[ScraperService] = None
 cache_manager: Optional[CacheManager] = None
+form_fill_service: Optional[FormFillService] = None
 
 
 # Pydantic Models for API
@@ -149,11 +151,104 @@ class BatchScrapeResponse(BaseModel):
     )
 
 
+SelectorStrategy = Literal["name", "id", "label", "placeholder", "css_class", "aria_label"]
+
+
+class FormFieldPayload(BaseModel):
+    """Field descriptor for form filling."""
+
+    name: str = Field(..., min_length=1, description="Human-readable field name or label")
+    value: Any = Field(..., description="Value to inject into the control")
+    selector: Optional[str] = Field(
+        None,
+        description="Optional CSS selector override when automatic detection is insufficient"
+    )
+    field_type: Optional[str] = Field(
+        None,
+        description="Optional field type hint (text, select, checkbox, radio, textarea)"
+    )
+    required: bool = Field(
+        False,
+        description="Whether this field is required for success calculation"
+    )
+
+
+class FormFillRequest(BaseModel):
+    """Request payload for fill_form operations."""
+
+    url: HttpUrl = Field(..., description="URL containing the target form")
+    fields: List[FormFieldPayload] = Field(..., description="List of fields to populate")
+    submit: bool = Field(False, description="Whether to submit the form after filling")
+    selector_strategy: Optional[SelectorStrategy] = Field(
+        None,
+        description="Optional selector strategy hint for FieldDetector"
+    )
+    wait_after_submit_ms: Optional[int] = Field(
+        1500,
+        ge=0,
+        le=10000,
+        description="Wait duration after submission for DOM updates"
+    )
+    capture_screenshots: bool = Field(
+        True,
+        description="Capture before/after screenshots for audit"
+    )
+
+    @validator("fields", pre=True)
+    def normalize_fields(cls, value):
+        if isinstance(value, dict):
+            return [{"name": field_name, "value": field_value} for field_name, field_value in value.items()]
+        return value
+
+    @validator("fields")
+    def ensure_fields_not_empty(cls, value):
+        if not value:
+            raise ValueError("fields must contain at least one entry")
+        return value
+
+
+class FieldResultModel(BaseModel):
+    """Response model for individual field interactions."""
+
+    name: str
+    success: bool
+    selector: Optional[str]
+    selector_strategy: Optional[str]
+    field_type: Optional[str]
+    message: Optional[str]
+    value_preview: Optional[str]
+
+
+class FormFillResponseData(BaseModel):
+    """Structured response data for fill_form."""
+
+    url: HttpUrl
+    result_url: HttpUrl
+    submitted: bool
+    submission_message: Optional[str]
+    execution_time_ms: int
+    fields_filled: List[str]
+    fields_failed: List[str]
+    field_results: List[FieldResultModel]
+    warnings: List[str]
+    before_screenshot: Optional[str]
+    after_screenshot: Optional[str]
+
+
+class FormFillResponse(BaseModel):
+    """Response wrapper for fill_form requests."""
+
+    success: bool
+    data: FormFillResponseData
+    error: Optional[Dict[str, Any]]
+    metadata: Dict[str, Any]
+
+
 # Service Initialization
 
 async def initialize_services():
     """Initialize global service instances."""
-    global scraper_service, cache_manager
+    global scraper_service, cache_manager, form_fill_service
 
     try:
         # Initialize cache manager
@@ -161,6 +256,10 @@ async def initialize_services():
 
         # Initialize scraper service
         scraper_service = ScraperService(cache_manager=cache_manager)
+
+        # Initialize form fill service
+        if not form_fill_service:
+            form_fill_service = FormFillService()
 
         logger.info("Web tools services initialized successfully")
 
@@ -366,6 +465,82 @@ async def batch_scrape_urls(
         )
 
 
+@router.post("/fill_form", response_model=FormFillResponse)
+async def fill_form(
+    request: FormFillRequest,
+    current_user: dict = Depends(require_authenticated_user)
+) -> FormFillResponse:
+    """
+    Fill target form fields using Playwright automation and return audit data.
+    """
+    try:
+        if not form_fill_service:
+            await initialize_services()
+
+        normalized_fields = [
+            FormFieldInput(
+                name=field.name,
+                value=field.value,
+                selector=field.selector,
+                field_type=field.field_type,
+                required=field.required,
+            )
+            for field in request.fields
+        ]
+
+        result = await form_fill_service.fill_form(
+            str(request.url),
+            normalized_fields,
+            submit=request.submit,
+            selector_strategy=request.selector_strategy,
+            wait_after_submit_ms=request.wait_after_submit_ms,
+            capture_screenshots=request.capture_screenshots,
+        )
+
+        response_data = FormFillResponseData(**result.to_dict())
+        metadata = {
+            "execution_time_ms": result.execution_time_ms,
+            "user_id": current_user.get("user_id"),
+            "warnings": result.warnings,
+        }
+
+        error_block = None
+        if not result.success:
+            error_block = {
+                "code": "FORM_FILL_PARTIAL_FAILURE",
+                "message": "One or more fields failed to fill",
+                "fields_failed": result.fields_failed,
+            }
+
+        return FormFillResponse(
+            success=result.success,
+            data=response_data,
+            error=error_block,
+            metadata=metadata,
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "FORM_FILL_VALIDATION_ERROR",
+                "message": str(e),
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"fill_form failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "FORM_FILL_ERROR",
+                "message": "An unexpected error occurred during form filling",
+                "details": str(e),
+            },
+        )
+
+
 @router.get("/scrape_health")
 async def scrape_health_check(
     current_user: dict = Depends(require_authenticated_user)
@@ -504,6 +679,52 @@ async def register_scrape_url_tool(tool_registry):
 
     except Exception as e:
         logger.error(f"Failed to register scrape_url tool: {e}")
+        raise
+
+
+async def register_fill_form_tool(tool_registry):
+    """
+    Register fill_form tool in the tool registry.
+
+    Args:
+        tool_registry: Tool registry instance
+    """
+    try:
+        tool_definition = {
+            "name": "fill_form",
+            "description": "Populate web forms using Playwright automation with before/after audit artifacts",
+            "parameters": {
+                "url": {
+                    "type": "string",
+                    "description": "Target page containing the form",
+                    "required": True,
+                },
+                "fields": {
+                    "type": "object",
+                    "description": "Map of field names to values (supports select/checkbox/radio metadata)",
+                    "required": True,
+                },
+                "submit": {
+                    "type": "boolean",
+                    "description": "Submit the form after filling",
+                    "default": False,
+                },
+            },
+            "returns": {
+                "type": "object",
+                "description": "Audit payload containing filled/failed fields and screenshot artifacts",
+            },
+            "endpoint": "/tools/fill_form",
+            "method": "POST",
+            "auth_required": True,
+            "category": "web_automation",
+        }
+
+        await tool_registry.register_tool("fill_form", tool_definition)
+        logger.info("fill_form tool registered successfully")
+
+    except Exception as e:
+        logger.error(f"Failed to register fill_form tool: {e}")
         raise
 
 

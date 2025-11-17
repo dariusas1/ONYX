@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="{bmad_folder}/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>epic-7</epicId>
+    <storyId>7-4</storyId>
+    <title>Form Filling &amp; Web Interaction</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-16T18:35:00Z</generatedAt>
+    <generator>BMAD Story Context Workflow (simulated)</generator>
+    <sourceStoryPath>docs/stories/7-4-form-filling-web-interaction.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>automation agent</asA>
+    <iWant>navigate to third-party web forms and populate structured field values using Playwright</iWant>
+    <soThat>I can execute onboarding, lead capture, and intake workflows on behalf of internal users without human intervention</soThat>
+    <tasks>- Task 1: Tool interface &amp; validation (AC: #1, #5)
+  - [ ] Subtask 1.1: Define fill_form tool schema (URL, submit flag, fields array)
+  - [ ] Subtask 1.2: Implement parameter validation with detailed error messages
+  - [ ] Subtask 1.3: Map agent parameter names to DOM selectors/labels
+  - [ ] Subtask 1.4: Serialize field interaction log for result payloads
+  - [ ] Subtask 1.5: Document tool usage patterns and limitations
+
+- Task 2: Navigation &amp; field detection (AC: #2, #3)
+  - [ ] Subtask 2.1: Reuse Playwright Browser Manager for navigation
+  - [ ] Subtask 2.2: Implement robust selector strategies (label, name, placeholder)
+  - [ ] Subtask 2.3: Support text, select, checkbox, and radio interactions
+  - [ ] Subtask 2.4: Add fallback heuristics for dynamic form builders
+  - [ ] Subtask 2.5: Capture DOM metadata for audit/debugging
+
+- Task 3: Submission control &amp; result capture (AC: #4, #5)
+  - [ ] Subtask 3.1: Support dry-run mode (no submission) with before/after diff
+  - [ ] Subtask 3.2: Implement optional submission with success detection heuristics
+  - [ ] Subtask 3.3: Capture response text/snippets after submission
+  - [ ] Subtask 3.4: Return per-field success/failure reasons
+  - [ ] Subtask 3.5: Expose structured audit events for downstream logging
+
+- Task 4: Performance &amp; resiliency (AC: #6)
+  - [ ] Subtask 4.1: Add navigation and interaction timeouts targeting &lt;5s runtime
+  - [ ] Subtask 4.2: Implement retry-once strategy for transient selector failures
+  - [ ] Subtask 4.3: Track timing metrics per interaction phase
+  - [ ] Subtask 4.4: Ensure single-browser invariant respected (Story 7.1)
+  - [ ] Subtask 4.5: Surface performance metrics via metrics pipeline
+
+- Task 5: Audit artifacts &amp; observability (AC: #5, #7)
+  - [ ] Subtask 5.1: Capture before/after screenshots and store in Drive/Blob
+  - [ ] Subtask 5.2: Annotate screenshots with field highlights where possible
+  - [ ] Subtask 5.3: Store structured interaction log + screenshot paths in task context
+  - [ ] Subtask 5.4: Integrate with logging/metrics for error classification
+  - [ ] Subtask 5.5: Add redaction routines for PII in audit artifacts
+
+- Task 6: Testing &amp; validation (All ACs)
+  - [ ] Subtask 6.1: Unit tests for form parser and selector mapping
+  - [ ] Subtask 6.2: Integration tests hitting sample forms (httpbin, formsite)
+  - [ ] Subtask 6.3: Performance regression tests for &lt;5s target
+  - [ ] Subtask 6.4: Error-path tests for missing fields, unsupported controls, timeouts
+  - [ ] Subtask 6.5: End-to-end Agent Mode test invoking fill_form tool</tasks>
+  </story>
+
+  <acceptanceCriteria>1. **AC7.4.1**: Agent can invoke fill_form tool with URL and field values
+2. **AC7.4.2**: Browser navigates to page and finds form fields
+3. **AC7.4.3**: Handles text inputs, select dropdowns, checkboxes, radio buttons
+4. **AC7.4.4**: Can fill form without submission or submit and capture result
+5. **AC7.4.5**: Returns success/failure status and list of fields filled/failed
+6. **AC7.4.6**: Execution time &lt;5s for typical forms (5–10 fields)
+7. **AC7.4.7**: Screenshots captured before/after form interaction for audit</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/epics/epic-7-tech-spec.md</path>
+        <title>Epic 7 Technical Specification</title>
+        <section>Story 7.4 Requirements</section>
+        <snippet>Defines full acceptance criteria, selector strategies, performance targets, and audit obligations for Form Filling &amp; Web Interaction. Includes sequencing dependencies on Stories 7.1 and 7.3 with DOM traversal heuristics.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/7-1-playwright-browser-setup-headless-automation.context.xml</path>
+        <title>Story 7.1 Context</title>
+        <section>Browser Manager Foundation</section>
+        <snippet>Details Playwright Docker orchestration, serial browser policy, and navigation helpers reused by form filling workflow.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/7-3-url-scraping-content-extraction.context.xml</path>
+        <title>Story 7.3 Context</title>
+        <section>DOM Parsing Patterns</section>
+        <snippet>Provides cleaned DOM traversal and field detection heuristics leveraged for identifying form controls and metadata.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-status.yaml</path>
+        <title>Sprint Status Tracker</title>
+        <section>Epic 7 Tracking</section>
+        <snippet>Authoritative state for Story 7-4 including status transitions (drafted → ready-for-dev) and dependency links.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <code>
+        <path>onyx-core/services/browser_manager.py</path>
+        <kind>service</kind>
+        <symbol>BrowserManager</symbol>
+        <lines>1-220</lines>
+        <reason>Central Playwright orchestration reused for launching pages, handling timeouts, and enforcing single-instance policy.</reason>
+      </code>
+      <code>
+        <path>onyx-core/services/field_detector.py</path>
+        <kind>service</kind>
+        <symbol>FieldDetector</symbol>
+        <lines>1-240</lines>
+        <reason>Existing DOM field detection utilities supporting label, placeholder, and ARIA-based selector strategies that will be extended for interactive controls.</reason>
+      </code>
+      <code>
+        <path>onyx-core/services/scraper_service.py</path>
+        <kind>service</kind>
+        <symbol>ScraperService</symbol>
+        <lines>1-540</lines>
+        <reason>Demonstrates Playwright page lifecycle management, screenshot capture, and structured response models used as reference for form fill logging.</reason>
+      </code>
+      <code>
+        <path>onyx-core/api/web_tools.py</path>
+        <kind>router</kind>
+        <symbol>APIRouter</symbol>
+        <lines>1-520</lines>
+        <reason>Existing FastAPI router integrating search and scraping tools; new fill_form endpoint will follow same contract, authentication, and error semantics.</reason>
+      </code>
+      <code>
+        <path>onyx-core/services/tool_registry.py</path>
+        <kind>service</kind>
+        <symbol>ToolRegistry</symbol>
+        <lines>1-200</lines>
+        <reason>Agent tool registration + execution framework where fill_form tool must be registered with metadata, rate limiting, and audit hooks.</reason>
+      </code>
+    </code>
+    <dependencies>
+      <python>
+        <package name="playwright" version="1.41.1">Browser automation runtime for navigation and field interaction</package>
+        <package name="pydantic" version="2.6.1">Request/response schema validation for fill_form API</package>
+        <package name="redis" version="5.0.1">Caching + rate limiting backend reused for automation tooling</package>
+        <package name="fastapi" version="0.111.0">API layer hosting fill_form endpoint</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>fill_form tool contract</name>
+      <kind>tool</kind>
+      <signature>fill_form(url: HttpUrl, fields: List[FormField], submit: bool = False)</signature>
+      <path>onyx-core/agents/tools/fill_form.py</path>
+      <description>Defines agent-facing interface for form interactions, including validation, docstrings, and audit metadata.</description>
+    </interface>
+    <interface>
+      <name>BrowserManager.open_page</name>
+      <kind>method</kind>
+      <signature>async def open_page(self, url: str, wait_until: str = "networkidle") -&gt; Page</signature>
+      <path>onyx-core/services/browser_manager.py</path>
+      <description>Primary entry point for Playwright navigation with timeout handling and screenshot capture; reused for form fill workflow.</description>
+    </interface>
+    <interface>
+      <name>FieldDetector.find_field</name>
+      <kind>method</kind>
+      <signature>async def find_field(self, page: Page, descriptor: FieldDescriptor) -&gt; Locator</signature>
+      <path>onyx-core/services/field_detector.py</path>
+      <description>Selector resolution logic supporting label/name/placeholder heuristics, extended for radio/select controls.</description>
+    </interface>
+    <interface>
+      <name>AuditArtifactManager.store_screenshot</name>
+      <kind>method</kind>
+      <signature>async def store_screenshot(image: bytes, metadata: Dict) -&gt; str</signature>
+      <path>onyx-core/services/scraper_service.py</path>
+      <description>Screenshot storage helper reused for before/after snapshot persistence with metadata linking to tasks.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Follow automation test harness from Stories 7.1 and 7.3. Use pytest + asyncio with Playwright test fixtures. Include httpbin/formsite demos for integration tests. Measure end-to-end execution time ensuring &lt;5s target. Simulate failure cases (missing selectors, unsupported field types, navigation errors, submissions blocked). Validate screenshot artifacts and structured response payloads.</standards>
+    <locations>
+      <location>tests/web_automation/test_form_fill_service.py</location>
+      <location>tests/web_automation/test_form_fill_tool_contract.py</location>
+      <location>tests/performance/test_form_fill_latency.py</location>
+      <location>tests/integration/test_agent_fill_form.py</location>
+      <location>tests/regression/test_form_fill_error_paths.py</location>
+    </locations>
+    <ideas>
+      <idea ac="AC7.4.1">Invoke fill_form tool with valid payload and assert structured response schema</idea>
+      <idea ac="AC7.4.2">Navigate to httpbin.org/forms/post and verify all fields located via label/name heuristics</idea>
+      <idea ac="AC7.4.3">Exercise select, checkbox, and radio control interactions across sample forms</idea>
+      <idea ac="AC7.4.4">Test both dry-run (no submission) and submit flows verifying success detection logics</idea>
+      <idea ac="AC7.4.5">Assert response includes per-field success details and failure reasons for invalid selectors</idea>
+      <idea ac="AC7.4.6">Measure total runtime over 10 runs to confirm &lt;5s p95 for typical forms</idea>
+      <idea ac="AC7.4.7">Verify before/after screenshots saved with accessible storage URLs and referenced in result payload</idea>
+    </ideas>
+  </tests>
+</story-context>

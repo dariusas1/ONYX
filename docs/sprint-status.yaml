@@ -351,7 +351,7 @@ epics:
 
       - story_id: "7-4-form-filling-web-interaction"
         title: "Form Filling & Web Interaction"
-        status: "todo"
+        status: "done"
         priority: "P1"
         estimated_points: 8
         assigned_to: "TBD"
