@@ -2,7 +2,7 @@
 
 **Epic:** Epic 8 - Live Workspace (noVNC)
 **Story ID:** 8-3-mouse-keyboard-input-handling
-**Status:** drafted
+**Status:** ready-for-dev
 **Priority:** P1
 **Estimated Points:** 6
 **Assigned to:** TBD
@@ -102,6 +102,17 @@
 - Cross-browser compatibility testing
 - Mobile device testing on real hardware
 - Load testing with multiple simultaneous inputs
+
+## Dev Agent Record
+
+### Context Reference
+- [x] Context file generated: docs/stories/8-3-mouse-keyboard-input-handling.context.xml
+
+### Implementation Notes
+- Foundation story for comprehensive input handling with sub-500ms latency targets
+- Builds on noVNC WebSocket infrastructure from Story 8-1
+- Critical for natural user interaction with remote workspace
+- Mobile touch support required for tablets and phones
 
 ## Definition of Done
 

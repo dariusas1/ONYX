@@ -29,7 +29,8 @@
     "prom-client": "^15.0.0",
     "@tailwindcss/typography": "^0.5.10",
     "react-window": "^1.8.10",
-    "@types/react-window": "^1.8.8"
+    "@types/react-window": "^1.8.8",
+    "@novnc/novnc": "^1.4.0"
   },
   "devDependencies": {
     "eslint": "^8.0.0",

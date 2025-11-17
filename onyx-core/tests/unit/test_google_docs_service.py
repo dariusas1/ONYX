@@ -250,37 +250,168 @@ code block
         assert len(requests) > 0
 
     # Inline formatting tests
-    def test_apply_inline_formatting_bold(self, docs_service):
-        """Test bold text formatting"""
+    def test_inline_formatting_bold_cleaned_text(self, docs_service):
+        """Test bold formatting with cleaned text (no markers)"""
+        from utils.markdown_inline_parser import MarkdownInlineParser
+
+        parser = MarkdownInlineParser()
+
         text = "This is **bold** text"
-        requests = docs_service._apply_inline_formatting(text)
-        # Should contain updateTextStyle requests for bold
+        cleaned_text, elements = parser.parse_paragraph(text)
+
+        # Verify cleaned text has no markers
+        assert cleaned_text == "This is bold text"
+        assert "**" not in cleaned_text
+
+        # Verify element positions are correct in cleaned text
+        assert len(elements) == 1
+        assert elements[0].element_type == "bold"
+        assert elements[0].text == "bold"
+        assert elements[0].start_pos == 8
+        assert elements[0].end_pos == 12
+
+    def test_inline_formatting_italic_cleaned_text(self, docs_service):
+        """Test italic formatting with cleaned text (no markers)"""
+        from utils.markdown_inline_parser import MarkdownInlineParser
+
+        parser = MarkdownInlineParser()
+
+        text = "This is *italic* text"
+        cleaned_text, elements = parser.parse_paragraph(text)
+
+        # Verify cleaned text has no markers
+        assert cleaned_text == "This is italic text"
+        assert "*" not in cleaned_text
+
+        # Verify element positions
+        assert len(elements) == 1
+        assert elements[0].element_type == "italic"
+        assert elements[0].text == "italic"
+        assert elements[0].start_pos == 8
+        assert elements[0].end_pos == 14
+
+    def test_inline_formatting_link_cleaned_text(self, docs_service):
+        """Test link formatting with cleaned text (no markers)"""
+        from utils.markdown_inline_parser import MarkdownInlineParser
+
+        parser = MarkdownInlineParser()
+
+        text = "Check out [this link](https://example.com) today"
+        cleaned_text, elements = parser.parse_paragraph(text)
+
+        # Verify cleaned text has no brackets/parentheses from link syntax
+        assert cleaned_text == "Check out this link today"
+        assert "[" not in cleaned_text
+        assert "(" not in cleaned_text
+
+        # Verify element is correct
+        assert len(elements) == 1
+        assert elements[0].element_type == "link"
+        assert elements[0].text == "this link"
+        assert elements[0].url == "https://example.com"
+        assert elements[0].start_pos == 10
+        assert elements[0].end_pos == 19
+
+    def test_inline_formatting_code_cleaned_text(self, docs_service):
+        """Test code formatting with cleaned text (no markers)"""
+        from utils.markdown_inline_parser import MarkdownInlineParser
+
+        parser = MarkdownInlineParser()
+
+        text = "Use `print()` function"
+        cleaned_text, elements = parser.parse_paragraph(text)
+
+        # Verify cleaned text has no backticks
+        assert cleaned_text == "Use print() function"
+        assert "`" not in cleaned_text
+
+        # Verify element
+        assert len(elements) == 1
+        assert elements[0].element_type == "code"
+        assert elements[0].text == "print()"
+        assert elements[0].start_pos == 4
+        assert elements[0].end_pos == 11
+
+    def test_inline_formatting_mixed_bold_and_italic(self, docs_service):
+        """Test mixed bold and italic without overlap"""
+        from utils.markdown_inline_parser import MarkdownInlineParser
+
+        parser = MarkdownInlineParser()
+
+        text = "This is **bold** and *italic* text"
+        cleaned_text, elements = parser.parse_paragraph(text)
+
+        # Verify cleaned text
+        assert cleaned_text == "This is bold and italic text"
+
+        # Should have 2 elements: bold and italic
+        assert len(elements) == 2
+
+        # First element: bold
+        bold_elem = next(e for e in elements if e.element_type == "bold")
+        assert bold_elem.text == "bold"
+        assert bold_elem.start_pos == 8
+        assert bold_elem.end_pos == 12
+
+        # Second element: italic
+        italic_elem = next(e for e in elements if e.element_type == "italic")
+        assert italic_elem.text == "italic"
+        assert italic_elem.start_pos == 17
+        assert italic_elem.end_pos == 23
+
+    def test_paragraph_request_preserves_clean_text(self, docs_service):
+        """Test paragraph request creation with cleaned text"""
+        # Paragraph request should insert clean text without markers
+        requests = docs_service._create_paragraph_request("This is **bold** text")
+
+        # First request should be insertText
+        assert len(requests) > 0
+        assert "insertText" in requests[0]
+
+        # The inserted text should not have markdown markers
+        inserted_text = requests[0]["insertText"]["text"]
+        assert "**" not in inserted_text
+        assert "This is bold text" in inserted_text
+
+    def test_paragraph_request_applies_formatting(self, docs_service):
+        """Test that formatting requests are generated for inline elements"""
+        requests = docs_service._create_paragraph_request("This is **bold** text")
+
+        # Should have insertText + formatting requests
+        assert len(requests) > 1
+
+        # Should have updateTextStyle request for bold
+        formatting_requests = [r for r in requests if "updateTextStyle" in r]
+        assert len(formatting_requests) > 0
+
+        # Verify bold is being applied
         bold_found = any(
             r.get("updateTextStyle", {}).get("textStyle", {}).get("bold")
-            for r in requests
+            for r in formatting_requests
         )
-        # Note: This may not work as expected due to simplified implementation
-        # The real test would be with actual Google Docs API
+        assert bold_found, "Bold formatting should be applied"
 
-    def test_apply_inline_formatting_italic(self, docs_service):
-        """Test italic text formatting"""
-        text = "This is *italic* text"
-        requests = docs_service._apply_inline_formatting(text)
-        # Should contain updateTextStyle requests
-        assert len(requests) >= 0  # Implementation dependent
+    def test_paragraph_with_multiple_formatting_types(self, docs_service):
+        """Test paragraph with mixed formatting types"""
+        text = "Use **bold** text with *italic* and `code` formatting"
+        requests = docs_service._create_paragraph_request(text)
 
-    def test_apply_inline_formatting_link(self, docs_service):
-        """Test link formatting"""
-        text = "Check out [this link](https://example.com)"
-        requests = docs_service._apply_inline_formatting(text)
-        # Should contain link styling requests
-        assert len(requests) >= 0
+        # Should have insertText
+        assert any("insertText" in r for r in requests)
 
-    def test_apply_inline_formatting_code(self, docs_service):
-        """Test inline code formatting"""
-        text = "Use `print()` function"
-        requests = docs_service._apply_inline_formatting(text)
-        assert len(requests) >= 0
+        # Should have formatting requests
+        formatting_requests = [r for r in requests if "updateTextStyle" in r]
+        assert len(formatting_requests) >= 3, (
+            "Should have at least 3 formatting requests"
+        )
+
+        # Verify text is clean (no markers)
+        inserted_text = requests[0]["insertText"]["text"]
+        assert "**" not in inserted_text
+        assert "`" not in inserted_text
+        assert "bold" in inserted_text
+        assert "italic" in inserted_text
+        assert "code" in inserted_text
 
     # Formatting request creation tests
     def test_create_heading_request(self, docs_service):

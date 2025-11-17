@@ -195,6 +195,257 @@ so that I can generate strategic documents, reports, and insights that users can
 - [Source: Google Docs API v1 documentation] - API reference for document operations
 - [Source: Google Workspace authentication guides] - OAuth2 scope requirements
 
+## Senior Developer Review
+
+### Review Outcome: CHANGES REQUESTED
+
+**Severity Level:** HIGH - Critical inline formatting bug prevents AC6.2.3 compliance
+
+### Overview
+
+Story 6-2 implements a comprehensive Google Docs creation system with 67 passing tests and solid architecture. The implementation includes proper OAuth2 integration, database schema, API endpoints, and comprehensive test coverage. However, a critical bug in inline formatting (bold, italic, links, code) undermines the core feature and must be fixed before production deployment.
+
+### Strengths
+
+1. **Excellent Architecture & Design**
+   - Service-oriented pattern with clear separation of concerns (GoogleDocsService, handler, API)
+   - Proper async/await usage for non-blocking operations
+   - Singleton pattern for handler reuse reduces resource overhead
+   - Good dependency injection with GoogleOAuthService integration
+
+2. **Comprehensive Test Coverage (67 tests, 100% passing)**
+   - Unit tests cover markdown parsing, block detection, and request generation
+   - Integration tests validate end-to-end workflows
+   - Handler tests cover validation, error codes, and agent context
+   - Performance tests confirm <2s target met (actual: ~1.2s)
+
+3. **Robust Error Handling**
+   - Specific error codes for different failure scenarios (INVALID_TITLE, NOT_AUTHORIZED, QUOTA_EXCEEDED, PERMISSION_DENIED)
+   - Graceful degradation with non-blocking folder placement
+   - Proper permission validation before document creation
+   - Comprehensive logging for debugging and audit trails
+
+4. **Strong Markdown Block Parsing**
+   - Handles all heading levels (H1-H6) correctly
+   - Proper list detection (bullet, ordered) with multi-line support
+   - Code block extraction with fence detection
+   - Special characters and Unicode support
+   - Horizontal rule recognition
+
+5. **Database & Metadata Tracking**
+   - Proper schema with JSONB for agent context
+   - Non-blocking metadata storage (doesn't fail document creation if storage fails)
+   - Good indexing on user_id, doc_id, created_at
+   - Async database operations with error handling
+
+6. **OAuth2 Integration**
+   - Clean extension of existing GoogleOAuthService
+   - Proper scope configuration (documents + drive)
+   - Token encryption and secure storage reused from Story 6-1
+   - Good credential handling with fallback errors
+
+7. **API Design**
+   - Clear Pydantic request/response models
+   - Proper authentication via JWT
+   - RESTful endpoints following conventions
+   - Informative error responses
+
+### Critical Issues Found
+
+#### 1. **CRITICAL: Inline Formatting Bug - Markdown Markers Not Removed** (Severity: HIGH)
+**Location:** `onyx-core/services/google_docs.py:319-387` (_apply_inline_formatting method)
+
+**Problem:**
+The inline formatting implementation has a fundamental flaw that prevents it from working correctly. When markdown syntax like `**bold**` or `*italic*` is inserted into a Google Doc:
+
+1. `insertText` inserts the raw markdown text including markers: `"This is **bold** text"`
+2. `_apply_inline_formatting` finds the markdown patterns and calculates indices to format
+3. These indices point to the markdown markers themselves: indices [8:16] select `"**bold**"` 
+4. When `updateTextStyle` applies bold formatting to these indices, the resulting document shows: `**bold**` with bold styling (markers visible)
+5. Expected result: `bold` with bold styling (markers removed)
+
+**Why Tests Don't Catch This:**
+- Tests check that formatting requests are created (`assert len(requests) > 0`) but don't validate correctness
+- Tests don't mock the actual Google Docs API response and validate output
+- The inline formatting test has a comment admitting it "may not work as expected"
+
+**Impact on Acceptance Criteria:**
+- ❌ **AC6.2.3** FAILS: "Content formatting preserved (headings, lists, bold, italics, links)"
+  - Inline formatting (bold, italic, links, code) is non-functional
+  - Users will see literal markdown markers in their documents
+
+**Required Fix:**
+The implementation needs to:
+1. Strip markdown markers when inserting text
+2. Calculate formatting indices based on the cleaned text
+3. Test inline formatting end-to-end with actual marker verification
+
+Example of required changes:
+```python
+def _create_paragraph_request(self, content: str) -> List[Dict]:
+    # Clean markdown markers from content for insertion
+    clean_content = self._clean_markdown_markers(content)
+    requests = [{"insertText": {"text": clean_content + "\n"}}]
+    
+    # Calculate indices based on CLEAN text, not raw markdown
+    requests.extend(self._apply_inline_formatting_cleaned(content, clean_content))
+    return requests
+```
+
+---
+
+#### 2. **Test Coverage Gap - Inline Formatting Not Validated** (Severity: HIGH)
+**Location:** `onyx-core/tests/unit/test_google_docs_service.py:320-350`
+
+**Problem:**
+The inline formatting tests (`test_apply_inline_formatting_bold`, `test_apply_inline_formatting_italic`, etc.) only verify that requests are generated, not that they're correct:
+
+```python
+def test_apply_inline_formatting_bold(self, docs_service):
+    text = "This is **bold** text"
+    requests = docs_service._apply_inline_formatting(text)
+    bold_found = any(r.get("updateTextStyle", {}).get("textStyle", {}).get("bold")
+                     for r in requests)
+    # No assertion that bold_found is True!
+    # Comment admits: "This may not work as expected"
+```
+
+**Required Fix:**
+Add comprehensive validation tests:
+```python
+def test_apply_inline_formatting_bold_correct_indices(self, docs_service):
+    text = "This is **bold** text"
+    requests = docs_service._apply_inline_formatting(text)
+    # Verify indices point to "bold" (10-14), not "**bold**" (8-16)
+    # Verify actual formatting produces visible "bold" not "**bold**"
+    
+def test_markdown_to_gdocs_inline_formatting_e2e(self):
+    # Mock actual Google Docs response
+    # Verify final document contains "bold" not "**bold**"
+```
+
+---
+
+#### 3. **Italic Pattern Overlap Issue** (Severity: MEDIUM)
+**Location:** `onyx-core/services/google_docs.py:338`
+
+**Problem:**
+The italic pattern `r"\*(.+?)\*|\_(.+?)\_"` will match single `*` characters that are part of bold markers:
+
+- Input: `"**bold** and *italic*"`
+- The pattern will match: `"*bold*"` (WRONG) and `"*italic*"` (correct)
+- This causes incorrect formatting overlap
+
+**Impact:**
+- Italic formatting may apply to wrong text ranges
+- Bold and italic together may cause formatting conflicts
+
+**Required Fix:**
+Italic pattern should not match when preceded/followed by another `*`:
+```python
+italic_pattern = r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)|\_(.+?)\_"
+```
+
+---
+
+### Moderate Issues Found
+
+#### 4. **Missing Markdown Marker Cleanup** (Severity: MEDIUM)
+**Location:** Multiple locations in `_create_*_request` methods
+
+The following Google Docs formatting is applied directly to markdown syntax without cleaning:
+- Headings: The heading style is applied but content still shows `# ` prefix stripped (this is done correctly in the code)
+- Paragraphs: Inline markdown is not cleaned
+- Lists: List markers (`- `, `* `, `1. `) are cleaned but content should be verified
+- Code blocks: Content is correct (fence markers are removed)
+
+**Impact:** AC6.2.3 partially works for block-level formatting but fails for inline formatting
+
+---
+
+#### 5. **Unused Variable in _apply_inline_formatting** (Severity: LOW)
+**Location:** `onyx-core/services/google_docs.py:326`
+
+```python
+start = text[: match.start()].count("\n") == 0 and match.start() or 0
+```
+
+This `start` variable is calculated but never used. The actual `startIndex` uses `match.start()` directly. This suggests incomplete refactoring.
+
+**Fix:** Remove unused variable or clarify intent.
+
+---
+
+### Acceptance Criteria Assessment
+
+| AC | Status | Notes |
+|----|----|---|
+| **AC6.2.1** | ✅ PASS | Agent can invoke tool with title/content - implementation complete |
+| **AC6.2.2** | ✅ PASS | Document created in Google Drive with proper permissions verified |
+| **AC6.2.3** | ❌ **FAIL** | Content formatting PARTIALLY preserved - inline formatting broken, block formatting works |
+| **AC6.2.4** | ❌ **FAIL** | Markdown conversion broken for inline elements (bold, italic, links, code) |
+| **AC6.2.5** | ✅ PASS | Shareable URL returned correctly |
+| **AC6.2.6** | ✅ PASS | Folder placement respected (with non-blocking fallback) |
+| **AC6.2.7** | ✅ PASS | Comprehensive error handling with specific codes |
+| **AC6.2.8** | ✅ PASS | Performance target met (~1.2s, target <2s) |
+| **AC6.2.9** | ✅ PASS | Metadata tracking with agent context |
+| **AC6.2.10** | ✅ PASS | OAuth2 integration with Story 6-1 foundation |
+
+**Overall AC Compliance: 8/10 = 80%** (Was claimed 10/10)
+
+---
+
+### Code Quality Summary
+
+| Aspect | Rating | Notes |
+|--------|--------|-------|
+| Architecture | Excellent | Clear service pattern, good separation of concerns |
+| Test Coverage | Good | 67 tests, 100% passing, but shallow validation |
+| Error Handling | Excellent | Specific codes, graceful degradation, proper logging |
+| Performance | Excellent | Meets <2s target with margin (~1.2s typical) |
+| Security | Good | OAuth2 integration, permission checks, no credential exposure |
+| Documentation | Good | Docstrings present, clear method names, examples provided |
+| **Inline Formatting** | **Poor** | **BROKEN - Critical issue** |
+
+---
+
+### Required Changes for Approval
+
+**MUST FIX:**
+1. ✋ **Fix inline formatting implementation** - Strip markdown markers and recalculate indices
+2. ✋ **Add validation tests** - Verify inline formatting output doesn't contain markers
+3. ✋ **Fix italic pattern** - Prevent overlap with bold markers
+4. 🔧 **Remove unused variable** - Clean up line 326
+
+**SHOULD FIX (before production):**
+- Add end-to-end integration tests with mocked Google Docs API response validation
+- Document the markdown syntax limitations
+- Add performance monitoring for large documents (>500KB)
+
+---
+
+### Recommendation
+
+**Status: CHANGES REQUESTED - Do Not Merge**
+
+The implementation is architecturally sound and demonstrates good engineering practices in most areas. However, the critical inline formatting bug breaks core functionality and prevents compliance with AC6.2.3 and AC6.2.4. 
+
+**Estimated Fix Time:** 2-4 hours
+- 1-2 hours: Refactor inline formatting logic and marker cleanup
+- 1 hour: Add comprehensive validation tests  
+- 30 min: Pattern fixes and code cleanup
+- 30-60 min: Manual testing with Google Docs API
+
+**Next Steps:**
+1. Implement marker cleanup in paragraph creation
+2. Recalculate inline formatting indices based on cleaned text
+3. Add end-to-end validation tests
+4. Resubmit for re-review
+
+Once these issues are resolved, this story will be production-ready with solid foundation for future Google Workspace integration work.
+
+---
+
 ## Dev Agent Record
 
 ### Context Reference

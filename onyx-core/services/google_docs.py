@@ -16,6 +16,7 @@ from google.oauth2.credentials import Credentials
 
 from services.google_oauth import GoogleOAuthService
 from utils.database import get_db_service
+from utils.markdown_inline_parser import MarkdownInlineParser
 
 logger = logging.getLogger(__name__)
 
@@ -309,80 +310,101 @@ class GoogleDocsService:
 
     def _create_paragraph_request(self, content: str) -> List[Dict]:
         """Create a formatted paragraph with inline styling"""
-        requests = [{"insertText": {"text": content + "\n"}}]
+        parser = MarkdownInlineParser()
+        cleaned_text, inline_elements = parser.parse_paragraph(content)
 
-        # Apply inline formatting (bold, italic, links, code)
-        requests.extend(self._apply_inline_formatting(content))
+        # Insert cleaned text without markdown markers
+        requests = [{"insertText": {"text": cleaned_text + "\n"}}]
+
+        # Apply inline formatting with correct indices based on cleaned text
+        if inline_elements:
+            requests.extend(
+                self._apply_inline_formatting_cleaned(cleaned_text, inline_elements)
+            )
 
         return requests
 
-    def _apply_inline_formatting(self, text: str) -> List[Dict]:
-        """Apply inline formatting (bold, italic, links, code) to text"""
+    def _apply_inline_formatting_cleaned(
+        self, cleaned_text: str, inline_elements: List
+    ) -> List[Dict]:
+        """
+        Apply inline formatting using cleaned text and pre-calculated positions.
+
+        Args:
+            cleaned_text: Text with all markdown markers removed
+            inline_elements: List of InlineMarkdownElement with positions in cleaned_text
+
+        Returns:
+            List of updateTextStyle requests with correct indices
+        """
         requests = []
 
-        # Find and apply bold formatting
-        bold_pattern = r"\*\*(.+?)\*\*"
-        for match in re.finditer(bold_pattern, text):
-            start = text[: match.start()].count("\n") == 0 and match.start() or 0
-            requests.append(
-                {
-                    "updateTextStyle": {
-                        "range": {"startIndex": match.start(), "endIndex": match.end()},
-                        "textStyle": {"bold": True},
-                        "fields": "bold",
-                    }
-                }
-            )
+        # The text will have a leading character from insertText, so add 1 to all indices
+        # The newline is added after the text, so we don't need to account for it in positions
+        base_index = 1  # Account for document start
 
-        # Find and apply italic formatting
-        italic_pattern = r"\*(.+?)\*|\_(.+?)\_"
-        for match in re.finditer(italic_pattern, text):
-            requests.append(
-                {
-                    "updateTextStyle": {
-                        "range": {"startIndex": match.start(), "endIndex": match.end()},
-                        "textStyle": {"italic": True},
-                        "fields": "italic",
-                    }
-                }
-            )
+        for element in inline_elements:
+            start_idx = base_index + element.start_pos
+            end_idx = base_index + element.end_pos
 
-        # Find and apply link formatting
-        link_pattern = r"\[(.+?)\]\((.+?)\)"
-        for match in re.finditer(link_pattern, text):
-            requests.append(
-                {
-                    "updateTextStyle": {
-                        "range": {"startIndex": match.start(), "endIndex": match.end()},
-                        "textStyle": {"link": {"url": match.group(2)}},
-                        "fields": "link",
+            if element.element_type == "bold":
+                requests.append(
+                    {
+                        "updateTextStyle": {
+                            "range": {"startIndex": start_idx, "endIndex": end_idx},
+                            "textStyle": {"bold": True},
+                            "fields": "bold",
+                        }
                     }
-                }
-            )
+                )
 
-        # Find and apply code formatting
-        code_pattern = r"`(.+?)`"
-        for match in re.finditer(code_pattern, text):
-            requests.append(
-                {
-                    "updateTextStyle": {
-                        "range": {"startIndex": match.start(), "endIndex": match.end()},
-                        "textStyle": {
-                            "backgroundColor": {
-                                "color": {
-                                    "rgbColor": {
-                                        "red": 0.95,
-                                        "green": 0.95,
-                                        "blue": 0.95,
+            elif element.element_type == "italic":
+                requests.append(
+                    {
+                        "updateTextStyle": {
+                            "range": {"startIndex": start_idx, "endIndex": end_idx},
+                            "textStyle": {"italicized": True},
+                            "fields": "italicized",
+                        }
+                    }
+                )
+
+            elif element.element_type == "code":
+                requests.append(
+                    {
+                        "updateTextStyle": {
+                            "range": {"startIndex": start_idx, "endIndex": end_idx},
+                            "textStyle": {
+                                "fontFamily": "Courier New",
+                                "fontSize": {"magnitude": 10, "unit": "PT"},
+                                "backgroundColor": {
+                                    "color": {
+                                        "rgbColor": {
+                                            "red": 0.95,
+                                            "green": 0.95,
+                                            "blue": 0.95,
+                                        }
                                     }
-                                }
+                                },
                             },
-                            "fontFamily": "Courier New",
-                        },
-                        "fields": "backgroundColor,fontFamily",
+                            "fields": "fontFamily,fontSize,backgroundColor",
+                        }
                     }
-                }
-            )
+                )
+
+            elif element.element_type == "link":
+                requests.append(
+                    {
+                        "updateTextStyle": {
+                            "range": {"startIndex": start_idx, "endIndex": end_idx},
+                            "textStyle": {
+                                "link": {"url": element.url},
+                                "underline": True,
+                            },
+                            "fields": "link,underline",
+                        }
+                    }
+                )
 
         return requests
 
