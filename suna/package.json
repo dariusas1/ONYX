@@ -28,12 +28,9 @@
     "winston": "^3.11.0",
     "prom-client": "^15.0.0",
     "@tailwindcss/typography": "^0.5.10",
-    "novnc-client": "^1.4.0",
-    "@types/novnc-client": "^1.4.0",
     "react-window": "^1.8.10",
     "@types/react-window": "^1.8.8",
-    "next-auth": "^5.0.0",
-    "@auth/core": "^0.32.0"
+    "@novnc/novnc": "^1.4.0"
   },
   "devDependencies": {
     "eslint": "^8.0.0",
