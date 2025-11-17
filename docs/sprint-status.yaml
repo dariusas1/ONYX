@@ -160,10 +160,49 @@ epics:
 
   - epic_id: "epic-8"
     name: "Live Workspace (noVNC)"
-    status: "todo"
-    completion_percentage: 0
-    notes: "NoVNC server setup and UI integration pending. Foundation infrastructure in place."
-    stories: []
+    status: "in_progress"
+    completion_percentage: 20
+    notes: "Story 8-1 completed (noVNC server setup). Story 8-2 drafted and ready for development. VNC server foundation established with WebSocket proxy configuration."
+    stories:
+      - story_id: "8-1-novnc-server-setup"
+        title: "noVNC Server Setup"
+        status: "done"
+        priority: "P0"
+        estimated_points: 5
+        assigned_to: "Dev Team"
+        sprint: "Sprint 7"
+        created_date: "2025-11-15"
+        started_date: "2025-11-15"
+        completed_date: "2025-11-15"
+        blocked_reason: null
+        notes: "✅ COMPLETED: noVNC server successfully deployed and configured. WebSocket proxy working through Nginx. VNC server accessible at /vnc/ endpoint with proper routing."
+        dependencies: ["epic-1"]
+        acceptance_criteria:
+          - "AC8.1.1: noVNC server deployed in Docker container"
+          - "AC8.1.2: WebSocket proxy configured through Nginx"
+          - "AC8.1.3: VNC connection test successful"
+          - "AC8.1.4: Basic desktop access functional"
+      - story_id: "8-2-workspace-session-management"
+        title: "VNC Embed in Suna UI"
+        status: "drafted"
+        priority: "P1"
+        estimated_points: 5
+        assigned_to: null
+        sprint: "Sprint 8"
+        created_date: "2025-11-16"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "📝 DRAFTED: Story specification complete with detailed requirements, acceptance criteria, and implementation tasks. Ready for development assignment and planning. Builds on noVNC server foundation from Story 8-1."
+        dependencies: ["8-1-novnc-server-setup"]
+        acceptance_criteria:
+          - "AC8.2.1: VNC viewer embedded in Suna UI sidebar/overlay"
+          - "AC8.2.2: Mouse/keyboard input with <300ms latency"
+          - "AC8.2.3: Founder intervention workflow functional"
+          - "AC8.2.4: Quality controls implemented"
+          - "AC8.2.5: Cross-session persistence working"
+          - "AC8.2.6: Responsive layout across screen sizes"
+          - "AC8.2.7: Connection status monitoring functional"
 
   - epic_id: "epic-9"
     name: "Monitoring & DevOps"
