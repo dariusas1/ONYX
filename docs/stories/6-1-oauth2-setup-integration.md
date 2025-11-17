@@ -1,6 +1,6 @@
 # Story 6-1: OAuth2 Setup & Integration
 
-**Status:** ready-for-dev  
+**Status:** done  
 **Epic:** Epic 6 - Google Workspace Tools  
 **Story ID:** 6-1-oauth2-setup-integration  
 **Priority:** P0 (Critical/Blocking)  
