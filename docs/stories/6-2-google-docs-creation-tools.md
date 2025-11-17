@@ -1,6 +1,6 @@
 # Story 6.2: Google Docs Creation Tools
 
-Status: implementation-complete
+Status: done
 
 ## Story
 
