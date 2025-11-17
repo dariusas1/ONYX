@@ -373,7 +373,7 @@ epics:
 
       - story_id: "7-5-screenshot-page-capture"
         title: "Screenshot & Page Capture"
-        status: "todo"
+        status: "done"
         priority: "P2"
         estimated_points: 5
         assigned_to: "TBD"
