@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <story-id>8-2-workspace-session-management</story-id>
+  <story-title>VNC Embed in Suna UI</story-title>
+  <story-status>ready-for-dev</story-status>
+  <epic-id>epic-8</epic-id>
+  <epic-name>Live Workspace (noVNC)</epic-name>
+
+  <!-- Foundation from Completed Story 8-1 -->
+  <prerequisites>
+    <story id="8-1-novnc-server-setup" status="completed">
+      <title>noVNC Server Setup</title>
+      <completion-date>2025-11-15</completion-date>
+      <key-deliverables>
+        <deliverable>noVNC server deployed in Docker container</deliverable>
+        <deliverable>WebSocket proxy configured through Nginx</deliverable>
+        <deliverable>VNC connection test successful</deliverable>
+        <deliverable>Basic desktop access functional</deliverable>
+      </key-deliverables>
+      <integration-points>
+        <endpoint>/vnc/ routes to noVNC backend</endpoint>
+        <endpoint>/websockify handles WebSocket upgrades</endpoint>
+        <service>novnc_backend upstream configured</service>
+      </integration-points>
+    </story>
+  </prerequisites>
+
+  <!-- Current Story Requirements -->
+  <user-story>
+    <as-a>founder using Manus Internal</as-a>
+    <i-want>to see and control the live VNC workspace directly within the Suna UI</i-want>
+    <so-that>I can monitor agent actions in real-time and intervene when necessary without leaving the chat interface</so-that>
+  </user-story>
+
+  <story-statement>
+    Build and integrate a noVNC viewer component within the Suna UI that provides real-time desktop control capabilities. This includes embedding the VNC viewer in a sidebar/overlay, implementing WebSocket-based input handling with sub-500ms latency, and enabling founder intervention workflows to pause agents and take manual control of the workspace.
+  </story-statement>
+
+  <!-- Acceptance Criteria -->
+  <acceptance-criteria>
+    <ac id="AC1">
+      <given>the noVNC server is running from Story 8.1</given>
+      <when>the user opens the workspace panel in Suna UI</when>
+      <then>the VNC viewer displays the live desktop stream in a sidebar/overlay with proper sizing and responsive behavior</then>
+    </ac>
+    <ac id="AC2">
+      <given>the VNC viewer is displaying the desktop</given>
+      <when>the user moves their mouse or types on the keyboard</when>
+      <then>input events are transmitted to the VNC server with &lt;300ms latency and visible desktop response</then>
+    </ac>
+    <ac id="AC3">
+      <given>an agent is actively working in the workspace</given>
+      <when>the founder clicks the "Take Control" button</when>
+      <then>agent actions are paused and the founder gains exclusive mouse/keyboard control with visual feedback</then>
+    </ac>
+    <ac id="AC4">
+      <given>the VNC viewer is active</given>
+      <when>the user opens quality settings</when>
+      <then>they can adjust resolution, compression levels, and frame rate with immediate effect on performance</then>
+    </ac>
+    <ac id="AC5">
+      <given>the user has the workspace panel open</given>
+      <when>they refresh the browser or close and reopen the tab</when>
+      <then>the VNC connection automatically reconnects and restores the previous session state</then>
+    </ac>
+    <ac id="AC6">
+      <given>the VNC viewer is embedded in Suna UI</given>
+      <when>the browser window is resized or viewed on different screen sizes</when>
+      <then>the workspace panel adapts appropriately (collapsible sidebar, overlay modes, mobile support)</then>
+    </ac>
+    <ac id="AC7">
+      <given>the VNC workspace is active</given>
+      <when>connection issues occur (latency, disconnect, server down)</when>
+      <then>clear status indicators and error messages guide the user through recovery</then>
+    </ac>
+  </acceptance-criteria>
+
+  <!-- Technical Architecture Context -->
+  <architecture>
+    <frontend-components>
+      <component path="suna/src/components/Workspace/VNCViewer.tsx">
+        <description>Main noVNC viewer component using noVNC library</description>
+        <dependencies>noVNC library, WebSocket client</dependencies>
+      </component>
+      <component path="suna/src/components/Workspace/WorkspacePanel.tsx">
+        <description>Sidebar/overlay container for VNC viewer</description>
+        <dependencies>React state management, responsive design</dependencies>
+      </component>
+      <component path="suna/src/components/Workspace/ControlOverlay.tsx">
+        <description>Intervention controls (take control/release control)</description>
+        <dependencies>Agent coordination API</dependencies>
+      </component>
+      <component path="suna/src/components/Workspace/QualityControls.tsx">
+        <description>Resolution, compression settings panel</description>
+        <dependencies>noVNC API, local storage</dependencies>
+      </component>
+      <component path="suna/src/components/Workspace/ConnectionStatus.tsx">
+        <description>Status indicators and error display</description>
+        <dependencies>WebSocket status monitoring</dependencies>
+      </component>
+      <component path="suna/src/components/Workspace/WorkspaceProvider.tsx">
+        <description>State management for workspace</description>
+        <dependencies>React Context, session persistence</dependencies>
+      </component>
+    </frontend-components>
+
+    <api-endpoints>
+      <endpoint method="GET" path="/api/workspace/status">
+        <description>VNC server status and connection info</description>
+      </endpoint>
+      <endpoint method="POST" path="/api/workspace/take-control">
+        <description>Request control from agent</description>
+      </endpoint>
+      <endpoint method="POST" path="/api/workspace/release-control">
+        <description>Return control to agent</description>
+      </endpoint>
+      <endpoint method="GET" path="/api/workspace/settings">
+        <description>Quality settings and preferences</description>
+      </endpoint>
+      <endpoint method="POST" path="/api/workspace/settings">
+        <description>Update quality settings</description>
+      </endpoint>
+    </api-endpoints>
+
+    <integration-points>
+      <service name="noVNC Server">
+        <connection>WebSocket connection to ws://localhost:6080/websockify</connection>
+        <status>Completed from Story 8-1</status>
+      </service>
+      <service name="Agent Coordination">
+        <connection>Pause/resume signals via task management system</connection>
+        <status>Available from Epic 5</status>
+      </service>
+      <service name="Session Storage">
+        <connection>Workspace preferences and connection state in Redis</connection>
+        <status>Available from Epic 1</status>
+      </service>
+      <service name="Audit Logging">
+        <connection>All control changes logged to PostgreSQL</connection>
+        <status>Available from Epic 1</status>
+      </service>
+    </integration-points>
+
+    <performance-targets>
+      <target name="initial-connection">&lt;2 seconds to first frame</target>
+      <target name="input-latency">&lt;300ms round-trip (mouse move to desktop response)</target>
+      <target name="frame-rate">30fps at 1920x1080 resolution</target>
+      <target name="reconnection">&lt;5 seconds to restore session after disconnect</target>
+    </performance-targets>
+  </architecture>
+
+  <!-- Existing Project Context -->
+  <project-context>
+    <frontend-framework>
+      <name>Next.js 14</name>
+      <version>14.0.0</version>
+      <features>App Router, Server Components, TypeScript, Tailwind CSS</features>
+      <structure>
+        <directory path="suna/src/app/">Next.js App Router pages and API routes</directory>
+        <directory path="suna/src/components/">React components</directory>
+        <directory path="suna/src/hooks/">Custom React hooks</directory>
+        <directory path="suna/src/lib/">Utilities and types</directory>
+      </structure>
+    </frontend-framework>
+
+    <existing-components>
+      <component path="suna/src/components/ChatInterface.tsx">
+        <description>Main chat UI component with streaming support</description>
+        <state>Functional with placeholder streaming</state>
+      </component>
+      <component path="suna/src/components/Header.tsx">
+        <description>Application header with branding and navigation</description>
+        <state>Complete with menu placeholder</state>
+      </component>
+      <component path="suna/src/app/page.tsx">
+        <description>Main chat page layout</description>
+        <state>Basic chat interface rendered</state>
+      </component>
+      <component path="suna/src/app/layout.tsx">
+        <description>Root layout with Manus dark theme</description>
+        <state>Complete with font optimization</state>
+      </component>
+    </existing-components>
+
+    <styling-system>
+      <framework>Tailwind CSS v3.4+</framework>
+      <theme>Manus dark theme custom colors</theme>
+      <colors>
+        <color name="manus-bg">#0f0f0f</color>
+        <color name="manus-surface">#1a1a1a</color>
+        <color name="manus-accent">#3b82f6</color>
+        <color name="manus-text">#e5e7eb</color>
+      </colors>
+    </styling-system>
+
+    <infrastructure>
+      <nginx-configuration>
+        <file path="nginx/nginx.conf">
+          <status>Configured with WebSocket proxy support</status>
+          <routes>
+            <route from="/vnc/" to="http://novnc_backend:6080">VNC workspace routes</route>
+            <route from="/websockify" to="http://novnc_backend">WebSocket support for VNC</route>
+          </routes>
+          <features>CORS headers, rate limiting, SSL termination</features>
+        </file>
+      </nginx-configuration>
+
+      <docker-services>
+        <service name="suna" port="3000">Next.js frontend</service>
+        <service name="onyx-core" port="8080">Python RAG service</service>
+        <service name="novnc_backend" port="6080">noVNC server (completed)</service>
+        <service name="postgres" port="5432">Database</service>
+        <service name="redis" port="6379">Cache and sessions</service>
+        <service name="nginx" ports="80,443">Reverse proxy</service>
+      </docker-services>
+    </infrastructure>
+
+    <package-dependencies>
+      <frontend>
+        <package name="next" version="^14.0.0">React framework</package>
+        <package name="react" version="^18.0.0">UI library</package>
+        <package name="react-dom" version="^18.0.0">DOM renderer</package>
+        <package name="typescript" version="^5.3.0">Type safety</package>
+        <package name="tailwindcss" version="^3.4.0">Styling</package>
+        <package name="lucide-react" version="^0.294.0">Icons</package>
+        <package name="next-auth" version="^5.0.0">Authentication</package>
+      </frontend>
+      <testing>
+        <package name="jest" version="^29.0.0">Testing framework</package>
+        <package name="@testing-library/react" version="^14.0.0">React testing</package>
+        <package name="@testing-library/jest-dom" version="^6.0.0">DOM assertions</package>
+      </testing>
+    </package-dependencies>
+
+    <development-environment>
+      <runtime>Node.js 18+</runtime>
+      <package-manager>npm</package-manager>
+      <build-tools>Next.js native build</build-tools>
+      <testing>Jest + React Testing Library</testing>
+      <linting>ESLint + Prettier</linting>
+    </development-environment>
+  </project-context>
+
+  <!-- Related Stories and Dependencies -->
+  <story-relationships>
+    <dependencies>
+      <story id="8-1-novnc-server-setup" status="completed">
+        <relationship>must-have</relationship>
+        <description>VNC server foundation required for frontend integration</description>
+      </story>
+    </dependencies>
+
+    <next-stories>
+      <story id="8-3-workspace-session-management">
+        <relationship>follows-this-story</relationship>
+        <description>Will add session persistence and management</description>
+      </story>
+    </next-stories>
+  </story-relationships>
+
+  <!-- Implementation Context -->
+  <implementation-tasks>
+    <frontend-development>
+      <task id="8.2.1">Create VNC viewer React component using noVNC library</task>
+      <task id="8.2.2">Implement WebSocket connection to noVNC server</task>
+      <task id="8.2.3">Build responsive sidebar/overlay layout system</task>
+      <task id="8.2.4">Add mouse/keyboard event capture and transmission</task>
+      <task id="8.2.5">Implement quality controls (resolution, compression, frame rate)</task>
+      <task id="8.2.6">Create connection status indicators and error handling</task>
+      <task id="8.2.7">Build intervention workflow UI (take control/release control)</task>
+      <task id="8.2.8">Add session persistence and auto-reconnection logic</task>
+    </frontend-development>
+
+    <backend-integration>
+      <task id="8.2.9">Configure Nginx routes for WebSocket upgrade (/vnc/* paths)</task>
+      <task id="8.2.10">Implement session management API endpoints</task>
+      <task id="8.2.11">Add agent control coordination (pause/resume for intervention)</task>
+      <task id="8.2.12">Build audit logging for workspace actions</task>
+    </backend-integration>
+
+    <testing-validation>
+      <task id="8.2.13">Test VNC connection and display quality</task>
+      <task id="8.2.14">Validate input latency performance (&lt;300ms target)</task>
+      <task id="8.2.15">Test intervention workflow timing and state management</task>
+      <task id="8.2.16">Verify responsive design across screen sizes</task>
+      <task id="8.2.17">Test session persistence and reconnection scenarios</task>
+    </testing-validation>
+  </implementation-tasks>
+
+  <!-- Risk Assessment -->
+  <risks>
+    <risk severity="medium">
+      <description>Connection reliability issues with WebSocket</description>
+      <mitigation>Implement auto-reconnection with exponential backoff</mitigation>
+    </risk>
+    <risk severity="medium">
+      <description>Performance latency not meeting &lt;300ms target</description>
+      <mitigation>Optimize WebSocket framing and compression settings</mitigation>
+    </risk>
+    <risk severity="low">
+      <description>Browser compatibility issues with noVNC</description>
+      <mitigation>Test across Chrome, Firefox, Safari, Edge with fallbacks</mitigation>
+    </risk>
+    <risk severity="low">
+      <description>Mobile usability limitations with touch-only devices</description>
+      <mitigation>Graceful degradation for touch input mapping</mitigation>
+    </risk>
+  </risks>
+
+  <!-- Quality Requirements -->
+  <quality-gates>
+    <unit-tests>
+      <component>VNC viewer component mounting and connection logic</component>
+      <component>Input event handling and transmission</component>
+      <component>Quality control state management</component>
+      <component>Session persistence and recovery</component>
+    </unit-tests>
+
+    <integration-tests>
+      <scenario>End-to-end VNC connection flow</scenario>
+      <scenario>Agent intervention workflow timing</scenario>
+      <scenario>WebSocket reconnection scenarios</scenario>
+      <scenario>Cross-browser compatibility</scenario>
+    </integration-tests>
+
+    <performance-tests>
+      <metric>Latency measurement under load</metric>
+      <metric>Memory usage with extended sessions</metric>
+      <metric>Network interruption recovery</metric>
+    </performance-tests>
+
+    <manual-validation>
+      <scenario>Real-world founder workflow testing</scenario>
+      <scenario>Mobile and tablet usability validation</scenario>
+      <scenario>Connection failure scenario testing</scenario>
+      <scenario>Long-duration stability testing</scenario>
+    </manual-validation>
+  </quality-gates>
+
+  <!-- Success Criteria -->
+  <definition-of-done>
+    <criteria>VNC viewer successfully embedded in Suna UI</criteria>
+    <criteria>Real-time input transmission with measured latency &lt;300ms</criteria>
+    <criteria>Founder can pause agents and take control with visual feedback</criteria>
+    <criteria>Quality controls functional and responsive</criteria>
+    <criteria>Workspace persists across browser sessions</criteria>
+    <criteria>Connection status monitoring and error handling implemented</criteria>
+    <criteria>Responsive layout works on desktop, tablet, and mobile</criteria>
+    <criteria>All tasks completed and passed testing</criteria>
+    <criteria>Code reviewed and merged to main branch</criteria>
+    <criteria>Documentation updated</criteria>
+  </definition-of-done>
+
+  <!-- Development Notes -->
+  <implementation-notes>
+    <decision name="Layout approach">
+      <choice>Sidebar primary, overlay secondary for better UX</choice>
+      <rationale>Consistent with existing chat interface design</rationale>
+    </decision>
+
+    <decision name="Connection method">
+      <choice>WebSocket via Nginx proxy for reliability</choice>
+      <rationale>Leverages existing infrastructure from Story 8-1</rationale>
+    </decision>
+
+    <decision name="Quality defaults">
+      <choice>Balanced settings prioritizing responsiveness over resolution</choice>
+      <rationale>Ensures good user experience on various network conditions</rationale>
+    </decision>
+
+    <decision name="Security model">
+      <choice>Workspace access inherits user authentication, no additional auth required</choice>
+      <rationale>Simplifies implementation while maintaining security</rationale>
+    </decision>
+
+    <lessons-learned>
+      <lesson>noVNC server setup confirmed working with WebSocket proxy configuration</lesson>
+      <lesson>Performance baseline established with current VPS resources</lesson>
+      <lesson>Network topology validated for WebSocket upgrade handling</lesson>
+      <lesson>Integration patterns established for backend coordination</lesson>
+    </lessons-learned>
+  </implementation-notes>
+
+  <!-- File Context for Development -->
+  <development-files>
+    <existing-files>
+      <file path="suna/src/app/page.tsx">Main chat page - integration point for workspace panel</file>
+      <file path="suna/src/components/ChatInterface.tsx">Chat interface - potential workspace toggle location</file>
+      <file path="suna/src/components/Header.tsx">Header - potential workspace button location</file>
+      <file path="suna/package.json">Package dependencies - add noVNC library</file>
+      <file path="nginx/nginx.conf">Nginx configuration - WebSocket routes already configured</file>
+    </existing-files>
+
+    <files-to-create>
+      <file path="suna/src/components/Workspace/VNCViewer.tsx">Main VNC viewer component</file>
+      <file path="suna/src/components/Workspace/WorkspacePanel.tsx">Workspace container</file>
+      <file path="suna/src/components/Workspace/ControlOverlay.tsx">Intervention controls</file>
+      <file path="suna/src/components/Workspace/QualityControls.tsx">Settings panel</file>
+      <file path="suna/src/components/Workspace/ConnectionStatus.tsx">Status indicators</file>
+      <file path="suna/src/components/Workspace/WorkspaceProvider.tsx">State management</file>
+      <file path="suna/src/app/api/workspace/status/route.ts">Status API endpoint</file>
+      <file path="suna/src/app/api/workspace/take-control/route.ts">Control API endpoint</file>
+      <file path="suna/src/app/api/workspace/settings/route.ts">Settings API endpoint</file>
+    </files-to-create>
+  </development-files>
+
+  <!-- Package Additions Required -->
+  <package-additions>
+    <frontend>
+      <package name="novnc-client" version="^1.4.0">noVNC WebSocket client library</package>
+      <package name="@types/novnc-client" version="^1.4.0">TypeScript definitions</package>
+    </frontend>
+  </package-additions>
+
+  <!-- Context Generation -->
+  <context-metadata>
+    <generated-date>2025-11-16</generated-date>
+    <generated-by>story-context-workflow</generated-by>
+    <version>1.0</version>
+    <completeness>Complete - all relevant project artifacts included</completeness>
+  </context-metadata>
+</story-context>

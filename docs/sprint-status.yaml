@@ -27,259 +27,24 @@ epics:
 
   - epic_id: "epic-4"
     name: "Persistent Memory & Learning"
-    status: "ready-for-dev"
-    completion_percentage: 100
-    notes: "✅ READY FOR DEVELOPMENT: All stories ready for Sprint 8 development with comprehensive specifications. Story 4-1 complete with production-ready implementation. Stories 4-2, 4-3, 4-4 all ready with technical specifications, context.xml files, and acceptance criteria. Database schema, APIs, memory management foundation, injection system, standing instructions UI, and auto-summarization pipeline all specified and ready for development."
-    stories:
-      - story_id: "4-1-memory-schema-storage-system"
-        title: "Memory Schema & Storage System"
-        status: "done"
-        priority: "P0"
-        estimated_points: 8
-        assigned_to: "Dev Team"
-        sprint: "Sprint 8"
-        created_date: "2025-11-15"
-        started_date: "2025-11-15"
-        completed_date: "2025-11-15"
-        blocked_reason: null
-        notes: "✅ COMPLETED: Foundation story for memory system fully implemented. Database schema, CRUD operations, memory management functionality, API endpoints, security controls, and performance optimization complete. All 7 acceptance criteria satisfied. Code review approved - production ready."
-        dependencies: ["epic-1"]
-        acceptance_criteria:
-          - "AC4.1.1: Database schema implemented with all specified tables, indexes, and constraints"
-          - "AC4.1.2: Memory CRUD API endpoints functional with proper validation"
-          - "AC4.1.3: Memory categorization system with 7 standard categories"
-          - "AC4.1.4: Confidence scoring and source tracking implemented"
-          - "AC4.1.5: Performance targets achieved for memory operations"
-          - "AC4.1.6: Security and privacy controls implemented"
-          - "AC4.1.7: Memory search and filtering functionality"
-
-      - story_id: "4-2-standing-instructions-management"
-        title: "Standing Instructions Management"
-        status: "done"
-        priority: "P0"
-        estimated_points: 6
-        assigned_to: "Dev Team"
-        sprint: "Sprint 8"
-        created_date: "2025-11-15"
-        started_date: "2025-11-16"
-        completed_date: "2025-11-16"
-        blocked_reason: null
-        notes: "✅ COMPLETED: Standing instructions management system fully implemented with comprehensive UI/UX components. All 7 acceptance criteria satisfied including instruction CRUD operations, priority-based ordering, conflict resolution, and usage analytics. Code review approved - production ready."
-        dependencies: ["4-1-memory-schema-storage-system"]
-        acceptance_criteria:
-          - "AC4.2.1: Standing instructions database table and API endpoints implemented"
-          - "AC4.2.2: Comprehensive instruction management UI with full CRUD operations"
-          - "AC4.2.3: Instruction categorization system with 5 categories and icons"
-          - "AC4.2.4: Priority-based instruction ordering and conflict resolution"
-          - "AC4.2.5: Context-aware instruction evaluation and application"
-          - "AC4.2.6: Usage analytics and effectiveness tracking implemented"
-          - "AC4.2.7: Performance targets achieved for instruction operations"
-
-      - story_id: "4-3-memory-injection-agent-integration"
-        title: "Memory Injection & Agent Integration"
-        status: "done"
-        priority: "P0"
-        estimated_points: 7
-        assigned_to: "Dev Team"
-        sprint: "Sprint 8"
-        created_date: "2025-11-15"
-        started_date: "2025-11-15"
-        completed_date: "2025-11-15"
-        blocked_reason: null
-        notes: "✅ COMPLETED: Memory injection and agent integration system fully implemented with all 7 acceptance criteria satisfied. Components include MemoryInjectionService with top-5 retrieval and sub-50ms performance, ChatContextBuilder for LLM formatting, MemoryAwareAgent for Agent Mode integration, comprehensive REST API endpoints, database schema for standing instructions, and complete test suite. Performance targets achieved with cache hit rate ~85%. Ready for code review and testing."
-        dependencies: ["4-1-memory-schema-storage-system", "4-2-standing-instructions-management"]
-        acceptance_criteria:
-          - "AC4.3.1: Memory injection service implemented with top-5 memory retrieval"
-          - "AC4.3.2: LLM context builder with formatted injection system"
-          - "AC4.3.3: Chat integration with automatic memory injection"
-          - "AC4.3.4: Agent Mode integration with memory-aware execution"
-          - "AC4.3.5: Memory relevance scoring and ranking algorithm"
-          - "AC4.3.6: Performance optimizations and caching implemented"
-          - "AC4.3.7: Memory usage tracking and analytics"
-
-      - story_id: "4-4-auto-summarization-pipeline"
-        title: "Auto-Summarization Pipeline"
-        status: "ready-for-dev"
-        priority: "P1"
-        estimated_points: 8
-        assigned_to: "TBD"
-        sprint: "Sprint 8"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "✅ UNBLOCKED: Foundation (Story 4-1) complete. Auto-summarization pipeline ready for development. Auto-generates summaries every 10 messages using DeepSeek LLM. Background processing with BullMQ, >95% success rate target. Complete pipeline specification with error handling."
-        dependencies: ["4-1-memory-schema-storage-system", "4-3-memory-injection-agent-integration"]
-        acceptance_criteria:
-          - "AC4.4.1: Summarization trigger service implemented with message count detection"
-          - "AC4.4.2: LLM summarization service with DeepSeek integration"
-          - "AC4.4.3: Topic extraction and sentiment analysis functionality"
-          - "AC4.4.4: Background job processing with BullMQ and Redis"
-          - "AC4.4.5: Memory storage and integration with injection system"
-          - "AC4.4.6: Error handling and monitoring implemented"
-          - "AC4.4.7: Performance targets achieved with >95% success rate"
+    status: "in_progress"
+    completion_percentage: 75
+    notes: "Core memory schema and standing instructions implemented. Missing auto-summarization pipeline (Story 4.4)."
+    stories: []
 
   - epic_id: "epic-5"
     name: "Agent Mode & Task Execution"
     status: "in_progress"
-    completion_percentage: 85
-    notes: "Agent mode foundation complete with Story 5.1 toggle UI ready for development. Story context workflow completed with comprehensive technical specifications. Missing comprehensive approval gates system (Story 5.3)."
-    stories:
-      - story_id: "5-1-agent-mode-toggle-ui"
-        title: "Agent Mode Toggle & UI"
-        status: "in_review"
-        priority: "P0"
-        estimated_points: 6
-        assigned_to: "Dev Team"
-        sprint: "Sprint 7"
-        created_date: "2025-11-15"
-        started_date: "2025-11-16"
-        completed_date: "2025-11-16"
-        blocked_reason: null
-        notes: "Implementation complete! All 10 acceptance criteria implemented with full functionality. ToggleSwitch component with smooth animations, ModeContext with dual persistence (localStorage + Supabase), mode-specific UI adaptations, warning banners, and accessibility features. Components properly integrated with existing Suna architecture. Ready for code review and testing."
-        dependencies: ["epic-2"]
-        acceptance_criteria:
-          - "AC5.1.1: Toggle switch for Agent Mode is prominently displayed in Suna UI header (top-right)"
-          - "AC5.1.2: Toggle changes state seamlessly between Chat Mode and Agent Mode with visual feedback"
-          - "AC5.1.3: Agent Mode displays warning message: 'Agent will execute actions. Review approval gates.'"
-          - "AC5.1.4: 'Execute Task' button replaces 'Send' button in Agent Mode"
-          - "AC5.1.5: 'Send' button only shown in Chat Mode (no Agent Mode functionality)"
-          - "AC5.1.6: User's mode preference is saved to localStorage for immediate persistence"
-          - "AC5.1.7: Mode preference is synced to Supabase user_settings table for cross-device consistency"
-          - "AC5.1.8: Help text or tooltip explains Agent Mode functionality when user hovers over toggle"
-          - "AC5.1.9: Mode state is properly maintained across page refreshes and browser sessions"
-          - "AC5.1.10: UI clearly indicates current mode through visual styling (color, labels, icons)"
+    completion_percentage: 80
+    notes: "Agent mode toggle and task selection implemented. Missing comprehensive approval gates system (Story 5.3)."
+    stories: []
 
   - epic_id: "epic-6"
     name: "Google Workspace Tools"
-    status: "ready-for-dev"
-    completion_percentage: 100
-    notes: "Google Workspace integration complete with all 5 stories ready-for-dev. OAuth2 foundation ready, Google Docs creation/editing tools specified with context XML, Google Sheets creation and editing capabilities comprehensive. Final Story 6.5 completed with story-context workflow and 15 acceptance criteria covering advanced spreadsheet editing operations including formula validation, batch updates, and audit logging. All stories have comprehensive context XML with complete technical specifications, API integrations, and performance targets. Epic 6 fully ready for Sprint 8 development."
-    stories:
-      - story_id: "6-1-oauth2-setup-integration"
-        title: "OAuth2 Setup & Integration"
-        status: "ready-for-dev"
-        priority: "P0"
-        estimated_points: 13
-        assigned_to: "TBD"
-        sprint: "Sprint 6"
-        created_date: "2025-11-13"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "OAuth2 foundation complete with 95% implementation. Google OAuth2 service implemented with full authentication flow, encrypted token storage, database schema, API endpoints, comprehensive testing, and security measures. Ready for Stories 6.2-6.5 Google Workspace API integrations."
-        dependencies: ["epic-1"]
-        acceptance_criteria:
-          - "AC6.1.1: OAuth2 flow completes successfully with valid Google account"
-          - "AC6.1.2: Tokens refreshed automatically before 1-hour expiry buffer"
-          - "AC6.1.3: User can revoke access at any time"
-          - "AC6.1.4: Permissions validated before all operations"
-          - "AC6.1.5: No credentials stored in plaintext or logs"
-
-      - story_id: "6-2-google-docs-creation-tools"
-        title: "Google Docs Creation Tools"
-        status: "ready-for-dev"
-        priority: "P0"
-        estimated_points: 8
-        assigned_to: "TBD"
-        sprint: "Sprint 8"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "Google Docs creation tool drafted with comprehensive specification. Agent tool interface for creating formatted documents from Markdown content. Builds on OAuth2 foundation from Story 6.1. Includes 10 acceptance criteria covering document creation, formatting, permissions, and performance targets. Ready for development with 5 main tasks and 25 subtasks."
-        dependencies: ["6-1-oauth2-setup-integration"]
-        acceptance_criteria:
-          - "AC6.2.1: Agent can invoke create_google_doc tool with title and content parameters"
-          - "AC6.2.2: Google Doc created successfully in user's Google Drive with proper permissions"
-          - "AC6.2.3: Content formatting preserved (headings, lists, bold, italics, links)"
-          - "AC6.2.4: Markdown content properly converted to Google Docs format"
-          - "AC6.2.5: Document accessible via shareable Google Docs URL returned to user"
-          - "AC6.2.6: Document creation respects user's Google Drive folder structure"
-          - "AC6.2.7: Error handling for permission issues, quota limits, and API failures"
-          - "AC6.2.8: Performance target: document creation completes in <2 seconds"
-          - "AC6.2.9: Document metadata tracked (creation time, agent, task context)"
-          - "AC6.2.10: Integration with existing OAuth2 foundation for authentication"
-
-      - story_id: "6-3-google-docs-editing-capabilities"
-        title: "Google Docs Editing Capabilities"
-        status: "ready-for-dev"
-        priority: "P0"
-        estimated_points: 8
-        assigned_to: "TBD"
-        sprint: "Sprint 8"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "Google Docs editing capabilities with comprehensive story-context workflow completed. Agent tool interface for editing existing documents with content insertion, replacement, and formatting updates. Builds on OAuth2 foundation and document creation from Stories 6.1-6.2. Includes 10 acceptance criteria covering editing operations, version history, and performance targets. Context XML generated with all relevant project artifacts including OAuth2 service, Google Docs API v1 patterns, batchUpdate operations, and integration constraints. Ready for development with 8 main tasks and 32 subtasks."
-        dependencies: ["6-1-oauth2-setup-integration", "6-2-google-docs-creation-tools"]
-        acceptance_criteria:
-          - "AC6.3.1: Agent can invoke edit_google_doc tool with document_id and action parameters"
-          - "AC6.3.2: Document content insertion works at specified positions (beginning, middle, end)"
-          - "AC6.3.3: Text replacement functionality updates existing content within specified ranges"
-          - "AC6.3.4: Formatting updates preserve Google Docs structure (headings, lists, bold, italics)"
-          - "AC6.3.5: All changes are tracked in Google Docs version history for audit trails"
-          - "AC6.3.6: Error handling manages permission issues, invalid document IDs, and API failures"
-          - "AC6.3.7: Performance target: document editing operations complete in <2 seconds"
-          - "AC6.3.8: Integration with OAuth2 foundation for secure authentication and token management"
-          - "AC6.3.9: Markdown input properly converted to Google Docs format during editing"
-          - "AC6.3.10: Document metadata updated with edit timestamp and agent context"
-
-      - story_id: "6-4-google-sheets-creation-tools"
-        title: "Google Sheets Creation Tools"
-        status: "ready-for-dev"
-        priority: "P0"
-        estimated_points: 8
-        assigned_to: "TBD"
-        sprint: "Sprint 8"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "Google Sheets creation tool drafted with comprehensive specification. Agent tool interface for creating structured spreadsheets with data, formatting, and formulas. Builds on OAuth2 foundation from Story 6.1 and Google Workspace patterns from Stories 6.2-6.3. Includes 10 acceptance criteria covering sheet creation, data insertion, formatting, and performance targets. Ready for development with 8 main tasks and 40 subtasks covering advanced features like formulas, charts, and pivot tables."
-        dependencies: ["6-1-oauth2-setup-integration"]
-        acceptance_criteria:
-          - "AC6.4.1: Agent can invoke create_google_sheet tool with title, headers, and data parameters"
-          - "AC6.4.2: Google Sheet created successfully in user's Google Drive with proper permissions"
-          - "AC6.4.3: Headers are formatted with bold styling and background color for visibility"
-          - "AC6.4.4: Data rows are inserted correctly supporting 2D array data structures"
-          - "AC6.4.5: Sheet accessible via shareable Google Sheets URL returned to user"
-          - "AC6.4.6: Sheet creation respects user's Google Drive folder structure"
-          - "AC6.4.7: Returns sheet ID and share link for subsequent operations"
-          - "AC6.4.8: Error handling for permission issues, quota limits, and API failures"
-          - "AC6.4.9: Performance target: sheet creation completes in <2 seconds"
-          - "AC6.4.10: Integration with existing OAuth2 foundation for secure authentication"
-
-      - story_id: "6-5-google-sheets-editing-capabilities"
-        title: "Google Sheets Editing Capabilities"
-        status: "ready-for-dev"
-        priority: "P0"
-        estimated_points: 8
-        assigned_to: "TBD"
-        sprint: "Sprint 8"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "Google Sheets editing capabilities with comprehensive story-context workflow completed. Final story completing Google Workspace integration with tools for editing existing spreadsheets. Agent tool interface for data updates, formula insertion, and range operations. Builds on OAuth2 foundation (Story 6.1) and Google Sheets creation tools (Story 6.4). Includes 15 acceptance criteria covering editing operations, formula validation, batch operations, and performance targets. Context XML generated with all relevant project artifacts including OAuth2 service, Google Sheets API v4 patterns, formula validation engine, batch update operations, and complete integration constraints. Ready for development with 8 main tasks and 40 subtasks covering advanced features like formula validation, transaction management, and audit logging."
-        dependencies: ["6-1-oauth2-setup-integration", "6-4-google-sheets-creation-tools"]
-        acceptance_criteria:
-          - "AC6.5.1: Agent can invoke edit_google_sheet tool with spreadsheet_id, action_type, and action parameters"
-          - "AC6.5.2: Data update functionality modifies existing cell values while preserving formatting and structure"
-          - "AC6.5.3: Formula insertion creates valid Google Sheets formulas with proper validation and error handling"
-          - "AC6.5.4: Range operations support batch updates across multiple cells with consistent formatting"
-          - "AC6.5.5: Cell clearing operations remove data and formulas while preserving cell structure"
-          - "AC6.5.6: Formula validation ensures mathematical correctness before insertion with meaningful error messages"
-          - "AC6.5.7: Batch operations process up to 100 cells efficiently with rollback capability on failures"
-          - "AC6.5.8: Data type preservation maintains number, text, date, and boolean formatting during updates"
-          - "AC6.5.9: Conditional formatting updates work with existing rules without breaking visual design"
-          - "AC6.5.10: Comment and note insertion adds contextual information to edited cells"
-          - "AC6.5.11: Comprehensive error handling for invalid spreadsheet IDs, permission issues, and API failures"
-          - "AC6.5.12: Performance target: editing operations complete in <2 seconds for single cells, <5 seconds for batch operations"
-          - "AC6.5.13: Rate limiting respects Google Sheets API quotas with exponential backoff for retry operations"
-          - "AC6.5.14: Audit logging tracks all edits with timestamp, agent context, and change summaries"
-          - "AC6.5.15: Undo integration supports Google Sheets native version history for change tracking"
+    status: "in_progress"
+    completion_percentage: 70
+    notes: "OAuth2 setup complete. Missing full Doc/Sheet creation and editing tools implementation (Stories 6.2-6.5)."
+    stories: []
 
   - epic_id: "epic-7"
     name: "Web Automation & Search"
@@ -329,16 +94,16 @@ epics:
 
       - story_id: "7-3-url-scraping-content-extraction"
         title: "URL Scraping & Content Extraction"
-        status: "review"
+        status: "todo"
         priority: "P1"
         estimated_points: 8
-        assigned_to: "Dev Team"
+        assigned_to: "TBD"
         sprint: "Sprint 7"
-        created_date: "2025-11-15"
-        started_date: "2025-11-15"
-        completed_date: "2025-11-15"
+        created_date: null
+        started_date: null
+        completed_date: null
         blocked_reason: null
-        notes: "Implementation complete. All 7 acceptance criteria verified with comprehensive codebase including scraper service, API endpoints, caching, rate limiting, and testing. Browser Manager integration with Story 7-1 complete. Ready for code review and deployment testing."
+        notes: "Depends on 7-1 (Playwright) for JavaScript rendering"
         dependencies: ["7-1-playwright-browser-setup-headless-automation"]
         acceptance_criteria:
           - "AC7.3.1: Agent can invoke scrape_url tool with URL parameter"
@@ -351,7 +116,7 @@ epics:
 
       - story_id: "7-4-form-filling-web-interaction"
         title: "Form Filling & Web Interaction"
-        status: "done"
+        status: "todo"
         priority: "P1"
         estimated_points: 8
         assigned_to: "TBD"
@@ -395,212 +160,56 @@ epics:
 
   - epic_id: "epic-8"
     name: "Live Workspace (noVNC)"
-    status: "ready-for-dev"
-    completion_percentage: 40
-    notes: "Foundation story completed with enterprise-grade security implementation. Story 8-1 (noVNC Server Setup) approved with production-ready security controls. Stories 8-2 (VNC Embed) and 8-3 (Mouse & Keyboard Input) ready for development with comprehensive context XML and technical specifications. Ready for workspace interface implementation."
+    status: "in_progress"
+    completion_percentage: 20
+    notes: "Story 8-1 completed (noVNC server setup). Story 8-2 drafted and ready for development. VNC server foundation established with WebSocket proxy configuration."
     stories:
       - story_id: "8-1-novnc-server-setup"
         title: "noVNC Server Setup"
         status: "done"
         priority: "P0"
-        estimated_points: 8
-        assigned_to: "Claude Code Dev Agent"
+        estimated_points: 5
+        assigned_to: "Dev Team"
         sprint: "Sprint 7"
         created_date: "2025-11-15"
         started_date: "2025-11-15"
         completed_date: "2025-11-15"
         blocked_reason: null
-        notes: "Senior Developer Review (2025-11-15): ✅ APPROVED - OUTSTANDING security implementation with enterprise-grade controls. All 3 HIGH severity security issues resolved: (1) Strong password enforcement, (2) SSL/TLS termination, (3) Access controls with rate limiting. Added comprehensive security modules (auth-manager.sh, security-config.sh, SECURITY.md). Quality Score: 10/10 Security, 9.5/10 Code Quality. Production ready with defense-in-depth architecture. Foundation for Epic 8 workspace stories complete."
+        notes: "✅ COMPLETED: noVNC server successfully deployed and configured. WebSocket proxy working through Nginx. VNC server accessible at /vnc/ endpoint with proper routing."
         dependencies: ["epic-1"]
         acceptance_criteria:
-          - "AC8.1.1: VNC server listening on :6080 (WebSocket) when noVNC service started"
-          - "AC8.1.2: Supports resolution 1920x1080 with optimal display configuration"
-          - "AC8.1.3: Framerate 30fps target achieved with performance optimization"
-          - "AC8.1.4: Compression enabled for lower bandwidth usage"
-          - "AC8.1.5: VNC password set with encrypted storage mechanism"
-          - "AC8.1.6: Integration with Docker Compose and existing infrastructure"
-          - "AC8.1.7: Health checks and monitoring implemented for service reliability"
-
-      - story_id: "8-2-vnc-embed-suna-ui"
+          - "AC8.1.1: noVNC server deployed in Docker container"
+          - "AC8.1.2: WebSocket proxy configured through Nginx"
+          - "AC8.1.3: VNC connection test successful"
+          - "AC8.1.4: Basic desktop access functional"
+      - story_id: "8-2-workspace-session-management"
         title: "VNC Embed in Suna UI"
         status: "in_progress"
-        priority: "P0"
-        estimated_points: 8
+        priority: "P1"
+        estimated_points: 5
         assigned_to: "Dev Team"
         sprint: "Sprint 8"
-        created_date: "2025-11-15"
-        started_date: null
+        created_date: "2025-11-16"
+        started_date: "2025-11-16"
         completed_date: null
         blocked_reason: null
-        notes: "✅ READY FOR DEVELOPMENT: VNC viewer component integration with comprehensive context XML. Embed noVNC viewer in Suna UI with workspace panel, responsive design, and connection management. Includes 7 acceptance criteria covering workspace toggle, VNC connection, responsive design, workspace controls, error handling, performance optimization, and UI integration. Context XML generated with complete technical specifications, component interfaces, and integration patterns."
+        notes: "🚀 IN PROGRESS: Development started for VNC embedding in Suna UI. Implementing workspace session management with noVNC integration, responsive layout, and founder intervention workflows."
         dependencies: ["8-1-novnc-server-setup"]
         acceptance_criteria:
-          - "AC8.2.1: Workspace Toggle Control - VNC viewer appears in right sidebar (30% width)"
-          - "AC8.2.2: VNC Connection & Display - Connects to noVNC WebSocket server with real-time display"
-          - "AC8.2.3: Responsive Design - Adapts to screen size and works on tablets (landscape orientation)"
-          - "AC8.2.4: Workspace Controls - Maximize, disconnect/reconnect, quality settings available"
-          - "AC8.2.5: Error Handling - Graceful error handling with user feedback and retry mechanism"
-          - "AC8.2.6: Performance Optimization - Smooth real-time updates (target: 30fps) with minimal latency"
-          - "AC8.2.7: Integration with Suna UI - Workspace state maintained across page changes"
-
-      - story_id: "8-3-mouse-keyboard-input-handling"
-        title: "Mouse & Keyboard Input Handling"
-        status: "done"
-        priority: "P0"
-        estimated_points: 8
-        assigned_to: "Dev Team"
-        sprint: "Sprint 8"
-        created_date: "2025-11-15"
-        started_date: "2025-11-15"
-        completed_date: "2025-11-15"
-        blocked_reason: null
-        notes: "✅ COMPLETED: Comprehensive input handling system fully implemented with all 9 acceptance criteria satisfied. Complete input management architecture including InputManager, MouseHandler, KeyboardHandler, FocusManager, TouchHandler, InputValidator, and WebSocketInputService. Integrated with existing VNCViewer component with real-time metrics display. Performance targets achieved with <500ms latency, 60fps mouse tracking, comprehensive security controls, touch device support, and extensive test coverage."
-        dependencies: ["8-1-novnc-server-setup", "8-2-vnc-embed-suna-ui"]
-        acceptance_criteria:
-          - "AC8.3.1: Mouse Input Capture & Forwarding - Mouse movement events captured and forwarded with boundary detection"
-          - "AC8.3.2: Mouse Click & Drag Handling - Click, double-click, and drag operations work correctly with context menus"
-          - "AC8.3.3: Keyboard Input Capture & Forwarding - All key events captured and forwarded with proper character mapping"
-          - "AC8.3.4: Special Keys & Modifiers - Modifier keys tracked, common shortcuts (Ctrl+C/V/Z) work correctly"
-          - "AC8.3.5: Input Performance & Latency - <500ms round-trip time with smooth mouse movement and responsive keyboard"
-          - "AC8.3.6: Input Focus Management - Proper focus management between VNC and Suna UI components"
-          - "AC8.3.7: Error Handling & Connection Recovery - Input events queued during disconnections, automatic resume"
-          - "AC8.3.8: Security & Input Validation - Input validation, rate limiting, and comprehensive audit logging"
-          - "AC8.3.9: Touch Device Support - Touch events mapped to mouse events with multi-touch gesture support"
+          - "AC8.2.1: VNC viewer embedded in Suna UI sidebar/overlay"
+          - "AC8.2.2: Mouse/keyboard input with <300ms latency"
+          - "AC8.2.3: Founder intervention workflow functional"
+          - "AC8.2.4: Quality controls implemented"
+          - "AC8.2.5: Cross-session persistence working"
+          - "AC8.2.6: Responsive layout across screen sizes"
+          - "AC8.2.7: Connection status monitoring functional"
 
   - epic_id: "epic-9"
     name: "Monitoring & DevOps"
-    status: "contexted"
-    completion_percentage: 100
-    notes: "Comprehensive technical specification generated. Monitoring foundation present (Prometheus/Grafana). Complete technical specification covers metrics infrastructure, error tracking, backup automation, incident response, load testing, and launch readiness. Ready for development with 24 acceptance criteria and detailed implementation approach."
-    stories:
-      - story_id: "9-1-prometheus-metrics-grafana-dashboards"
-        title: "Prometheus Metrics & Grafana Dashboards"
-        status: "ready-for-dev"
-        priority: "P0"
-        estimated_points: 5
-        assigned_to: "TBD"
-        sprint: "TBD"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "Enhance existing Prometheus/Grafana setup with comprehensive metrics collection and dashboards for all services."
-        dependencies: ["epic-1"]
-        acceptance_criteria:
-          - "AC9.1.1: Prometheus successfully scrapes metrics from all 6 core services (Suna, Onyx, Qdrant, Supabase, Redis, LiteLLM) at 15-second intervals"
-          - "AC9.1.2: Grafana displays 5 operational dashboards (System Overview, Application Performance, LLM Metrics, RAG Performance, Infrastructure Health) updating every 10 seconds"
-          - "AC9.1.3: Metrics endpoint response time <10ms (p95) across all services"
-          - "AC9.1.4: Grafana dashboards accessible at http://localhost:3001 with authentication"
-
-      - story_id: "9-2-sentry-error-tracking-alerts"
-        title: "Sentry Error Tracking & Alerts"
-        status: "todo"
-        priority: "P0"
-        estimated_points: 5
-        assigned_to: "TBD"
-        sprint: "TBD"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "Implement comprehensive error tracking with Sentry integration, context capture, and alerting."
-        dependencies: ["epic-1"]
-        acceptance_criteria:
-          - "AC9.2.1: Sentry captures errors from both Node.js (Suna) and Python (Onyx) services with full stack traces"
-          - "AC9.2.2: Error context includes user_id, session_id, request details, and system breadcrumbs"
-          - "AC9.2.3: Critical errors trigger immediate Slack notifications; daily email digests sent at 9 AM UTC"
-          - "AC9.2.4: Error rate calculation excludes 404s and rate limit errors (configurable ignore list)"
-
-      - story_id: "9-3-daily-backup-automation"
-        title: "Daily Backup Automation"
-        status: "todo"
-        priority: "P1"
-        estimated_points: 8
-        assigned_to: "TBD"
-        sprint: "TBD"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "Automate daily backups of PostgreSQL, Qdrant, and Docker volumes with retention policy."
-        dependencies: ["epic-1"]
-        acceptance_criteria:
-          - "AC9.3.1: Automated daily backup job executes at 2 AM UTC with 99%+ success rate"
-          - "AC9.3.2: Backup includes PostgreSQL dump, Qdrant snapshot, and Docker volume archives"
-          - "AC9.3.3: Backup retention policy enforced: 7 daily + 4 weekly + 12 monthly backups"
-          - "AC9.3.4: Backup completion/failure notifications sent via Slack with detailed status"
-
-      - story_id: "9-4-backup-restoration-procedures"
-        title: "Backup Restoration Procedures"
-        status: "todo"
-        priority: "P1"
-        estimated_points: 5
-        assigned_to: "TBD"
-        sprint: "TBD"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "Document and test backup restoration procedures for emergency recovery."
-        dependencies: ["9-3-daily-backup-automation"]
-        acceptance_criteria:
-          - "AC9.4.1: Backup restoration procedure documented and tested monthly (dry run)"
-          - "AC9.4.2: Full system restoration from backup completes in <60 minutes"
-          - "AC9.4.3: Restoration procedure includes data integrity verification steps"
-
-      - story_id: "9-5-incident-response-playbooks"
-        title: "Incident Response Playbooks"
-        status: "todo"
-        priority: "P1"
-        estimated_points: 6
-        assigned_to: "TBD"
-        sprint: "TBD"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "Create comprehensive incident response playbooks for common failure scenarios."
-        dependencies: ["epic-1", "9-2-sentry-error-tracking-alerts"]
-        acceptance_criteria:
-          - "AC9.5.1: Incident response playbooks documented for 6 common scenarios (LLM service down, database failure, high resource usage, vector DB corruption, SSL expiry, sync job failure)"
-          - "AC9.5.2: Each playbook includes symptoms, diagnosis steps, resolution procedures, and prevention measures"
-          - "AC9.5.3: Playbooks stored in INCIDENTS.md with decision tree navigation"
-
-      - story_id: "9-6-load-testing-performance-baseline"
-        title: "Load Testing & Performance Baseline"
-        status: "todo"
-        priority: "P2"
-        estimated_points: 8
-        assigned_to: "TBD"
-        sprint: "TBD"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "Execute load testing to validate system performance and establish baseline metrics."
-        dependencies: ["epic-1", "9-1-prometheus-metrics-grafana-dashboards"]
-        acceptance_criteria:
-          - "AC9.6.1: Load test successfully simulates 20 concurrent users with 100 total messages"
-          - "AC9.6.2: Performance baseline established: chat latency <1.5s (p95), RAG retrieval <200ms, memory usage <12GB peak"
-          - "AC9.6.3: Load test results documented with bottleneck identification and remediation plan"
-
-      - story_id: "9-7-launch-checklist-go-live-procedures"
-        title: "Launch Checklist & Go-Live Procedures"
-        status: "todo"
-        priority: "P0"
-        estimated_points: 5
-        assigned_to: "TBD"
-        sprint: "TBD"
-        created_date: "2025-11-15"
-        started_date: null
-        completed_date: null
-        blocked_reason: null
-        notes: "Comprehensive launch preparation with checklist and go-live procedures for December 15 launch."
-        dependencies: ["9-1-prometheus-metrics-grafana-dashboards", "9-2-sentry-error-tracking-alerts", "9-3-daily-backup-automation", "9-4-backup-restoration-procedures", "9-5-incident-response-playbooks", "9-6-load-testing-performance-baseline"]
-        acceptance_criteria:
-          - "AC9.7.1: Launch checklist completed with all 10 sections verified (code, deployment, infrastructure, data, monitoring, security, documentation, testing, onboarding, communications)"
-          - "AC9.7.2: Go-live procedures documented with owner assignments and sign-off requirements"
-          - "AC9.7.3: Launch readiness confirmed by engineering, operations, and product management leads"
+    status: "todo"
+    completion_percentage: 0
+    notes: "Monitoring foundation present (Prometheus/Grafana). Missing comprehensive monitoring and alerting setup."
+    stories: []
 
 # Sprint Summary
 sprint_summary:
@@ -614,30 +223,28 @@ sprint_summary:
     - "Integrate browser automation, web search, content extraction"
 
   story_count:
-    total: 21
-    todo: 9
-    drafted: 5  # Story 8-3 added as ready-for-dev
-    ready: 5     # Stories 6.3, 6.4, 6.5, 8-2, 8-3 ready-for-dev
+    total: 5
+    todo: 3
+    drafted: 0
+    ready: 0
     in_progress: 0
     in_review: 0
-    done: 3
+    done: 2
     blocked: 0
 
   epic_status:
     total_epics: 9
-    complete: 5     # Epic 6 complete
-    ready_for_dev: 1  # Epic 8 ready for development with Stories 8-2, 8-3
-    in_progress: 1  # Epic 7 remains in progress
-    contexted: 2    # Epics 4 and 9 contexted
-    todo: 0
+    complete: 3
+    in_progress: 3
+    todo: 2
     blocked: 0
 
-  overall_completion: 67%  # Updated: Epic 8 ready-for-dev (40%), increased overall completion to 67%
+  overall_completion: 48%
 
   velocity:
     planned_points: 34
     completed_points: 13
-    completed_points_adjusted: 33  # Updated: added 29 points for Epic 4 stories
+    completed_points_adjusted: 25  # Including partial work from Epics 4-6
     remaining_points: 9
 
 # Team
@@ -649,16 +256,13 @@ team:
 
 # Notes
 notes: |
-  **STORY 5.1 COMPLETED**: Story 5.1 (Agent Mode Toggle & UI) drafted with comprehensive specifications. Foundation for Agent Mode functionality.
+  **VERIFICATION UPDATE**: Sprint status updated to reflect actual completion percentages after comprehensive codebase review.
 
   Epic Status Summary:
   - Epic 1-3: ✅ Truly Complete (100%)
-  - Epic 4: ✅ Complete (100%) - All stories drafted with comprehensive specifications
-  - Epic 5: 🔄 In Progress (85% complete, Story 5.1 foundation added)
-  - Epic 6: ✅ Complete (100%) - All 5 stories drafted with comprehensive specifications
+  - Epic 4-6: 🔄 In Progress (70-80% complete, missing key components)
   - Epic 7: 🔄 In Progress (40% complete, as expected)
-  - Epic 8: ✅ Ready for Development (40% complete, Stories 8-2 and 8-3 ready)
-  - Epic 9: ⏳ Contexted (100% specified)
+  - Epic 8-9: ⏳ Not Started (0% complete)
 
   Sprint 7 focus remains Epic 7 (Web Automation & Search), which is the critical
   capability for Manus Internal's strategic intelligence gathering.
@@ -666,11 +270,11 @@ notes: |
   Story 7-1 (Playwright Browser Setup) and 7-2 (Web Search) are complete
   and provide solid foundation for remaining stories.
 
-  **NEW**: Epic 4 Stories Ready for Sprint 8 Development:
-  - Story 4-1: Memory Schema & Storage System (8 points, P0) - ✅ COMPLETED
-  - Story 4-2: Standing Instructions Management (6 points, P0) - ✅ READY-FOR-DEV
-  - Story 4-3: Memory Injection & Agent Integration (7 points, P0) - ✅ READY-FOR-DEV
-  - Story 4-4: Auto-Summarization Pipeline (8 points, P1) - ✅ READY-FOR-DEV
+  **Key Issues Identified**: Over-reporting of completion status for Epics 4-6. Need to
+  focus on completing missing components:
+  - Epic 4: Auto-summarization pipeline
+  - Epic 5: Comprehensive approval gates system
+  - Epic 6: Google Docs/Sheets creation and editing tools
 
   Performance targets remain aggressive for browser operations to ensure
   good user experience in Agent Mode. Resource management is critical to avoid memory
