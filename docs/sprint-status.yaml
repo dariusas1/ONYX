@@ -317,7 +317,7 @@ epics:
     name: "Live Workspace (noVNC)"
     status: "in_progress"
     completion_percentage: 20
-    notes: "First story drafted. Foundation infrastructure in place. noVNC server setup ready for development."
+    notes: "Two stories drafted. Foundation infrastructure in place. noVNC server setup and input handling ready for development."
     stories:
       - story_id: "8-1-novnc-server-setup"
         title: "noVNC Server Setup"
@@ -340,6 +340,27 @@ epics:
           - "AC8.1.5: VNC password set with encrypted storage mechanism"
           - "AC8.1.6: Integration with Docker Compose and existing infrastructure"
           - "AC8.1.7: Health checks and monitoring implemented for service reliability"
+      - story_id: "8-3-mouse-keyboard-input-handling"
+        title: "Mouse & Keyboard Input Handling"
+        status: "drafted"
+        priority: "P1"
+        estimated_points: 6
+        assigned_to: "TBD"
+        sprint: "Sprint 8"
+        created_date: "2025-11-16"
+        started_date: null
+        completed_date: null
+        blocked_reason: null
+        notes: "Build comprehensive input handling with special key support, mobile input handling, and performance optimization for sub-500ms latency."
+        dependencies: ["8-1-novnc-server-setup"]
+        acceptance_criteria:
+          - "AC8.3.1: Mouse movement captured and forwarded to VNC server"
+          - "AC8.3.2: Mouse clicks (left/right/middle) executed on remote desktop"
+          - "AC8.3.3: Keyboard input captured and sent to remote desktop"
+          - "AC8.3.4: Special keys (Cmd/Ctrl/Alt/Shift) handled correctly"
+          - "AC8.3.5: Latency <500ms round-trip (browser → VNC → VPS → browser)"
+          - "AC8.3.6: Cursor visibility and tracking on remote desktop"
+          - "AC8.3.7: Mobile touch input support for tablets and phones"
 
   - epic_id: "epic-9"
     name: "Monitoring & DevOps"

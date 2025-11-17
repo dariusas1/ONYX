@@ -10,7 +10,7 @@ import base64
 from typing import Tuple
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import logging
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class EncryptionService:
             key_bytes = bytes.fromhex(self.encryption_key)
 
             # Derive a Fernet-compatible key using PBKDF2
-            kdf = PBKDF2(
+            kdf = PBKDF2HMAC(
                 algorithm=hashes.SHA256(),
                 length=32,
                 salt=b"onyx-encryption-salt",  # Static salt for key derivation

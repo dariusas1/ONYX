@@ -10,6 +10,7 @@ from pydantic import BaseModel
 import logging
 
 from services.google_oauth import get_oauth_service
+from services.google_docs import GoogleDocsService
 from services.sync_scheduler import get_scheduler
 from utils.database import get_db_service
 from utils.auth import get_current_user, require_authenticated_user
@@ -41,6 +42,26 @@ class ScheduleSyncRequest(BaseModel):
     immediate: bool = False
 
 
+class CreateGoogleDocRequest(BaseModel):
+    """Request to create a Google Doc"""
+
+    title: str
+    content: str  # Markdown-formatted content
+    folder_id: Optional[str] = None
+    agent_context: Optional[Dict[str, Any]] = None
+
+
+class GoogleDocResponse(BaseModel):
+    """Response for Google Doc creation"""
+
+    doc_id: str
+    url: str
+    title: str
+    created_at: str
+    performance_ms: int
+    metadata_stored: bool
+
+
 # =============================================================================
 # OAuth Endpoints
 # =============================================================================
@@ -49,7 +70,7 @@ class ScheduleSyncRequest(BaseModel):
 @router.get("/auth/authorize")
 async def get_authorization_url(
     current_user: dict = Depends(require_authenticated_user),
-    state: Optional[str] = None
+    state: Optional[str] = None,
 ):
     """
     Get Google OAuth authorization URL
@@ -91,7 +112,7 @@ async def get_authorization_url(
 @router.post("/auth/callback")
 async def oauth_callback(
     callback_data: OAuthCallbackRequest,
-    current_user: dict = Depends(require_authenticated_user)
+    current_user: dict = Depends(require_authenticated_user),
 ):
     """
     Handle OAuth callback after user authorizes
@@ -112,8 +133,8 @@ async def oauth_callback(
         #     raise HTTPException(status_code=400, detail="Invalid state parameter")
 
         # Exchange authorization code for tokens
-        access_token, refresh_token, expiry, scopes = oauth_service.exchange_code_for_tokens(
-            callback_data.code
+        access_token, refresh_token, expiry, scopes = (
+            oauth_service.exchange_code_for_tokens(callback_data.code)
         )
 
         # Store encrypted tokens
@@ -144,7 +165,7 @@ async def oauth_callback(
 
 @router.post("/auth/disconnect")
 async def disconnect_google_drive(
-    current_user: dict = Depends(require_authenticated_user)
+    current_user: dict = Depends(require_authenticated_user),
 ):
     """
     Disconnect Google Drive for a user (revoke tokens)
@@ -179,15 +200,11 @@ async def disconnect_google_drive(
 
     except Exception as e:
         logger.error(f"Failed to disconnect Google Drive: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to disconnect: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to disconnect: {str(e)}")
 
 
 @router.get("/auth/status")
-async def get_auth_status(
-    current_user: dict = Depends(require_authenticated_user)
-):
+async def get_auth_status(current_user: dict = Depends(require_authenticated_user)):
     """
     Check if user has authenticated Google Drive
 
@@ -225,8 +242,7 @@ async def get_auth_status(
 
 @router.post("/sync")
 async def trigger_sync(
-    sync_request: SyncRequest,
-    current_user: dict = Depends(require_authenticated_user)
+    sync_request: SyncRequest, current_user: dict = Depends(require_authenticated_user)
 ):
     """
     Trigger a manual Google Drive sync
@@ -268,8 +284,7 @@ async def trigger_sync(
 
 @router.get("/sync/status/{job_id}")
 async def get_sync_status(
-    job_id: str,
-    current_user: dict = Depends(require_authenticated_user)
+    job_id: str, current_user: dict = Depends(require_authenticated_user)
 ):
     """
     Get sync job status
@@ -292,7 +307,7 @@ async def get_sync_status(
         if str(job["user_id"]) != current_user["user_id"]:
             raise HTTPException(
                 status_code=403,
-                detail="Access denied: This sync job belongs to another user"
+                detail="Access denied: This sync job belongs to another user",
             )
 
         return {
@@ -302,8 +317,12 @@ async def get_sync_status(
                 "user_id": str(job["user_id"]),
                 "source_type": job["source_type"],
                 "status": job["status"],
-                "started_at": job["started_at"].isoformat() if job["started_at"] else None,
-                "completed_at": job["completed_at"].isoformat() if job["completed_at"] else None,
+                "started_at": job["started_at"].isoformat()
+                if job["started_at"]
+                else None,
+                "completed_at": job["completed_at"].isoformat()
+                if job["completed_at"]
+                else None,
                 "documents_synced": job["documents_synced"],
                 "documents_failed": job["documents_failed"],
                 "error_message": job["error_message"],
@@ -323,7 +342,7 @@ async def get_sync_status(
 @router.get("/sync/history")
 async def get_sync_history(
     current_user: dict = Depends(require_authenticated_user),
-    limit: int = Query(10, le=50)
+    limit: int = Query(10, le=50),
 ):
     """
     Get sync job history for a user
@@ -346,8 +365,12 @@ async def get_sync_history(
                 "job_id": str(job["id"]),
                 "source_type": job["source_type"],
                 "status": job["status"],
-                "started_at": job["started_at"].isoformat() if job["started_at"] else None,
-                "completed_at": job["completed_at"].isoformat() if job["completed_at"] else None,
+                "started_at": job["started_at"].isoformat()
+                if job["started_at"]
+                else None,
+                "completed_at": job["completed_at"].isoformat()
+                if job["completed_at"]
+                else None,
                 "documents_synced": job["documents_synced"],
                 "documents_failed": job["documents_failed"],
                 "error_message": job.get("error_message"),
@@ -374,7 +397,7 @@ async def get_sync_history(
 @router.post("/sync/schedule")
 async def schedule_sync(
     schedule_request: ScheduleSyncRequest,
-    current_user: dict = Depends(require_authenticated_user)
+    current_user: dict = Depends(require_authenticated_user),
 ):
     """
     Schedule periodic sync for a user
@@ -415,9 +438,7 @@ async def schedule_sync(
 
 
 @router.delete("/sync/schedule")
-async def unschedule_sync(
-    current_user: dict = Depends(require_authenticated_user)
-):
+async def unschedule_sync(current_user: dict = Depends(require_authenticated_user)):
     """
     Unschedule periodic sync for a user
 
@@ -448,9 +469,7 @@ async def unschedule_sync(
 
 
 @router.get("/sync/dashboard")
-async def get_sync_dashboard(
-    current_user: dict = Depends(require_authenticated_user)
-):
+async def get_sync_dashboard(current_user: dict = Depends(require_authenticated_user)):
     """
     Get comprehensive sync status for dashboard display
 
@@ -478,7 +497,9 @@ async def get_sync_dashboard(
         # Calculate next sync time (if scheduled)
         scheduler = get_scheduler()
         scheduled_jobs = [
-            job for job in scheduler.get_scheduled_jobs() if job["job_id"] == f"sync-{user_id}"
+            job
+            for job in scheduler.get_scheduled_jobs()
+            if job["job_id"] == f"sync-{user_id}"
         ]
         next_sync = scheduled_jobs[0]["next_run"] if scheduled_jobs else None
 
@@ -487,17 +508,25 @@ async def get_sync_dashboard(
             "data": {
                 "user_id": user_id,
                 "is_authenticated": is_authenticated,
-                "last_sync_at": sync_state["last_sync_at"].isoformat() if sync_state and sync_state.get("last_sync_at") else None,
+                "last_sync_at": sync_state["last_sync_at"].isoformat()
+                if sync_state and sync_state.get("last_sync_at")
+                else None,
                 "files_synced": sync_state["files_synced"] if sync_state else 0,
                 "files_failed": sync_state["files_failed"] if sync_state else 0,
                 "last_error": sync_state.get("last_error") if sync_state else None,
                 "latest_job": {
                     "status": latest_job["status"],
-                    "started_at": latest_job["started_at"].isoformat() if latest_job["started_at"] else None,
-                    "completed_at": latest_job["completed_at"].isoformat() if latest_job["completed_at"] else None,
+                    "started_at": latest_job["started_at"].isoformat()
+                    if latest_job["started_at"]
+                    else None,
+                    "completed_at": latest_job["completed_at"].isoformat()
+                    if latest_job["completed_at"]
+                    else None,
                     "documents_synced": latest_job["documents_synced"],
                     "documents_failed": latest_job["documents_failed"],
-                } if latest_job else None,
+                }
+                if latest_job
+                else None,
                 "next_sync_at": next_sync,
                 "is_scheduled": len(scheduled_jobs) > 0,
             },
@@ -507,4 +536,102 @@ async def get_sync_dashboard(
         logger.error(f"Failed to get sync dashboard: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to get dashboard data: {str(e)}"
+        )
+
+
+# =============================================================================
+# Google Docs Endpoints
+# =============================================================================
+
+
+@router.post("/docs/create", response_model=GoogleDocResponse)
+async def create_google_doc(
+    request: CreateGoogleDocRequest,
+    current_user: dict = Depends(require_authenticated_user),
+):
+    """
+    Create a new Google Doc with formatted content
+
+    Args:
+        request: Document creation request with title and content
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        Created document metadata including shareable URL
+    """
+    try:
+        user_id = current_user["user_id"]
+
+        # Validate inputs
+        if not request.title or not request.title.strip():
+            raise HTTPException(
+                status_code=400, detail="Document title cannot be empty"
+            )
+        if not request.content or not request.content.strip():
+            raise HTTPException(
+                status_code=400, detail="Document content cannot be empty"
+            )
+
+        # Create document
+        docs_service = GoogleDocsService()
+        result = await docs_service.create_document(
+            user_id=user_id,
+            title=request.title,
+            content_markdown=request.content,
+            folder_id=request.folder_id,
+            agent_context=request.agent_context,
+        )
+
+        return GoogleDocResponse(**result)
+
+    except ValueError as e:
+        logger.error(f"Invalid input for document creation: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        logger.error(f"Permission denied for user {current_user['user_id']}: {e}")
+        raise HTTPException(
+            status_code=403,
+            detail="User not authorized for Google Docs. Please authorize first via /api/google-drive/auth/authorize",
+        )
+    except Exception as e:
+        logger.error(f"Failed to create Google Doc: {e}")
+        if "quota" in str(e).lower():
+            raise HTTPException(status_code=429, detail="Google Drive quota exceeded")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create document: {str(e)}"
+        )
+
+
+@router.get("/docs/{doc_id}")
+async def get_google_doc(
+    doc_id: str, current_user: dict = Depends(require_authenticated_user)
+):
+    """
+    Get Google Doc metadata and content
+
+    Args:
+        doc_id: Google Docs document ID
+        current_user: Authenticated user from JWT token
+
+    Returns:
+        Document metadata and content
+    """
+    try:
+        user_id = current_user["user_id"]
+        docs_service = GoogleDocsService()
+
+        document = docs_service.get_document(user_id, doc_id)
+        if not document:
+            raise HTTPException(
+                status_code=404, detail="Document not found or not accessible"
+            )
+
+        return {"success": True, "data": document}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to retrieve Google Doc {doc_id}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve document: {str(e)}"
         )

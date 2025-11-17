@@ -7,11 +7,20 @@ This module provides database operations for OAuth tokens, sync state, and sync 
 import os
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-import psycopg2
-from psycopg2.extras import RealDictCursor, Json
 import logging
 
 logger = logging.getLogger(__name__)
+
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor, Json
+except ImportError:  # pragma: no cover - executed only when dependency missing
+    psycopg2 = None  # type: ignore
+    RealDictCursor = Json = None  # type: ignore
+    logger.warning(
+        "psycopg2 is not installed. DatabaseService will raise if used. "
+        "Install psycopg2-binary per onyx-core/requirements.txt."
+    )
 
 
 class DatabaseService:
@@ -34,6 +43,10 @@ class DatabaseService:
 
     def connect(self):
         """Establish database connection"""
+        if psycopg2 is None:
+            raise RuntimeError(
+                "psycopg2 is not installed. Install dependencies before using DatabaseService."
+            )
         try:
             if self.conn is None or self.conn.closed:
                 self.conn = psycopg2.connect(self.connection_string)

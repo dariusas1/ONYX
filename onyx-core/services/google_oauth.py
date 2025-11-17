@@ -5,7 +5,7 @@ This module handles Google OAuth2 authentication flow for Google Drive access.
 """
 
 import os
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 from datetime import datetime, timedelta
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
@@ -30,7 +30,8 @@ class GoogleOAuthService:
         )
 
         self.scopes = [
-            "https://www.googleapis.com/auth/drive.readonly",
+            "https://www.googleapis.com/auth/drive",  # Full Drive access for doc creation/editing
+            "https://www.googleapis.com/auth/documents",  # Google Docs API for doc creation
             "https://www.googleapis.com/auth/drive.metadata.readonly",
             "openid",
             "https://www.googleapis.com/auth/userinfo.email",
@@ -126,7 +127,9 @@ class GoogleOAuthService:
             refresh_token = creds.refresh_token
 
             if not refresh_token:
-                logger.warning("No refresh token received. User may need to re-authorize.")
+                logger.warning(
+                    "No refresh token received. User may need to re-authorize."
+                )
                 raise ValueError("No refresh token received from Google")
 
             # Calculate expiry
@@ -166,8 +169,8 @@ class GoogleOAuthService:
         """
         try:
             # Encrypt tokens
-            encrypted_access, encrypted_refresh = self.encryption_service.encrypt_token_pair(
-                access_token, refresh_token
+            encrypted_access, encrypted_refresh = (
+                self.encryption_service.encrypt_token_pair(access_token, refresh_token)
             )
 
             # Store in database

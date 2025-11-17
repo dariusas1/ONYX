@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -6,15 +7,31 @@ import os
 from datetime import datetime
 from typing import Optional, Dict, Any
 from health import router as health_router
-from api.google_drive import router as google_drive_router
 from api.memories import router as memories_router
 from api.web_tools import router as web_tools_router, startup_event as web_tools_startup, shutdown_event as web_tools_shutdown
 from contextlib import asynccontextmanager
 from rag_service import get_rag_service
-from services.sync_scheduler import start_scheduler, stop_scheduler
 from services.memory_service import get_memory_service
 from utils.auth import require_authenticated_user
-import logging
+
+# Optional imports guarded for developer environments without full dependencies
+try:  # pragma: no cover - exercised only when deps missing
+    from api.google_drive import router as google_drive_router
+except Exception as e:  # pragma: no cover - import guard
+    logging.getLogger(__name__).warning(
+        "Google Drive router disabled (import error: %s). Install full deps to enable.", e
+    )
+    google_drive_router = None
+
+try:  # pragma: no cover - import guard
+    from services.sync_scheduler import start_scheduler, stop_scheduler
+    SCHEDULER_AVAILABLE = True
+except Exception as e:  # pragma: no cover
+    logging.getLogger(__name__).warning(
+        "Sync scheduler disabled (import error: %s).", e
+    )
+    start_scheduler = stop_scheduler = None
+    SCHEDULER_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -39,11 +56,14 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Failed to initialize RAG service: {e}")
 
     # Start sync scheduler
-    try:
-        await start_scheduler()
-        logger.info("✅ Sync scheduler started successfully")
-    except Exception as e:
-        logger.error(f"❌ Failed to start sync scheduler: {e}")
+    if SCHEDULER_AVAILABLE and start_scheduler:
+        try:
+            await start_scheduler()
+            logger.info("✅ Sync scheduler started successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to start sync scheduler: {e}")
+    else:
+        logger.info("⏭️  Sync scheduler skipped (dependency unavailable)")
 
     # Initialize memory service
     try:
@@ -65,11 +85,14 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 Onyx Core is shutting down...")
 
     # Stop sync scheduler
-    try:
-        await stop_scheduler()
-        logger.info("✅ Sync scheduler stopped successfully")
-    except Exception as e:
-        logger.error(f"❌ Failed to stop sync scheduler: {e}")
+    if SCHEDULER_AVAILABLE and stop_scheduler:
+        try:
+            await stop_scheduler()
+            logger.info("✅ Sync scheduler stopped successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to stop sync scheduler: {e}")
+    else:
+        logger.info("⏭️  Sync scheduler shutdown skipped (dependency unavailable)")
 
     # Shutdown web tools services
     try:
@@ -104,7 +127,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health_router, tags=["Health"])
-app.include_router(google_drive_router, tags=["Google Drive"])
+if google_drive_router:
+    app.include_router(google_drive_router, tags=["Google Drive"])
 app.include_router(memories_router, tags=["Memories"])
 app.include_router(web_tools_router, tags=["Web Tools"])
 
