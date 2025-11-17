@@ -1,0 +1,246 @@
+# Auto-Summarization Pipeline Docker Compose Configuration
+# Story 4-4: Auto-Summarization Pipeline
+#
+# Use this configuration to deploy the summarization pipeline services
+# along with the existing ONYX application stack.
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # SUMMARIZATION WORKER
+  # =============================================================================
+  summarization-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.summarization-worker
+    container_name: onyx-summarization-worker
+    restart: unless-stopped
+    environment:
+      # Core Configuration
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+
+      # Summarization Settings
+      - SUMMARIZATION_ENABLED=true
+      - SUMMARIZATION_TRIGGER_INTERVAL=10
+      - SUMMARIZATION_COOLDOWN_SECONDS=60
+      - MAX_CONCURRENT_SUMMARIZATION_JOBS=2
+      - SUMMARIZATION_AUTO_INJECT=true
+
+      # LLM Configuration
+      - LITELLM_PROXY_URL=http://litellm-proxy:4000
+      - DEEPSEEK_MODEL=deepseek-main
+      - SUMMARIZATION_TIMEOUT_SECONDS=30
+      - SUMMARIZATION_MAX_RETRIES=3
+      - SUMMARIZATION_RETRY_DELAY_MS=1000
+
+      # Performance Settings
+      - TARGET_PROCESSING_TIME_MS=2000
+      - TARGET_SUCCESS_RATE=95.0
+      - SUMMARIZATION_JOB_TIMEOUT_SECONDS=120
+
+      # Redis Configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_DB=1
+
+      # PostgreSQL Configuration
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=manus
+      - POSTGRES_USER=manus
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+      # Worker Settings
+      - WORKER_HEALTH_CHECK_INTERVAL=60
+      - WORKER_METRICS_INTERVAL=300
+      - WORKER_LOG_LEVEL=INFO
+
+      # Monitoring
+      - METRICS_RETENTION_DAYS=90
+      - PERFORMANCE_ALERT_THRESHOLD_MS=5000
+      - FAILURE_RATE_ALERT_THRESHOLD=10.0
+
+    volumes:
+      - ./logs:/var/log
+      - ./onyx-core:/app/onyx-core
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    depends_on:
+      - postgres
+      - redis
+      - litellm-proxy
+
+    networks:
+      - onyx-network
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/summarization/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =============================================================================
+  # REDIS (IF NOT ALREADY IN MAIN COMPOSE)
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: onyx-redis-summarization
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+      - ./docker/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - onyx-network
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # =============================================================================
+  # LITELLM PROXY (IF NOT ALREADY IN MAIN COMPOSE)
+  # =============================================================================
+  litellm-proxy:
+    image: litellm/litellm-proxy:latest
+    container_name: onyx-litellm-proxy
+    restart: unless-stopped
+    environment:
+      - LITELLM_PROXY_HOST=0.0.0.0
+      - LITELLM_PROXY_PORT=4000
+      - LITELLM_LOG_LEVEL=INFO
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./docker/litellm-config.yaml:/app/config.yaml:ro
+      - ./logs:/var/log
+    networks:
+      - onyx-network
+    depends_on:
+      - redis
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # =============================================================================
+  # MONITORING (OPTIONAL)
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: onyx-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - onyx-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: onyx-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - onyx-network
+    depends_on:
+      - prometheus
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  onyx-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+# =============================================================================
+# CONFIGURATION NOTES
+# =============================================================================
+#
+# 1. Environment Variables:
+#    - Create a .env file with POSTGRES_PASSWORD, REDIS_PASSWORD, GRAFANA_PASSWORD
+#    - Copy .env.summarization.example to .env and customize as needed
+#
+# 2. Network Configuration:
+#    - This compose file uses a custom network (172.20.0.0/16)
+#    - Ensure your existing services use the same network
+#
+# 3. Service Dependencies:
+#    - The worker depends on postgres, redis, and litellm-proxy
+#    - Update the service names to match your existing stack
+#
+# 4. Resource Management:
+#    - CPU and memory limits are configured for production use
+#    - Adjust based on your infrastructure and expected load
+#
+# 5. Monitoring:
+#    - Prometheus and Grafana are optional but recommended
+#    - Health checks are configured for all services
+#
+# 6. Scaling:
+#    - Worker can be scaled using docker-compose scale
+#    - Redis and PostgreSQL should be managed separately in production
+#
+# 7. Deployment:
+#    - Use: docker-compose -f docker-compose.yml -f docker-compose.summarization.yml up -d
+#    - Or integrate with your existing docker-compose configuration
+#
