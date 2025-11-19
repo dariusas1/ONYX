@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context id="7-4-form-filling-web-interaction" generated="2025-01-19T00:00:00Z">
+  <story-metadata>
+    <id>7-4</id>
+    <title>Form Filling Web Interaction</title>
+    <status>ready-for-dev</status>
+    <epic>7</epic>
+    <last-updated>2025-01-19T00:00:00Z</last-updated>
+  </story-metadata>
+
+  <project-overview>
+    <project-name>ONYX</project-name>
+    <description>Cognitive agent platform with web automation capabilities</description>
+    <architecture>
+      <core-services>onyx-core/services/</core-services>
+      <api-layer>onyx-core/api/</api-layer>
+      <testing-suite>tests/</testing-suite>
+    </architecture>
+  </project-overview>
+
+  <dependencies>
+    <dependency type="story" id="7-1" status="done">
+      <title>Playwright Browser Setup - Headless Automation</title>
+      <description>Provides foundational browser automation infrastructure</description>
+      <components>
+        <component path="onyx-core/services/browser_manager.py" type="service">
+          <description>Singleton browser manager for Playwright automation</description>
+          <features>
+            <feature>Headless Chrome browser management</feature>
+            <feature>Serial execution enforcement</feature>
+            <feature>Memory monitoring with auto-restart</feature>
+            <feature>Screenshot capture capabilities</feature>
+            <feature>URL validation and security</feature>
+            <feature>Resource cleanup and zombie process monitoring</feature>
+          </features>
+          <performance-targets>
+            <target metric="browser-startup" value="&lt;2s"/>
+            <target metric="page-navigation" value="&lt;3s (95th percentile)"/>
+            <target metric="page-interaction" value="&lt;1s"/>
+            <target metric="browser-cleanup" value="&lt;500ms"/>
+          </performance-targets>
+        </component>
+      </components>
+    </dependency>
+
+    <dependency type="service" status="implemented">
+      <title>Field Detection Service</title>
+      <component path="onyx-core/services/field_detector.py" type="service">
+        <description>Intelligent form field detection and analysis</description>
+        <features>
+          <feature>Multiple selector strategies (name, id, label, placeholder, css_class, aria_label)</feature>
+          <feature>Support for common input types (text, email, select, checkbox, radio)</feature>
+          <feature>Form structure analysis and metadata extraction</feature>
+          <feature>Field validation and accessibility support</feature>
+          <feature>CAPTCHA detection for security compliance</feature>
+        </features>
+        <data-models>
+          <model name="FieldInfo">
+            <field name="field_type" type="enum" values="text,email,password,textarea,select,checkbox,radio,hidden"/>
+            <field name="selector" type="string"/>
+            <field name="selector_strategy" type="string"/>
+            <field name="name" type="string" optional="true"/>
+            <field name="label_text" type="string" optional="true"/>
+            <field name="required" type="boolean" default="false"/>
+            <field name="disabled" type="boolean" default="false"/>
+          </model>
+          <model name="FormInfo">
+            <field name="form_selector" type="string"/>
+            <field name="action_url" type="string" optional="true"/>
+            <field name="method" type="enum" values="GET,POST" default="POST"/>
+            <field name="field_count" type="integer" default="0"/>
+            <field name="has_captcha" type="boolean" default="false"/>
+            <field name="fields" type="array[FieldInfo]"/>
+          </model>
+        </data-models>
+        <performance-targets>
+          <target metric="field-detection" value="&lt;500ms for typical forms (5-10 fields)"/>
+          <target metric="selector-fallback" value="&lt;50ms per strategy"/>
+          <target metric="form-analysis" value="&lt;200ms for form structure"/>
+        </performance-targets>
+      </component>
+    </dependency>
+
+    <dependency type="service" status="implemented">
+      <title>Form Fill Service</title>
+      <component path="onyx-core/services/form_fill_service.py" type="service">
+        <description>High-level orchestration for form filling automation</description>
+        <features>
+          <feature>Playwright-backed automation for web forms</feature>
+          <feature>Field payload normalization and safety validation</feature>
+          <feature>BrowserManager integration for serial execution</feature>
+          <feature>FieldDetector integration for selector resolution</feature>
+          <feature>Audit artifact capture (before/after screenshots)</feature>
+          <feature>Per-field interaction logging and error reporting</feature>
+        </features>
+        <data-models>
+          <model name="FormFieldInput">
+            <field name="name" type="string"/>
+            <field name="value" type="any"/>
+            <field name="selector" type="string" optional="true"/>
+            <field name="field_type" type="string" optional="true"/>
+            <field name="required" type="boolean" default="false"/>
+            <field name="metadata" type="object" default="{}"/>
+          </model>
+          <model name="FormFillResult">
+            <field name="url" type="string"/>
+            <field name="result_url" type="string"/>
+            <field name="execution_time_ms" type="integer"/>
+            <field name="submitted" type="boolean"/>
+            <field name="submission_message" type="string" optional="true"/>
+            <field name="fields_filled" type="array[string]"/>
+            <field name="fields_failed" type="array[string]"/>
+            <field name="field_results" type="array[FieldInteractionResult]"/>
+            <field name="warnings" type="array[string]"/>
+            <field name="before_screenshot" type="string" optional="true"/>
+            <field name="after_screenshot" type="string" optional="true"/>
+          </model>
+        </data-models>
+      </component>
+    </dependency>
+
+    <dependency type="api" status="implemented">
+      <title>Web Tools API</title>
+      <component path="onyx-core/api/web_tools.py" type="api">
+        <description>FastAPI router for web automation tools including form filling</description>
+        <features>
+          <feature>RESTful API endpoints with authentication</feature>
+          <feature>Pydantic models for request/response validation</feature>
+          <feature>Tool registry integration for agent discovery</feature>
+          <feature>Comprehensive error handling and structured responses</feature>
+        </features>
+        <endpoints>
+          <endpoint method="POST" path="/tools/fill_form">
+            <description>Fill target form fields using Playwright automation</description>
+            <request-model>FormFillRequest</request-model>
+            <response-model>FormFillResponse</response-model>
+            <auth-required>true</auth-required>
+          </endpoint>
+          <endpoint method="POST" path="/tools/screenshot">
+            <description>Capture screenshots of web pages</description>
+            <auth-required>true</auth-required>
+          </endpoint>
+        </endpoints>
+      </component>
+    </dependency>
+  </dependencies>
+
+  <existing-implementation>
+    <form-fill-service>
+      <file path="onyx-core/services/form_fill_service.py">
+        <status>IMPLEMENTED</status>
+        <description>Main service orchestrating form filling workflow</description>
+        <key-methods>
+          <method name="fill_form" signature="async fill_form(url, fields, *, submit, selector_strategy, wait_after_submit_ms, capture_screenshots)">
+            <description>Core form filling implementation with audit trails</description>
+            <features>
+              <feature>Field limit validation (max 25 fields)</feature>
+              <feature>BrowserManager navigation with networkidle wait</feature>
+              <feature>Form analysis via FieldDetector</feature>
+              <feature>CAPTCHA detection and auto-submission disable</feature>
+              <feature>Before/after screenshot capture</feature>
+              <feature>Per-field interaction with fallback strategies</feature>
+            </features>
+          </method>
+          <method name="_fill_single_field" signature="async _fill_single_field(page, field, *, form_selector, selector_strategy, form_info)">
+            <description>Individual field interaction with detailed result tracking</description>
+          </method>
+          <method name="_apply_value" signature="async _apply_value(page, locator, field_info, raw_value)">
+            <description>Type-specific value application (text, select, checkbox, radio)</description>
+          </method>
+        </key-methods>
+      </file>
+    </form-fill-service>
+
+    <field-detector>
+      <file path="onyx-core/services/field_detector.py">
+        <status>IMPLEMENTED</status>
+        <description>Intelligent field detection using multiple selector strategies</description>
+        <key-methods>
+          <method name="analyze_form" signature="async analyze_form(page)">
+            <description>Comprehensive form analysis including CAPTCHA detection</description>
+          </method>
+          <method name="find_field" signature="async find_field(page, field_name, form_selector)">
+            <description>Multi-strategy field location with fallback</description>
+          </method>
+          <method name="_detect_captcha" signature="async _detect_captcha(page, form_selector)">
+            <description>Security-focused CAPTCHA detection</description>
+          </method>
+        </key-methods>
+        <selector-strategies>
+          <strategy order="1" name="name" reliability="high"/>
+          <strategy order="2" name="id" reliability="high"/>
+          <strategy order="3" name="label" reliability="good"/>
+          <strategy order="4" name="placeholder" reliability="moderate"/>
+          <strategy order="5" name="css_class" reliability="low"/>
+          <strategy order="6" name="aria_label" reliability="accessibility"/>
+        </selector-strategies>
+      </file>
+    </field-detector>
+
+    <browser-manager-integration>
+      <file path="onyx-core/services/browser_manager.py">
+        <status>COMPLETE (Story 7-1)</status>
+        <integration-points>
+          <point name="navigation" method="navigate(url, wait_until)">
+            <usage>FormFillService uses for page loading with networkidle wait</usage>
+          </point>
+          <point name="screenshot" method="screenshot_base64(page, ...)">
+            <usage>FormFillService uses for before/after audit screenshots</usage>
+          </point>
+          <point name="cleanup" method="close_page(page)">
+            <usage>FormFillService uses for resource management</usage>
+          </point>
+        </integration-points>
+        <safety-features>
+          <feature>URL validation with blocklist for internal networks</feature>
+          <feature>Serial execution enforcement via operation locks</feature>
+          <feature>Memory monitoring with auto-restart at 800MB threshold</feature>
+          <feature>Zombie process cleanup every 5 minutes</feature>
+        </safety-features>
+      </file>
+    </browser-manager-integration>
+
+    <api-integration>
+      <file path="onyx-core/api/web_tools.py">
+        <status>IMPLEMENTED</status>
+        <endpoints>
+          <endpoint path="/tools/fill_form" method="POST">
+            <request-model>FormFillRequest</request-model>
+            <response-model>FormFillResponse</response-model>
+            <features>
+              <feature>Field payload normalization (dict to list conversion)</feature>
+              <feature>Selector strategy hint support</feature>
+              <feature>Configurable wait times and screenshot capture</feature>
+              <feature>Comprehensive error categorization</feature>
+            </features>
+          </endpoint>
+        </endpoints>
+      </file>
+    </api-integration>
+  </existing-implementation>
+
+  <testing-patterns>
+    <existing-tests>
+      <pattern name="Unit Testing">
+        <description>Service-level testing with mocked dependencies</description>
+        <examples>
+          <example file="tests/test_services/test_form_fill_service.py">
+            <coverage>Form filling service methods with mocked Playwright</coverage>
+          </example>
+          <example file="tests/test_services/test_field_detector.py">
+            <coverage>Field detection strategies and form analysis</coverage>
+          </example>
+        </examples>
+      </pattern>
+
+      <pattern name="Integration Testing">
+        <description>End-to-end API testing with real browser automation</description>
+        <structure>
+          <component>Test fixtures with sample HTML forms</component>
+          <component>Mock authentication for protected endpoints</component>
+          <component>Browser automation with real Playwright instances</component>
+          <component>Response validation against Pydantic models</component>
+        </structure>
+      </pattern>
+
+      <pattern name="Performance Testing">
+        <description>Execution time and resource usage validation</description>
+        <targets>
+          <target metric="form-analysis" value="&lt;500ms"/>
+          <target metric="field-detection" value="&lt;200ms per field"/>
+          <target metric="form-filling" value="&lt;3s total"/>
+          <target metric="screenshot-capture" value="&lt;1s"/>
+        </targets>
+      </pattern>
+    </existing-tests>
+  </testing-patterns>
+
+  <security-considerations>
+    <existing-security>
+      <url-validation>
+        <implementation>BrowserManager._validate_url()</implementation>
+        <features>
+          <feature>Scheme validation (http/https only)</feature>
+          <feature>Internal IP blocklist (localhost, 10.x, 172.16.x, 192.168.x)</feature>
+          <feature>File:// protocol blocking</feature>
+        </features>
+      </url-validation>
+
+      <field-sanitization>
+        <implementation>FormFillService._apply_value()</implementation>
+        <features>
+          <feature>Type-specific value handling</feature>
+          <feature>Selector injection prevention via CSS escaping</feature>
+          <feature>Field limit enforcement (max 25 fields)</feature>
+        </features>
+      </field-sanitization>
+
+      <captcha-detection>
+        <implementation>FieldDetector._detect_captcha()</implementation>
+        <features>
+          <feature>Pattern-based detection (recaptcha, captcha, human verification)</feature>
+          <feature>Element selector scanning</feature>
+          <feature>Auto-submission disable on CAPTCHA detection</feature>
+        </features>
+      </captcha-detection>
+    </existing-security>
+
+    <security-recommendations>
+      <recommendation priority="medium">Add XSS protection for extracted form content</recommendation>
+      <recommendation priority="high">Implement rate limiting for form filling endpoints</recommendation>
+      <recommendation priority="medium">Add content sanitization for sensitive form fields</recommendation>
+      <recommendation priority="low">Implement domain allowlisting for restricted form filling</recommendation>
+    </security-recommendations>
+  </security-considerations>
+
+  <performance-considerations>
+    <existing-optimizations>
+      <browser-management>
+        <feature>Singleton browser instance for resource efficiency</feature>
+        <feature>Serial execution enforcement prevents resource contention</feature>
+        <feature>Memory monitoring with auto-restart at 800MB threshold</feature>
+        <feature>Zombie process cleanup</feature>
+      </browser-management>
+
+      <field-detection>
+        <feature>Multi-strategy fallback with early success returns</feature>
+        <feature>Cached form analysis for multiple field operations</feature>
+        <feature>Optimized CSS selectors with specificity targeting</feature>
+      </field-detection>
+    </existing-optimizations>
+
+    <performance-targets>
+      <target category="form-analysis" metric="time" value="&lt;500ms"/>
+      <target category="field-location" metric="time" value="&lt;200ms per field"/>
+      <target category="form-filling" metric="total-time" value="&lt;3s (10 fields)"/>
+      <target category="screenshot-capture" metric="time" value="&lt;1s"/>
+      <target category="memory-usage" metric="browser" value="&lt;800MB"/>
+    </performance-targets>
+  </performance-considerations>
+
+  <api-contracts>
+    <tool-registration>
+      <name>fill_form</name>
+      <description>Populate web forms using Playwright automation with before/after audit artifacts</description>
+      <parameters>
+        <parameter name="url" type="string" required="true" description="Target page containing the form"/>
+        <parameter name="fields" type="object" required="true" description="Map of field names to values (supports select/checkbox/radio metadata)"/>
+        <parameter name="submit" type="boolean" default="false" description="Submit the form after filling"/>
+        <parameter name="selector_strategy" type="string" optional="true" enum="name,id,label,placeholder,css_class,aria_label" description="Hint for field detection strategy"/>
+      </parameters>
+      <returns>
+        <description>Audit payload containing filled/failed fields and screenshot artifacts</description>
+        <schema>
+          <field name="url" type="string"/>
+          <field name="result_url" type="string"/>
+          <field name="execution_time_ms" type="integer"/>
+          <field name="fields_filled" type="array[string]"/>
+          <field name="fields_failed" type="array[string]"/>
+          <field name="field_results" type="array[object]"/>
+          <field name="before_screenshot" type="string" optional="true"/>
+          <field name="after_screenshot" type="string" optional="true"/>
+        </schema>
+      </returns>
+      <endpoint>/tools/fill_form</endpoint>
+      <method>POST</method>
+      <auth-required>true</auth-required>
+      <category>web_automation</category>
+    </tool-registration>
+  </api-contracts>
+
+  <code-quality-standards>
+    <documentation>
+      <standard>Comprehensive docstrings with parameter descriptions and return values</standard>
+      <standard>Type hints throughout codebase</standard>
+      <standard>Performance targets documented in service headers</standard>
+    </documentation>
+
+    <error-handling>
+      <standard>Structured exception handling with specific error types</standard>
+      <standard>Graceful degradation for non-critical failures</standard>
+      <standard>Comprehensive logging with appropriate levels</standard>
+    </error-handling>
+
+    <testing>
+      <standard>Unit tests for all service methods</standard>
+      <standard>Integration tests for API endpoints</standard>
+      <standard>Performance tests validating target metrics</standard>
+      <standard>Error scenario testing with realistic conditions</standard>
+    </testing>
+  </code-quality-standards>
+
+  <development-readiness>
+    <implementation-status>
+      <component name="Form Fill Service" status="IMPLEMENTED" file="onyx-core/services/form_fill_service.py"/>
+      <component name="Field Detector" status="IMPLEMENTED" file="onyx-core/services/field_detector.py"/>
+      <component name="Browser Manager" status="COMPLETE" file="onyx-core/services/browser_manager.py"/>
+      <component name="API Endpoints" status="IMPLEMENTED" file="onyx-core/api/web_tools.py"/>
+      <component name="Tool Registry" status="READY" integration="tool_registry.py"/>
+    </implementation-status>
+
+    <dependencies-met>
+      <dependency id="7-1" status="COMPLETE">Playwright browser automation foundation</dependency>
+      <dependency name="field-detector" status="IMPLEMENTED">Intelligent field detection service</dependency>
+      <dependency name="form-fill-service" status="IMPLEMENTED">Main orchestration service</dependency>
+      <dependency name="api-integration" status="IMPLEMENTED">RESTful endpoints with validation</dependency>
+    </dependencies-met>
+
+    <testing-readiness>
+      <unit-tests status="REQUIRED">Test form fill service methods with mocked dependencies</unit-tests>
+      <integration-tests status="REQUIRED">Test end-to-end form filling with real browser</integration-tests>
+      <performance-tests status="REQUIRED">Validate sub-3s execution time targets</performance-tests>
+      <security-tests status="REQUIRED">Test URL validation and CAPTCHA detection</security-tests>
+    </testing-readiness>
+  </development-readiness>
+
+  <risks-and-mitigations>
+    <risk category="security" level="medium">
+      <description>Form submission could trigger unintended actions on target websites</description>
+      <mitigation>CAPTCHA detection disables auto-submission; user must explicitly enable</mitigation>
+    </risk>
+
+    <risk category="performance" level="low">
+      <description>Complex forms with many fields could impact performance targets</description>
+      <mitigation>Field limit enforcement (max 25); serial execution prevents resource contention</mitigation>
+    </risk>
+
+    <risk category="reliability" level="low">
+      <description>Dynamic JavaScript forms might not be immediately ready for interaction</description>
+      <mitigation>Networkidle wait strategy; configurable wait times; timeout handling</mitigation>
+    </risk>
+
+    <risk category="compatibility" level="medium">
+      <description>Diverse form implementations might not be detected by selector strategies</description>
+      <mitigation>Multiple fallback strategies; comprehensive error reporting; selector override capability</mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <next-steps>
+    <immediate>
+      <task priority="high">Create comprehensive test suite for form filling functionality</task>
+      <task priority="high">Validate form filling performance targets with real-world examples</task>
+      <task priority="medium">Test CAPTCHA detection across multiple form types</task>
+    </immediate>
+
+    <development>
+      <task priority="high">Implement unit tests for FormFillService methods</task>
+      <task priority="high">Create integration tests for /tools/fill_form endpoint</task>
+      <task priority="medium">Add performance tests validating sub-3s execution</task>
+      <task priority="medium">Test error scenarios and edge cases</task>
+    </development>
+
+    <quality-assurance>
+      <task priority="high">Code review of form filling implementation</task>
+      <task priority="medium">Security review of form interaction patterns</task>
+      <task priority="medium">Performance profiling and optimization</task>
+    </quality-assurance>
+  </next-steps>
+</story-context>
