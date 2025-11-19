@@ -1,0 +1,132 @@
+<story-context id="7-4-form-filling-web-interaction" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>4</storyId>
+    <title>Form Filling & Web Interaction</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-19</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/7-4-form-filling-web-interaction.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>research agent</asA>
+    <iWant>fill web forms with specified data and interact with web page elements</iWant>
+    <soThat>automate form submissions, data entry, and web interactions for research and data collection tasks</soThat>
+    <tasks>Tasks broken down into 6 main categories:
+- Task 1: Implement fill_form tool API endpoint (5 subtasks)
+- Task 2: Build form field detection and interaction service (6 subtasks)
+- Task 3: Implement form filling orchestration (5 subtasks)
+- Task 4: Add screenshot capture and audit functionality (4 subtasks)
+- Task 5: Browser automation integration (5 subtasks)
+- Task 6: Comprehensive testing and validation (6 subtasks)</tasks>
+  </story>
+
+  <acceptanceCriteria>1. Agent can invoke fill_form tool with URL and field values
+2. Browser navigates to page and finds form fields
+3. Handles text inputs, select dropdowns, checkboxes, radio buttons
+4. Can fill form without submission or submit and capture result
+5. Returns success/failure status and list of fields filled/failed
+6. Execution time &lt;5s for typical forms (5-10 fields)
+7. Screenshots captured before/after form interaction for audit</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epics/epic-7-tech-spec.md" title="Epic 7 Technical Specification" section="Form Interaction Design">
+        <snippet>Epic 7 enables autonomous web research through headless browser automation. Form service handles field detection, value injection, and submission with comprehensive error handling and audit trails.</snippet>
+      </doc>
+      <doc path="docs/architecture.md" title="ONYX Architecture Document" section="Multi-Service Architecture">
+        <snippet>Manus Internal is a multi-service strategic AI platform combining real-time chat, company-wide RAG, persistent memory, and autonomous agent execution with Docker Compose orchestration.</snippet>
+      </doc>
+      <doc path="docs/stories/7-1-playwright-browser-setup-headless-automation.md" title="Story 7.1 Implementation" section="Browser Foundation">
+        <snippet>Foundation story for Epic 7 - Playwright browser setup provides the foundation for form filling capabilities with browser manager service and integration tests.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact path="onyx-core/services/browser_manager.py" kind="service" symbol="BrowserManager" lines="46-250" reason="Singleton browser manager providing headless Chrome automation, navigation, screenshots, and resource management with memory monitoring and auto-restart">
+        <snippet>Manages browser lifecycle, navigation, screenshot capture, and resource cleanup. Implements memory monitoring with automatic restart when memory usage exceeds threshold.</snippet>
+      </artifact>
+      <artifact path="onyx-core/services/content_extractor.py" kind="service" symbol="ContentExtractor" lines="21-50" reason="Content extraction service for various file types including Google Docs and PDFs, can be leveraged for form content analysis">
+        <snippet>Service for extracting text content from various file types including Google Docs, Sheets, PDFs, and plain text files.</snippet>
+      </artifact>
+      <artifact path="onyx-core/services/serpapi_client.py" kind="service" symbol="SerpAPIClient" lines="20-50" reason="Web search client showing existing API integration patterns that form filling service should follow for consistency">
+        <snippet>Client for SerpAPI (Google/Bing search) with structured search results and automatic result normalization.</snippet>
+      </artifact>
+      <artifact path="onyx-core/services/exa_client.py" kind="service" symbol="ExaClient" reason="Semantic search client showing async HTTP client patterns and error handling approaches">
+        <snippet>Client for Exa AI semantic search with connection reuse and comprehensive error handling.</snippet>
+      </artifact>
+    </code>
+    <dependencies>
+      <dependency ecosystem="Python" packages="playwright==1.40.0, psutil==5.9.0, aiohttp==3.9.1, beautifulsoup4==4.12.2, lxml==4.9.3, pydantic==2.5.0" reason="Web automation stack already installed">
+        <snippet>Playwright for browser automation, psutil for process monitoring, aiohttp for HTTP clients, BeautifulSoup for HTML parsing, pydantic for data validation.</snippet>
+      </dependency>
+      <dependency ecosystem="Node.js" packages="next@^14.0.0, react@^18.0.0, typescript@^5.3.0" reason="Frontend framework for Agent Mode UI integration">
+        <snippet>Next.js frontend with TypeScript for Agent Mode tool approval and form filling interface.</snippet>
+      </dependency>
+      <dependency ecosystem="Docker" packages="mcr.microsoft.com/playwright/python:v1.40.0" reason="Containerized browser automation environment">
+        <snippet>Official Playwright Docker image for headless browser automation in containerized environment.</snippet>
+      </dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="performance" description="Execution time &lt;5s for typical forms (5-10 fields) including page load and interaction">
+      <snippet>Form filling must complete within 5 seconds for typical forms to meet user experience expectations.</snippet>
+    </constraint>
+    <constraint type="architecture" description="Leverage existing BrowserManager singleton pattern for resource management">
+      <snippet>Must use existing BrowserManager service for browser lifecycle management, memory monitoring, and serial execution enforcement.</snippet>
+    </constraint>
+    <constraint type="security" description="URL validation and blocklist enforcement for form targeting">
+      <snippet>Must implement security validation using existing URL blocklist patterns to prevent access to internal/local addresses.</snippet>
+    </constraint>
+    <constraint type="api" description="Follow existing tool API pattern with Pydantic models and FastAPI endpoints">
+      <snippet>Must register fill_form tool using same pattern as search_web and scrape_url tools with proper request/response validation.</snippet>
+    </constraint>
+    <constraint type="error-handling" description="Comprehensive error handling with structured responses and retry logic">
+      <snippet>Must follow existing error handling patterns from SerpAPI and Exa clients with exponential backoff and structured error responses.</snippet>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="fill_form_tool" kind="REST endpoint" signature="POST /tools/fill_form">
+      <param name="url" type="string" required="true">Target URL containing the form</param>
+      <param name="form_data" type="Dict[str, Union[str, bool, int, List[str]]" required="true">Form field values</param>
+      <param name="submit_form" type="boolean" default="false">Whether to submit the form after filling</param>
+      <param name="wait_for_selector" type="Optional[str]" description="CSS selector to wait for before filling"/>
+      <param name="screenshot_before" type="boolean" default="true">Capture screenshot before filling</param>
+      <param name="screenshot_after" type="boolean" default="true">Capture screenshot after filling</param>
+      <returns>FormFillResponse with success status, field results, execution time, and screenshots</returns>
+    </interface>
+    <interface name="detect_form" kind="REST endpoint" signature="POST /tools/detect_form">
+      <param name="url" type="string" required="true">Target URL to analyze for forms</param>
+      <returns>FormDetectionResponse with form metadata and field information</returns>
+    </interface>
+    <interface name="BrowserManager" kind="service interface" signature="singleton browser automation">
+      <method name="navigate" params="(url: str, wait_until: str = 'load')">Navigate to URL with configurable wait strategy</method>
+      <method name="fill_field" params="(page: Page, selector: str, value: str)">Fill form field with specified value</method>
+      <method name="click_element" params="(page: Page, selector: str)">Click element on page</method>
+      <method name="screenshot" params="(page: Page, full_page: bool = True)">Capture screenshot of current page</method>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Testing follows pytest framework with async/await patterns. Unit tests for individual form field types, integration tests for end-to-end workflows, and performance tests to validate &lt;5s execution targets. Tests must use existing BrowserManager and follow patterns from test_browser_manager.py.</standards>
+    <locations>
+      <directory>tests/unit/</directory>
+      <directory>tests/integration/</directory>
+      <pattern>test_*form*.py</pattern>
+      <pattern>test_*browser*.py</pattern>
+    </locations>
+    <ideas>
+      <test idea="test_form_fill_text_inputs" ac="AC7.4.3">Test filling various text input types (text, email, password, number, date)</test>
+      <test idea="test_form_fill_select_dropdown" ac="AC7.4.3">Test single and multiple select dropdowns with value and text selection</test>
+      <test idea="test_form_fill_checkboxes" ac="AC7.4.3">Test checkbox interaction with boolean values and multiple selections</test>
+      <test idea="test_form_fill_radio_buttons" ac="AC7.4.3">Test radio button group selection by value and label text</test>
+      <test idea="test_form_submission_handling" ac="AC7.4.4">Test optional form submission with result capture</test>
+      <test idea="test_form_error_handling" ac="AC7.4.5">Test missing fields, validation errors, and timeout scenarios</test>
+      <test idea="test_form_performance_timing" ac="AC7.4.6">Performance test to verify &lt;5s execution for typical forms</test>
+      <test idea="test_form_screenshot_capture" ac="AC7.4.7">Test before/after screenshot capture and metadata storage</test>
+      <test idea="test_form_security_validation" ac="Security">Test URL blocklist enforcement and input sanitization</test>
+    </ideas>
+  </tests>
+</story-context>

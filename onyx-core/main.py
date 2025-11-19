@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from health import router as health_router
 from api.google_drive import router as google_drive_router
+from api.form_tools import router as form_tools_router
 from contextlib import asynccontextmanager
 from rag_service import get_rag_service
 from services.sync_scheduler import start_scheduler, stop_scheduler
@@ -81,6 +82,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health_router, tags=["Health"])
 app.include_router(google_drive_router, tags=["Google Drive"])
+app.include_router(form_tools_router, prefix="/tools", tags=["Form Tools"])
 
 
 # Root endpoint
