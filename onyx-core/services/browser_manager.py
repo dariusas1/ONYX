@@ -33,6 +33,8 @@ import psutil
 import logging
 import os
 import re
+import base64
+import io
 from urllib.parse import urlparse
 
 # Configure logging
@@ -315,33 +317,121 @@ class BrowserManager:
                 await page.close()
                 raise
 
-    async def screenshot(self, page: Page, full_page: bool = True) -> bytes:
+    async def screenshot(
+        self,
+        page: Page,
+        full_page: bool = True,
+        format: Literal["png", "jpeg"] = "png",
+        quality: Optional[int] = None,
+        selector: Optional[str] = None,
+        width: Optional[int] = None,
+        height: Optional[int] = None
+    ) -> bytes:
         """
-        Capture screenshot of page.
+        Capture screenshot of page with advanced options.
 
         Enforces serial execution to prevent concurrent screenshot operations.
+        Supports multiple formats, quality settings, element targeting, and resolution.
+
+        Args:
+            page: The page to capture
+            full_page: Whether to capture the full scrollable page (ignored if selector provided)
+            format: Image format - "png" (lossless) or "jpeg" (compressed)
+            quality: JPEG quality (1-100), only used for JPEG format
+            selector: CSS selector to capture specific element instead of full page
+            width: Optional viewport width override
+            height: Optional viewport height override
+
+        Returns:
+            bytes: Screenshot data in specified format
+        """
+        # Enforce serial execution for screenshot operations
+        async with self._operation_lock:
+            logger.info(f"Capturing screenshot (format={format}, full_page={full_page}, selector={selector})")
+
+            try:
+                # Set viewport if dimensions provided
+                if width or height:
+                    current_viewport = page.viewport_size or {"width": 1280, "height": 720}
+                    new_viewport = {
+                        "width": width or current_viewport["width"],
+                        "height": height or current_viewport["height"]
+                    }
+                    await page.set_viewport_size(new_viewport)
+                    logger.info(f"Viewport set to {new_viewport['width']}x{new_viewport['height']}")
+
+                # Determine what to capture
+                if selector:
+                    # Capture specific element
+                    element = await page.query_selector(selector)
+                    if not element:
+                        raise ValueError(f"Element not found for selector: {selector}")
+
+                    screenshot_bytes = await element.screenshot(
+                        type=format,
+                        quality=quality
+                    )
+                    logger.info(f"Element screenshot captured: {len(screenshot_bytes)} bytes")
+                else:
+                    # Capture full page or viewport
+                    screenshot_bytes = await page.screenshot(
+                        full_page=full_page,
+                        type=format,
+                        quality=quality
+                    )
+                    logger.info(f"Page screenshot captured: {len(screenshot_bytes)} bytes")
+
+                return screenshot_bytes
+
+            except Exception as e:
+                logger.error(f"Screenshot capture failed: {e}")
+                raise
+
+    async def screenshot_base64(
+        self,
+        page: Page,
+        full_page: bool = True,
+        format: Literal["png", "jpeg"] = "png",
+        quality: Optional[int] = None,
+        selector: Optional[str] = None,
+        width: Optional[int] = None,
+        height: Optional[int] = None
+    ) -> str:
+        """
+        Capture screenshot and return as base64 encoded string.
+
+        Convenience method that captures screenshot and converts to base64
+        for JSON API responses.
 
         Args:
             page: The page to capture
             full_page: Whether to capture the full scrollable page
+            format: Image format - "png" or "jpeg"
+            quality: JPEG quality (1-100), only used for JPEG format
+            selector: CSS selector to capture specific element
+            width: Optional viewport width override
+            height: Optional viewport height override
 
         Returns:
-            bytes: PNG screenshot data
+            str: Base64 encoded image data
         """
-        # Enforce serial execution for screenshot operations
-        async with self._operation_lock:
-            logger.info(f"Capturing screenshot (full_page={full_page})")
+        screenshot_bytes = await self.screenshot(
+            page=page,
+            full_page=full_page,
+            format=format,
+            quality=quality,
+            selector=selector,
+            width=width,
+            height=height
+        )
 
-            try:
-                screenshot_bytes = await page.screenshot(
-                    full_page=full_page,
-                    type='png'
-                )
-                logger.info(f"Screenshot captured: {len(screenshot_bytes)} bytes")
-                return screenshot_bytes
-            except Exception as e:
-                logger.error(f"Screenshot capture failed: {e}")
-                raise
+        # Convert to base64
+        base64_data = base64.b64encode(screenshot_bytes).decode('utf-8')
+
+        # Add data URL prefix for web consumption
+        data_url = f"data:image/{format};base64,{base64_data}"
+
+        return data_url
 
     async def extract_text(self, page: Page) -> str:
         """

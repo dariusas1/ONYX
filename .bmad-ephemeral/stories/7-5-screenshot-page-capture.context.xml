@@ -1,0 +1,398 @@
+<storyContext>
+  <storyId>7-5</storyId>
+  <title>Screenshot Page Capture API Endpoint</title>
+  <epic>7</epic>
+  <sprint>2</sprint>
+  <status>drafted</status>
+  <priority>medium</priority>
+  <storyType>feature</storyType>
+  <author>AI Agent</author>
+  <createdDate>2025-11-19T10:23:25Z</createdDate>
+  <lastUpdated>2025-11-19T10:23:25Z</lastUpdated>
+
+  <!-- Acceptance Criteria -->
+  <acceptanceCriteria>
+    <criteria id="AC7.5.1" priority="P1">
+      <description>API endpoint `/tools/screenshot` accepts `url` (required) and optional `full_page`, `format`, `quality`, `selector` parameters</description>
+    </criteria>
+    <criteria id="AC7.5.2" priority="P1">
+      <description>Returns screenshot in base64-encoded format with metadata (dimensions, size, format)</description>
+    </criteria>
+    <criteria id="AC7.5.3" priority="P1">
+      <description>Screenshots can be captured as PNG (default) or JPEG format with quality compression</description>
+    </criteria>
+    <criteria id="AC7.5.4" priority="P2">
+      <description>Optional CSS selector allows capturing specific page elements instead of full page</description>
+    </criteria>
+    <criteria id="AC7.5.5" priority="P2">
+      <description>Performance: capture and return screenshot in under 5 seconds for typical pages</description>
+    </criteria>
+    <criteria id="AC7.5.6" priority="P1">
+      <description>Error handling for invalid URLs, navigation failures, and capture errors</description>
+    </criteria>
+    <criteria id="AC7.5.7" priority="P2">
+      <description>Security: validate URLs and prevent screenshots of blocked/internal addresses</description>
+    </criteria>
+  </acceptanceCriteria>
+
+  <!-- Epic Technical Specifications -->
+  <epicTechnicalSpec>
+    <fileReference>docs/epics/epic-7-tech-spec.md</fileReference>
+    <keyRequirements>
+      <requirement id="E7-TR-001">Web automation uses headless Playwright browser with Docker support</requirement>
+      <requirement id="E7-TR-002">Screenshot capture through BrowserManager.screenshot() method</requirement>
+      <requirement id="E7-TR-003">RESTful API design with FastAPI following /tools/* pattern</requirement>
+      <requirement id="E7-TR-004">Authentication required for all endpoints using Google OAuth2</requirement>
+      <requirement id="E7-TR-005">Comprehensive error handling with structured error responses</requirement>
+      <requirement id="E7-TR-006">Rate limiting and caching for performance optimization</requirement>
+      <requirement id="E7-TR-007">Request/response validation using Pydantic models</requirement>
+    </keyRequirements>
+  </epicTechnicalSpec>
+
+  <!-- System Architecture Integration -->
+  <architectureIntegration>
+    <component>BrowserManager</component>
+    <component>Web Tools API</component>
+    <component>ScraperService</component>
+    <component>Authentication Layer</component>
+    <component>Error Handling</component>
+    <component>Cache Manager</component>
+  </architectureIntegration>
+
+  <!-- Existing Code Interfaces -->
+  <codeInterfaces>
+    <interface>
+      <name>BrowserManager.screenshot()</name>
+      <type>Async Method</type>
+      <signature>async def screenshot(self, page: Page, full_page: bool = True) -> bytes</signature>
+      <description>Core screenshot capture method returning PNG bytes</description>
+      <location>onyx-core/services/browser_manager.py:318-344</location>
+      <capabilities>
+        <capability>Full page or viewport capture</capability>
+        <capability>PNG format output</capability>
+        <capability>Base64 encoding for API responses</capability>
+        <capability>Error handling for capture failures</capability>
+      </capabilities>
+    </interface>
+
+    <interface>
+      <name>BrowserManager.navigate()</name>
+      <type>Async Method</type>
+      <signature>async def navigate(self, url: str, wait_until: Literal["load", "domcontentloaded", "networkidle"] = "load") -> Page</signature>
+      <description>Browser navigation with security validation and wait strategies</description>
+      <location>onyx-core/services/browser_manager.py:276-316</location>
+      <capabilities>
+        <capability>URL validation and security blocking</capability>
+        <capability>Multiple wait strategies</capability>
+        <capability>Page object creation</capability>
+        <capability>Error handling for navigation failures</capability>
+      </capabilities>
+    </interface>
+
+    <interface>
+      <name>Web Tools API Pattern</name>
+      <type>API Design Pattern</type>
+      <signature>POST /tools/{endpoint}</signature>
+      <description>Existing pattern for web automation tools (scrape_url, fill_form)</description>
+      <location>onyx-core/api/web_tools.py</location>
+      <capabilities>
+        <capability>FastAPI router with /tools prefix</capability>
+        <capability>Pydantic request/response models</capability>
+        <capability>Authentication middleware</capability>
+        <capability>Structured error responses</capability>
+        <capability>Request validation</capability>
+      </capabilities>
+    </interface>
+  </codeInterfaces>
+
+  <!-- Dependencies and Frameworks -->
+  <dependencies>
+    <webFrameworks>
+      <framework name="FastAPI" version="0.104.1">
+        <purpose>API framework for web tools endpoints</purpose>
+        <location>onyx-core/requirements.txt:6</location>
+      </framework>
+      <framework name="Playwright" version="1.40.0">
+        <purpose>Browser automation for screenshot capture</purpose>
+        <location>onyx-core/requirements.txt:27</location>
+      </framework>
+    </webFrameworks>
+
+    <libraries>
+      <library name="pydantic" version="2.5.0">
+        <purpose>Request/response validation and serialization</purpose>
+        <location>onyx-core/requirements.txt:85</location>
+      </library>
+      <library name="psutil" version="5.9.0">
+        <purpose>Process monitoring and memory tracking</purpose>
+        <location>onyx-core/requirements.txt:28</location>
+      </library>
+    </libraries>
+
+    <externalServices>
+      <service name="Google OAuth2">
+        <purpose>Authentication and authorization</purpose>
+        <integration>Required for all API endpoints</integration>
+      </service>
+    </externalServices>
+  </dependencies>
+
+  <!-- Database Schema -->
+  <databaseSchema>
+    <relevantTables>
+      <table>user_memories</table>
+      <table>conversation_summaries</table>
+      <table>memory_injection_logs</table>
+    </relevantTables>
+    <schemaReference>docker/migrations/005-memory-system-schema.sql</schemaReference>
+    <impact>Minimal - screenshot capture is stateless operation</impact>
+  </databaseSchema>
+
+  <!-- Testing Standards -->
+  <testingStandards>
+    <framework>pytest with pytest-asyncio</framework>
+    <testTypes>
+      <type>Unit Tests</type>
+      <type>Integration Tests</type>
+      <type>API Endpoint Tests</type>
+      <type>Performance Tests</type>
+      <type>Security Tests</type>
+    </testTypes>
+    <existingPatterns>
+      <pattern>Browser Manager integration tests (test_browser_manager.py)</pattern>
+      <pattern>Web Tools API tests (test_web_tools.py)</pattern>
+      <pattern>Mock-based API testing with TestClient</pattern>
+      <pattern>Async context manager testing</pattern>
+      <pattern>Performance timing validation</pattern>
+      <pattern>Error scenario testing</pattern>
+      <pattern>Security validation testing</pattern>
+    </existingPatterns>
+    <coverageRequirements>
+      <unitCoverage>90%+</unitCoverage>
+      <integrationCoverage>80%+</integrationCoverage>
+      <apiCoverage>95%+</apiCoverage>
+    </coverageRequirements>
+  </testingStandards>
+
+  <!-- Design Patterns -->
+  <designPatterns>
+    <pattern name="Singleton Pattern">
+      <component>BrowserManager</component>
+      <description>Ensures single browser instance for resource management</description>
+      <location>onyx-core/services/browser_manager.py:94-106</location>
+    </pattern>
+    <pattern name="Async Context Manager">
+      <component>BrowserManager</component>
+      <description>Cleanup automation with __aenter__/__aexit__ methods</description>
+      <location>onyx-core/services/browser_manager.py:521-528</location>
+    </pattern>
+    <pattern name="Pydantic Models">
+      <component>Web Tools API</component>
+      <description>Request/response validation and serialization</description>
+      <location>onyx-core/api/web_tools.py:39-245</location>
+    </pattern>
+  </designPatterns>
+
+  <!-- Performance Requirements -->
+  <performanceTargets>
+    <target id="PERF-001">
+      <metric>Screenshot Capture Time</metric>
+      <maximum>5 seconds</maximum>
+      <typical>&lt;3 seconds</typical>
+      <testScenario>Standard web page screenshot capture</testScenario>
+    </target>
+    <target id="PERF-002">
+      <metric>Navigation + Capture Time</metric>
+      <maximum>8 seconds</maximum>
+      <typical>&lt;6 seconds</typical>
+      <testScenario>Full page navigation and screenshot</testScenario>
+    </target>
+    <target id="PERF-003">
+      <metric>API Response Time</metric>
+      <maximum>6 seconds</maximum>
+      <typical>&lt;4 seconds</typical>
+      <testScenario>Complete screenshot API call</testScenario>
+    </target>
+  </performanceTargets>
+
+  <!-- Security Requirements -->
+  <securityRequirements>
+    <requirement id="SEC-001">
+      <type>URL Validation</type>
+      <description>Block navigation to internal IPs, localhost, and private networks</description>
+      <implementation>BrowserManager._validate_url()</implementation>
+    </requirement>
+    <requirement id="SEC-002">
+      <type>Authentication</type>
+      <description>Google OAuth2 required for all screenshot API calls</description>
+      <implementation>require_authenticated_user middleware</implementation>
+    </requirement>
+    <requirement id="SEC-003">
+      <type>Content Security</type>
+      <description>Prevent screenshot of sensitive internal systems</description>
+      <implementation>URL blocklist and validation</implementation>
+    </requirement>
+  </securityRequirements>
+
+  <!-- Error Handling Standards -->
+  <errorHandling>
+    <errorTypes>
+      <type>ValidationError</type>
+      <statusCode>400</statusCode>
+      <format>Structured JSON with error code and message</format>
+    </errorTypes>
+    <errorTypes>
+      <type>AuthenticationError</type>
+      <statusCode>401</statusCode>
+      <format>Standard HTTP 401 response</format>
+    </errorTypes>
+    <errorTypes>
+      <type>NavigationError</type>
+      <statusCode>422</statusCode>
+      <format>Detailed error message with URL context</format>
+    </errorTypes>
+    <errorTypes>
+      <type>CaptureError</type>
+      <statusCode>500</statusCode>
+      <format>Screenshot capture failure details</format>
+    </errorTypes>
+  </errorHandling>
+
+  <!-- API Contract -->
+  <apiContract>
+    <endpoint method="POST" path="/tools/screenshot">
+      <authentication>required</authentication>
+      <requestModel name="ScreenshotRequest">
+        <field name="url" type="string" required="true">URL to capture screenshot from</field>
+        <field name="full_page" type="boolean" default="true">Capture full page or viewport</field>
+        <field name="format" type="string" default="png" enum="png,jpeg">Image format</field>
+        <field name="quality" type="integer" min="1" max="100" default="90">JPEG quality (1-100)</field>
+        <field name="selector" type="string" optional="true">CSS selector for element capture</field>
+        <field name="wait_strategy" type="string" default="load" enum="load,domcontentloaded,networkidle">Navigation wait strategy</field>
+      </requestModel>
+      <responseModel name="ScreenshotResponse">
+        <field name="success" type="boolean">Whether capture succeeded</field>
+        <field name="data" type="object">Screenshot data or error details</field>
+        <field name="metadata" type="object">Response metadata</field>
+      </responseModel>
+    </endpoint>
+  </apiContract>
+
+  <!-- Implementation Notes -->
+  <implementationNotes>
+    <note id="IMP-001">
+      <title>Reuse Existing BrowserManager</title>
+      <content>Build upon existing BrowserManager.screenshot() method rather than duplicating functionality</content>
+    </note>
+    <note id="IMP-002">
+      <title>Follow Web Tools API Pattern</title>
+      <content>Implement endpoint following established pattern in /tools/* router with consistent error handling</content>
+    </note>
+    <note id="IMP-003">
+      <title>Base64 Encoding</title>
+      <content>Convert screenshot bytes to base64 string for JSON API response transmission</content>
+    </note>
+    <note id="IMP-004">
+      <title>CSS Selector Implementation</title>
+      <content>Use page.querySelector() to locate elements before capture if selector provided</content>
+    </note>
+  </implementationNotes>
+
+  <!-- Generated Test Ideas -->
+  <testIdeas>
+    <test category="Unit Tests">
+      <test>Create ScreenshotRequest Pydantic model validation</test>
+      <test>Create ScreenshotResponse model serialization</test>
+      <test>Test URL validation in screenshot endpoint</test>
+      <test>Test parameter validation and defaults</test>
+    </test>
+    <test category="Integration Tests">
+      <test>Full screenshot capture workflow with valid URL</test>
+      <test>Screenshot capture with CSS selector targeting</test>
+      <test>JPEG format with quality compression</test>
+      <test>Partial page (viewport) screenshot capture</test>
+      <test>Error handling for invalid URLs</test>
+      <test>Error handling for navigation failures</test>
+    </test>
+    <test category="API Endpoint Tests">
+      <test>POST /tools/screenshot with valid parameters</test>
+      <test>POST /tools/screenshot authentication requirements</test>
+      <test>POST /tools/screenshot validation error handling</test>
+      <test>Response format validation</test>
+      <test>Performance timing validation</test>
+    </test>
+    <test category="Security Tests">
+      <test>Blocked URL rejection (localhost, internal IPs)</test>
+      <test>Malicious CSS selector injection prevention</test>
+      <test>Large payload handling</test>
+      <test>Rate limiting behavior</test>
+    </test>
+    <test category="Performance Tests">
+      <test>Screenshot capture timing validation (P1: &lt;5s)</test>
+      <test>Concurrent request handling (serial execution)</test>
+      <test>Memory usage during capture operations</test>
+      <test>Large page screenshot performance</test>
+    </test>
+  </testIdeas>
+
+  <!-- Dependencies and Prerequisites -->
+  <prerequisites>
+    <prerequisite type="Story">7-1-headless-browser-automation (BrowserManager)</prerequisite>
+    <prerequisite type="Story">7-2-form-filling-automation (FormFillService)</prerequisite>
+    <prerequisite type="Story">7-3-url-scraping-content-extraction (Web Tools API)</prerequisite>
+    <prerequisite type="Infrastructure">Docker container with Playwright browsers</prerequisite>
+    <prerequisite type="Infrastructure">Google OAuth2 authentication service</prerequisite>
+  </prerequisites>
+
+  <!-- Related Stories -->
+  <relatedStories>
+    <story id="7-1" title="Headless Browser Automation">BrowserManager foundation service</story>
+    <story id="7-2" title="Form Filling Automation">Form fill automation with screenshots</story>
+    <story id="7-3" title="URL Scraping & Content Extraction">Web tools API foundation</story>
+    <story id="7-4" title="Web Search Integration">Search functionality with screenshots</story>
+  </relatedStories>
+
+  <!-- Integration Points -->
+  <integrationPoints>
+    <integration>
+      <component>BrowserManager</component>
+      <type>Service Call</type>
+      <method>screenshot()</method>
+      <purpose>Core screenshot capture functionality</purpose>
+    </integration>
+    <integration>
+      <component>Authentication Layer</component>
+      <type>Middleware</type>
+      <method>require_authenticated_user</method>
+      <purpose>User authorization validation</purpose>
+    </integration>
+    <integration>
+      <component>Error Handling</component>
+      <type>Pattern</type>
+      <method>Structured HTTPException</method>
+      <purpose>Consistent error responses</purpose>
+    </integration>
+    <integration>
+      <component>Cache Manager</component>
+      <type>Service</type>
+      <method>Optional caching for repeated requests</method>
+      <purpose>Performance optimization</purpose>
+    </integration>
+  </integrationPoints>
+
+  <!-- Success Criteria -->
+  <successCriteria>
+    <criterion>All acceptance criteria implemented and tested</criterion>
+    <criterion>API endpoint follows established web tools patterns</criterion>
+    <criterion>Integration with existing BrowserManager service</criterion>
+    <criterion>Comprehensive error handling and logging</criterion>
+    <criterion>Performance targets met (screenshot &lt;5s)</criterion>
+    <criterion>Security requirements implemented and validated</criterion>
+    <criterion>Test coverage meets standards (90%+ unit, 95%+ API)</criterion>
+  </successCriteria>
+
+  <!-- Final Notes -->
+  <finalNotes>
+    <note>Story 7-5 extends the web automation capabilities by providing dedicated screenshot functionality through a clean API interface. It builds upon the solid foundation of BrowserManager and Web Tools API patterns established in earlier Epic 7 stories.</note>
+  </finalNotes>
+</storyContext>

@@ -244,6 +244,113 @@ class FormFillResponse(BaseModel):
     metadata: Dict[str, Any]
 
 
+class ScreenshotRequest(BaseModel):
+    """Request model for screenshot capture."""
+
+    url: HttpUrl = Field(
+        ...,
+        description="URL to capture screenshot from"
+    )
+
+    full_page: bool = Field(
+        True,
+        description="Capture full page or viewport only"
+    )
+
+    format: Literal["png", "jpeg"] = Field(
+        "png",
+        description="Image format: PNG (lossless) or JPEG (compressed)"
+    )
+
+    quality: Optional[int] = Field(
+        None,
+        ge=1,
+        le=100,
+        description="JPEG quality (1-100), only used for JPEG format"
+    )
+
+    selector: Optional[str] = Field(
+        None,
+        min_length=1,
+        description="CSS selector to capture specific element instead of full page"
+    )
+
+    width: Optional[int] = Field(
+        None,
+        ge=100,
+        le=4000,
+        description="Optional viewport width override"
+    )
+
+    height: Optional[int] = Field(
+        None,
+        ge=100,
+        le=4000,
+        description="Optional viewport height override"
+    )
+
+    wait_strategy: Literal["load", "domcontentloaded", "networkidle"] = Field(
+        "load",
+        description="Navigation wait strategy"
+    )
+
+    @validator('quality')
+    def validate_jpeg_quality(cls, v, values):
+        """Validate quality parameter only applies to JPEG format."""
+        if v is not None and values.get('format') == 'png':
+            raise ValueError('quality parameter only applies to JPEG format')
+        return v
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "url": "https://example.com",
+                "full_page": True,
+                "format": "png",
+                "quality": None,
+                "selector": None,
+                "width": 1920,
+                "height": 1080,
+                "wait_strategy": "load"
+            }
+        }
+
+
+class ScreenshotResponseData(BaseModel):
+    """Screenshot response data."""
+
+    url: HttpUrl = Field(..., description="URL that was captured")
+    format: Literal["png", "jpeg"] = Field(..., description="Image format used")
+    full_page: bool = Field(..., description="Whether full page was captured")
+    data_url: str = Field(..., description="Base64 data URL for the image")
+    width: int = Field(..., description="Image width in pixels")
+    height: int = Field(..., description="Image height in pixels")
+    file_size_bytes: int = Field(..., description="Size of the image file in bytes")
+    selector: Optional[str] = Field(None, description="CSS selector if element capture")
+    execution_time_ms: int = Field(..., description="Time taken to capture screenshot")
+
+
+class ScreenshotResponse(BaseModel):
+    """Response model for screenshot capture."""
+
+    success: bool = Field(..., description="Whether screenshot was captured successfully")
+
+    data: Optional[ScreenshotResponseData] = Field(
+        None,
+        description="Screenshot data if successful"
+    )
+
+    error: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Error details if screenshot failed"
+    )
+
+    metadata: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Response metadata"
+    )
+
+
 # Service Initialization
 
 async def initialize_services():
@@ -541,6 +648,137 @@ async def fill_form(
         )
 
 
+@router.post("/screenshot", response_model=ScreenshotResponse)
+async def capture_screenshot(
+    request: ScreenshotRequest,
+    current_user: dict = Depends(require_authenticated_user)
+) -> ScreenshotResponse:
+    """
+    Capture screenshot of a web page with configurable options.
+
+    Supports full-page or viewport capture, PNG/JPEG formats, quality settings,
+    CSS selector targeting, and custom viewport dimensions.
+
+    Args:
+        request: Screenshot request with URL and capture options
+        current_user: Authenticated user
+
+    Returns:
+        ScreenshotResponse with base64 image data and metadata
+
+    Raises:
+        HTTPException: For authentication, validation, or capture errors
+    """
+    start_time = asyncio.get_event_loop().time()
+
+    try:
+        logger.info(f"User {current_user.get('user_id')} capturing screenshot of {request.url}")
+
+        # Get browser manager instance
+        browser_manager = await BrowserManager.get_instance()
+
+        # Navigate to URL with specified wait strategy
+        page = await browser_manager.navigate(
+            str(request.url),
+            wait_until=request.wait_strategy
+        )
+
+        try:
+            # Capture screenshot with all options
+            data_url = await browser_manager.screenshot_base64(
+                page=page,
+                full_page=request.full_page,
+                format=request.format,
+                quality=request.quality,
+                selector=request.selector,
+                width=request.width,
+                height=request.height
+            )
+
+            # Extract base64 data (remove data URL prefix)
+            base64_data = data_url.split(',')[1]
+            file_size_bytes = len(base64_data) * 3 // 4  # Approximate size from base64
+
+            execution_time_ms = int((asyncio.get_event_loop().time() - start_time) * 1000)
+
+            # Get viewport dimensions for response
+            viewport = page.viewport_size or {"width": 1280, "height": 720}
+
+            # Create success response
+            response_data = ScreenshotResponseData(
+                url=request.url,
+                format=request.format,
+                full_page=request.full_page,
+                data_url=data_url,
+                width=viewport["width"],
+                height=viewport["height"],
+                file_size_bytes=file_size_bytes,
+                selector=request.selector,
+                execution_time_ms=execution_time_ms
+            )
+
+            response = ScreenshotResponse(
+                success=True,
+                data=response_data,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "user_id": current_user.get('user_id'),
+                    "capture_method": "element" if request.selector else "full_page" if request.full_page else "viewport",
+                    "wait_strategy": request.wait_strategy
+                }
+            )
+
+            logger.info(f"Screenshot captured successfully: {request.url} ({execution_time_ms}ms, {file_size_bytes} bytes)")
+            return response
+
+        finally:
+            # Always clean up the page
+            await browser_manager.close_page(page)
+
+    except ValueError as e:
+        # Validation errors
+        logger.error(f"Validation error for screenshot {request.url}: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "SCREENSHOT_VALIDATION_ERROR",
+                "message": str(e),
+                "url": str(request.url)
+            }
+        )
+
+    except Exception as e:
+        # Screenshot capture errors
+        execution_time_ms = int((asyncio.get_event_loop().time() - start_time) * 1000)
+        error_message = str(e).lower()
+
+        # Categorize error types
+        if "timeout" in error_message:
+            error_code = "SCREENSHOT_TIMEOUT"
+            status_code = 408
+        elif "navigation" in error_message or "goto" in error_message:
+            error_code = "SCREENSHOT_NAVIGATION_ERROR"
+            status_code = 422
+        elif "element not found" in error_message:
+            error_code = "SCREENSHOT_ELEMENT_NOT_FOUND"
+            status_code = 400
+        else:
+            error_code = "SCREENSHOT_CAPTURE_ERROR"
+            status_code = 500
+
+        logger.error(f"Screenshot capture failed for {request.url}: {e}")
+
+        raise HTTPException(
+            status_code=status_code,
+            detail={
+                "code": error_code,
+                "message": f"Screenshot capture failed: {str(e)}",
+                "url": str(request.url),
+                "execution_time_ms": execution_time_ms
+            }
+        )
+
+
 @router.get("/scrape_health")
 async def scrape_health_check(
     current_user: dict = Depends(require_authenticated_user)
@@ -725,6 +963,82 @@ async def register_fill_form_tool(tool_registry):
 
     except Exception as e:
         logger.error(f"Failed to register fill_form tool: {e}")
+        raise
+
+
+async def register_screenshot_tool(tool_registry):
+    """
+    Register screenshot tool in the tool registry.
+
+    Args:
+        tool_registry: Tool registry instance
+    """
+    try:
+        tool_definition = {
+            "name": "screenshot",
+            "description": "Capture screenshots of web pages with configurable format, quality, and targeting options",
+            "parameters": {
+                "url": {
+                    "type": "string",
+                    "description": "URL to capture screenshot from",
+                    "required": True
+                },
+                "full_page": {
+                    "type": "boolean",
+                    "description": "Capture full page or viewport only",
+                    "default": True
+                },
+                "format": {
+                    "type": "string",
+                    "description": "Image format: PNG (lossless) or JPEG (compressed)",
+                    "enum": ["png", "jpeg"],
+                    "default": "png"
+                },
+                "quality": {
+                    "type": "integer",
+                    "description": "JPEG quality (1-100), only used for JPEG format",
+                    "minimum": 1,
+                    "maximum": 100
+                },
+                "selector": {
+                    "type": "string",
+                    "description": "CSS selector to capture specific element instead of full page"
+                },
+                "width": {
+                    "type": "integer",
+                    "description": "Optional viewport width override (100-4000px)",
+                    "minimum": 100,
+                    "maximum": 4000
+                },
+                "height": {
+                    "type": "integer",
+                    "description": "Optional viewport height override (100-4000px)",
+                    "minimum": 100,
+                    "maximum": 4000
+                },
+                "wait_strategy": {
+                    "type": "string",
+                    "description": "Navigation wait strategy",
+                    "enum": ["load", "domcontentloaded", "networkidle"],
+                    "default": "load"
+                }
+            },
+            "returns": {
+                "type": "object",
+                "description": "Screenshot data including base64 image, dimensions, file size, and execution time"
+            },
+            "endpoint": "/tools/screenshot",
+            "method": "POST",
+            "auth_required": True,
+            "category": "web_automation",
+            "performance_target": "<5 seconds for typical pages"
+        }
+
+        await tool_registry.register_tool("screenshot", tool_definition)
+        logger.info("screenshot tool registered successfully")
+
+    except Exception as e:
+        logger.error(f"Failed to register screenshot tool: {e}")
         raise
 
 

@@ -1,0 +1,63 @@
+# Summarization Worker Dockerfile
+# Story 4-4: Auto-Summarization Pipeline
+# Python-based background worker for processing conversation summarization jobs
+
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    postgresql-client \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy requirements first for better Docker layer caching
+COPY requirements.txt /app/
+COPY requirements-dev.txt /app/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY onyx-core/ /app/onyx-core/
+COPY docker/ /app/docker/
+
+# Create necessary directories
+RUN mkdir -p /app/logs /app/var/run && \
+    chown -R appuser:appuser /app
+
+# Set permissions
+RUN chmod +x /app/docker/scripts/entrypoint.sh 2>/dev/null || true
+
+# Switch to non-root user
+USER appuser
+
+# Create log directory if it doesn't exist
+RUN mkdir -p /app/logs
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8001/summarization/health || exit 1
+
+# Expose port for health checks
+EXPOSE 8001
+
+# Set entrypoint
+ENTRYPOINT ["/app/docker/scripts/entrypoint.sh"]
+
+# Default command
+CMD ["python", "-m", "onyx-core.workers.summarization_worker"]
